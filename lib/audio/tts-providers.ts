@@ -740,10 +740,42 @@ async function generateFishTTS(config: TTSModelConfig, text: string): Promise<TT
     throw new Error(`Fish TTS API error: ${errorText || response.statusText}`);
   }
 
-  const data = await response.json();
+  let data = await response.json();
 
   if (data.status === 'FAILED') {
     throw new Error(`Fish TTS task failed: ${data.error || 'Unknown error'}`);
+  }
+
+  // RunPod /runsync may return IN_QUEUE or IN_PROGRESS when under load.
+  // Poll /status/{id} until the job completes.
+  if ((data.status === 'IN_QUEUE' || data.status === 'IN_PROGRESS') && data.id) {
+    const statusUrl = syncUrl.replace(/\/runsync$/, `/status/${data.id}`);
+    const maxWaitMs = 3_600_000;
+    const pollIntervalMs = 10_000;
+    const deadline = Date.now() + maxWaitMs;
+
+    while (Date.now() < deadline) {
+      await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+
+      const statusResponse = await fetch(statusUrl, {
+        headers: { Authorization: `Bearer ${apiKey}` },
+      });
+
+      if (!statusResponse.ok) {
+        throw new Error(`Fish TTS status poll error: ${statusResponse.statusText}`);
+      }
+
+      data = await statusResponse.json();
+
+      if (data.status === 'COMPLETED') break;
+      if (data.status === 'FAILED') {
+        throw new Error(`Fish TTS task failed: ${data.error || 'Unknown error'}`);
+      }
+    }
+
+    if (data.status !== 'COMPLETED') {
+      throw new Error(`Fish TTS timed out waiting for job ${data.id}. Last status: ${data.status}`);
+    }
   }
 
   // RunPod usually returns the result in data.output
