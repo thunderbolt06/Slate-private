@@ -9,11 +9,17 @@
  * - gemini-3-pro-image-preview      (Nano Banana Pro — highest quality)
  * - gemini-2.5-flash-image          (Nano Banana — original)
  *
- * Authentication: x-goog-api-key header
+ * Authentication: x-goog-api-key header, or Bearer token from a GCloud service account
+ * when GOOGLE_SERVICE_ACCOUNT_KEY / GOOGLE_APPLICATION_CREDENTIALS is set.
  *
  * API docs: https://ai.google.dev/gemini-api/docs/image-generation
  */
 
+import {
+  isGCloudAuthConfigured,
+  getGoogleAccessToken,
+  buildGCloudHeaders,
+} from '@/lib/ai/gcloud-auth';
 import type {
   ImageGenerationConfig,
   ImageGenerationOptions,
@@ -44,9 +50,18 @@ interface GeminiResponse {
   };
 }
 
+/** Builds request headers, preferring service account Bearer token over API key. */
+async function makeHeaders(apiKey: string): Promise<Record<string, string>> {
+  if (isGCloudAuthConfigured()) {
+    const token = await getGoogleAccessToken();
+    return buildGCloudHeaders(token);
+  }
+  return { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey };
+}
+
 /**
- * Lightweight connectivity test — validates API key by fetching model info.
- * Uses GET /v1beta/models/{model} which does not trigger generation.
+ * Lightweight connectivity test — validates credentials by fetching model list.
+ * Uses GET /v1beta/models which does not trigger generation.
  */
 export async function testNanoBananaConnectivity(
   config: ImageGenerationConfig,
@@ -55,42 +70,56 @@ export async function testNanoBananaConnectivity(
   const model = config.model || DEFAULT_MODEL;
   const url = `${baseUrl}/v1beta/models`;
 
-  // Try ?key= query param first (direct Google API), fall back to x-goog-api-key header (proxy)
   let response: Response | null = null;
-  try {
-    response = await fetch(`${url}?key=${config.apiKey}`, { method: 'GET' });
-  } catch {
-    // Direct API unreachable, try header auth
-  }
-  if (!response || !response.ok) {
+
+  if (isGCloudAuthConfigured()) {
     try {
-      response = await fetch(url, {
-        method: 'GET',
-        headers: { 'x-goog-api-key': config.apiKey },
-      });
+      const headers = await makeHeaders(config.apiKey);
+      response = await fetch(url, { method: 'GET', headers });
     } catch (_err) {
       return {
         success: false,
         message: `Network error: unable to reach ${baseUrl}. Check your Base URL and network connection.`,
       };
     }
+  } else {
+    // Try ?key= query param first (direct Google API), fall back to x-goog-api-key header (proxy)
+    try {
+      response = await fetch(`${url}?key=${config.apiKey}`, { method: 'GET' });
+    } catch {
+      // Direct API unreachable, try header auth
+    }
+    if (!response || !response.ok) {
+      try {
+        response = await fetch(url, {
+          method: 'GET',
+          headers: { 'x-goog-api-key': config.apiKey },
+        });
+      } catch (_err) {
+        return {
+          success: false,
+          message: `Network error: unable to reach ${baseUrl}. Check your Base URL and network connection.`,
+        };
+      }
+    }
   }
 
-  if (response.ok) {
+  if (response?.ok) {
     return { success: true, message: `Connected to Nano Banana (${model})` };
   }
 
   // Parse error body for user-friendly message
-  const text = await response.text().catch(() => '');
-  if (response.status === 400 || response.status === 401 || response.status === 403) {
+  const text = await response?.text().catch(() => '');
+  const status = response?.status ?? 0;
+  if (status === 400 || status === 401 || status === 403) {
     return {
       success: false,
-      message: `Invalid API key or unauthorized (${response.status}). Check your API Key and Base URL match the same provider.`,
+      message: `Invalid credentials or unauthorized (${status}). Check your API Key / service account and Base URL.`,
     };
   }
   return {
     success: false,
-    message: `Nano Banana connectivity failed (${response.status}): ${text}`,
+    message: `Nano Banana connectivity failed (${status}): ${text}`,
   };
 }
 
@@ -103,10 +132,7 @@ export async function generateWithNanoBanana(
 
   const response = await fetch(`${baseUrl}/v1beta/models/${model}:generateContent`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-goog-api-key': config.apiKey,
-    },
+    headers: await makeHeaders(config.apiKey),
     body: JSON.stringify({
       contents: [
         {

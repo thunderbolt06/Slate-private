@@ -190,9 +190,35 @@ const DEFAULT_FILENAME = 'server-providers.yml';
 /** Cache keyed by YAML filename (empty string = default file). */
 const _configs: Map<string, ServerConfig> = new Map();
 
+/**
+ * When a Google Cloud service account is configured (via GOOGLE_SERVICE_ACCOUNT_KEY
+ * or GOOGLE_APPLICATION_CREDENTIALS), all Google/Gemini providers are available
+ * without an explicit API key.  This function injects empty-key entries so the
+ * rest of the codebase sees them as configured.
+ */
+function applyGCloudServiceAccount(config: ServerConfig): void {
+  const hasServiceAccount = !!(
+    process.env.GOOGLE_SERVICE_ACCOUNT_KEY || process.env.GOOGLE_APPLICATION_CREDENTIALS
+  );
+  if (!hasServiceAccount) return;
+
+  // LLM provider
+  if (!config.providers['google']) {
+    config.providers['google'] = { apiKey: '' };
+  }
+  // Image provider (Nano Banana / Gemini native image)
+  if (!config.image['nano-banana']) {
+    config.image['nano-banana'] = { apiKey: '' };
+  }
+  // Video provider (Veo)
+  if (!config.video['veo']) {
+    config.video['veo'] = { apiKey: '' };
+  }
+}
+
 function buildConfig(yamlData: YamlData): ServerConfig {
   const tts = loadEnvSection(TTS_ENV_MAP, yamlData.tts);
-  return {
+  const config: ServerConfig = {
     providers: loadEnvSection(LLM_ENV_MAP, yamlData.providers),
     tts,
     asr: loadEnvSection(ASR_ENV_MAP, yamlData.asr),
@@ -201,6 +227,8 @@ function buildConfig(yamlData: YamlData): ServerConfig {
     video: loadEnvSection(VIDEO_ENV_MAP, yamlData.video),
     webSearch: loadEnvSection(WEB_SEARCH_ENV_MAP, yamlData['web-search']),
   };
+  applyGCloudServiceAccount(config);
+  return config;
 }
 
 function logConfig(config: ServerConfig, label: string): void {

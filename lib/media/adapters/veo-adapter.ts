@@ -8,7 +8,7 @@
  * - Submit:   POST /v1beta/models/{model}:predictLongRunning
  * - Poll:     GET  /v1beta/{operationName}
  *   Returns a video URI in response.generateVideoResponse.generatedSamples[0].video.uri
- * - Download: GET  {video.uri}  (authenticated with x-goog-api-key)
+ * - Download: GET  {video.uri}  (authenticated with Bearer token or x-goog-api-key)
  *
  * Supported models (Gemini API / AI Studio names):
  * - veo-3.1-fast-generate-preview  (fast, $0.15/sec)
@@ -17,12 +17,18 @@
  * - veo-3.0-generate-001           (stable)
  * - veo-2.0-generate-preview       (legacy, $0.50/sec)
  *
- * Authentication: x-goog-api-key header
+ * Authentication: x-goog-api-key header, or Bearer token from a GCloud service account
+ * when GOOGLE_SERVICE_ACCOUNT_KEY / GOOGLE_APPLICATION_CREDENTIALS is set.
  *
  * Stateless: video content is returned as a base64 data URL.
  * No files are saved on the server.
  */
 
+import {
+  isGCloudAuthConfigured,
+  getGoogleAccessToken,
+  buildGCloudHeaders,
+} from '@/lib/ai/gcloud-auth';
 import type {
   VideoGenerationConfig,
   VideoGenerationOptions,
@@ -55,12 +61,13 @@ function getDimensions(aspectRatio?: string): {
   }
 }
 
-/** Common headers for all Veo API calls */
-function apiHeaders(apiKey: string): Record<string, string> {
-  return {
-    'Content-Type': 'application/json',
-    'x-goog-api-key': apiKey,
-  };
+/** Builds request headers, preferring service account Bearer token over API key. */
+async function apiHeaders(apiKey: string): Promise<Record<string, string>> {
+  if (isGCloudAuthConfigured()) {
+    const token = await getGoogleAccessToken();
+    return buildGCloudHeaders(token);
+  }
+  return { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey };
 }
 
 // ---------------------------------------------------------------------------
@@ -109,7 +116,7 @@ async function submitVideoGeneration(
 
   const response = await fetch(url, {
     method: 'POST',
-    headers: apiHeaders(apiKey),
+    headers: await apiHeaders(apiKey),
     body: JSON.stringify(body),
   });
 
@@ -135,7 +142,7 @@ async function pollOperation(
 
   const response = await fetch(url, {
     method: 'GET',
-    headers: apiHeaders(apiKey),
+    headers: await apiHeaders(apiKey),
   });
 
   if (!response.ok) {
@@ -151,8 +158,8 @@ async function pollOperation(
 // ---------------------------------------------------------------------------
 
 /**
- * Lightweight connectivity test — validates API key by fetching model info.
- * Uses GET /v1beta/models/{model} which does not trigger generation.
+ * Lightweight connectivity test — validates credentials by fetching model list.
+ * Uses GET /v1beta/models which does not trigger generation.
  */
 export async function testVeoConnectivity(
   config: VideoGenerationConfig,
@@ -161,42 +168,56 @@ export async function testVeoConnectivity(
   const baseUrl = config.baseUrl || DEFAULT_BASE_URL;
   const url = `${baseUrl}/v1beta/models`;
 
-  // Try ?key= query param first (direct Google API), fall back to x-goog-api-key header (proxy)
   let response: Response | null = null;
-  try {
-    response = await fetch(`${url}?key=${config.apiKey}`, { method: 'GET' });
-  } catch {
-    // Direct API unreachable, try header auth
-  }
-  if (!response || !response.ok) {
+
+  if (isGCloudAuthConfigured()) {
     try {
-      response = await fetch(url, {
-        method: 'GET',
-        headers: { 'x-goog-api-key': config.apiKey },
-      });
+      const headers = await apiHeaders(config.apiKey);
+      response = await fetch(url, { method: 'GET', headers });
     } catch (_err) {
       return {
         success: false,
         message: `Network error: unable to reach ${baseUrl}. Check your Base URL and network connection.`,
       };
     }
+  } else {
+    // Try ?key= query param first (direct Google API), fall back to x-goog-api-key header (proxy)
+    try {
+      response = await fetch(`${url}?key=${config.apiKey}`, { method: 'GET' });
+    } catch {
+      // Direct API unreachable, try header auth
+    }
+    if (!response || !response.ok) {
+      try {
+        response = await fetch(url, {
+          method: 'GET',
+          headers: { 'x-goog-api-key': config.apiKey },
+        });
+      } catch (_err) {
+        return {
+          success: false,
+          message: `Network error: unable to reach ${baseUrl}. Check your Base URL and network connection.`,
+        };
+      }
+    }
   }
 
-  if (response.ok) {
+  if (response?.ok) {
     return { success: true, message: `Connected to Veo (${model})` };
   }
 
   // Parse error body for user-friendly message
-  const text = await response.text().catch(() => '');
-  if (response.status === 400 || response.status === 401 || response.status === 403) {
+  const text = await response?.text().catch(() => '');
+  const status = response?.status ?? 0;
+  if (status === 400 || status === 401 || status === 403) {
     return {
       success: false,
-      message: `Invalid API key or unauthorized (${response.status}). Check your API Key and Base URL match the same provider.`,
+      message: `Invalid credentials or unauthorized (${status}). Check your API Key / service account and Base URL.`,
     };
   }
   return {
     success: false,
-    message: `Veo connectivity failed (${response.status}): ${text}`,
+    message: `Veo connectivity failed (${status}): ${text}`,
   };
 }
 
@@ -248,7 +269,7 @@ export async function generateWithVeo(
   // 5. Download the video and convert to base64 data URL
   const downloadResponse = await fetch(videoUri, {
     method: 'GET',
-    headers: apiHeaders(config.apiKey),
+    headers: await apiHeaders(config.apiKey),
   });
 
   if (!downloadResponse.ok) {
