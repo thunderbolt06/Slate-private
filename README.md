@@ -4,6 +4,7 @@
 
 
 
+
 <p align="center">
   <img src="assets/banner.png" alt="OpenMAIC Banner" width="680"/>
 </p>
