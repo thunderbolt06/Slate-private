@@ -957,68 +957,6 @@ export const TTS_PROVIDERS: Record<TTSProviderId, TTSProviderConfig> = {
     supportedFormats: ['wav', 'mp3'],
     speedRange: { min: 0.5, max: 2.0, default: 1.0 },
   },
-
-  /**
-   * Gemini TTS — Google Cloud Text-to-Speech Gemini models
-   *
-   * Voice IDs are encoded as "VoiceName:languageCode" so the adapter can
-   * extract both the Gemini voice name and the BCP-47 locale from a single
-   * field (e.g. "Charon:en-US").
-   *
-   * Authentication: GOOGLE_SERVICE_ACCOUNT_KEY / GOOGLE_APPLICATION_CREDENTIALS
-   * (service account, no API key needed) or TTS_GEMINI_API_KEY.
-   *
-   * Docs: https://cloud.google.com/text-to-speech/docs/gemini-tts
-   */
-  'gemini-tts': {
-    id: 'gemini-tts',
-    name: 'Gemini TTS',
-    requiresApiKey: false,
-    defaultBaseUrl: 'https://texttospeech.googleapis.com',
-    icon: '/logos/gemini.svg',
-    models: [
-      { id: 'gemini-2.5-flash-lite-preview-tts', name: 'Gemini 2.5 Flash Lite TTS' },
-      { id: 'gemini-2.5-flash-tts', name: 'Gemini 2.5 Flash TTS' },
-      { id: 'gemini-2.5-pro-tts', name: 'Gemini 2.5 Pro TTS' },
-    ],
-    defaultModelId: 'gemini-2.5-flash-lite-preview-tts',
-    voices: [
-      {
-        id: 'Charon:en-US',
-        name: 'Charon — US Male (Narrative)',
-        language: 'en-US',
-        localeName: 'English (United States)',
-        gender: 'male',
-        description: 'Deep, clear US English male narrator (Charon)',
-      },
-      {
-        id: 'Kore:en-US',
-        name: 'Kore — US Female (Narrative)',
-        language: 'en-US',
-        localeName: 'English (United States)',
-        gender: 'female',
-        description: 'Warm, professional US English female narrator (Kore)',
-      },
-      {
-        id: 'Fenrir:en-IN',
-        name: 'Fenrir — India Male (Narrative)',
-        language: 'en-IN',
-        localeName: 'English (India)',
-        gender: 'male',
-        description: 'Strong Indian English male narrator (Fenrir)',
-      },
-      {
-        id: 'Aoede:en-IN',
-        name: 'Aoede — India Female (Narrative)',
-        language: 'en-IN',
-        localeName: 'English (India)',
-        gender: 'female',
-        description: 'Clear Indian English female narrator (Aoede)',
-      },
-    ],
-    supportedFormats: ['mp3'],
-    speedRange: { min: 0.5, max: 2.0, default: 1.0 },
-  },
 };
 
 /**
@@ -1250,7 +1188,6 @@ export const DEFAULT_TTS_VOICES: Record<TTSProviderId, string> = {
   'minimax-tts': 'female-yujie',
   'hf-tts': 'af_heart',
   'fish-tts': 'us-male-narrative',
-  'gemini-tts': 'Charon:en-US',
   'browser-native-tts': 'default',
 };
 
@@ -1265,7 +1202,6 @@ export const DEFAULT_TTS_MODELS: Record<TTSProviderId, string> = {
   'minimax-tts': 'speech-2.8-hd',
   'hf-tts': 'hexgrad/Kokoro-82M',
   'fish-tts': 'fishaudio/s2-pro',
-  'gemini-tts': 'gemini-2.5-flash-lite-preview-tts',
   'browser-native-tts': '',
 };
 

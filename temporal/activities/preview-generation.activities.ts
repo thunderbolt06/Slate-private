@@ -9,9 +9,8 @@
 import { Context } from '@temporalio/activity';
 import { createAdminClient } from '@/utils/supabase/admin';
 import { generateTTS } from '@/lib/audio/tts-providers';
-import { generateImage } from '@/lib/server/media/image-generation';
-import { generateVideo } from '@/lib/server/media/video-generation';
-import { normalizeVideoOptions } from '@/lib/media/video-providers';
+import { generateImage } from '@/lib/media/image-providers';
+import { generateVideo, normalizeVideoOptions } from '@/lib/media/video-providers';
 import { splitLongSpeechActions } from '@/lib/audio/tts-utils';
 import {
   DEFAULT_TTS_VOICES,

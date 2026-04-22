@@ -16,8 +16,7 @@
  */
 
 import { NextRequest } from 'next/server';
-import { aspectRatioToDimensions } from '@/lib/media/image-providers';
-import { generateImage } from '@/lib/server/media/image-generation';
+import { generateImage, aspectRatioToDimensions } from '@/lib/media/image-providers';
 import { resolveImageApiKey, resolveImageBaseUrl } from '@/lib/server/provider-config';
 import type { ImageProviderId, ImageGenerationOptions } from '@/lib/media/types';
 import { createLogger } from '@/lib/logger';
