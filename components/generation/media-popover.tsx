@@ -412,29 +412,15 @@ export function MediaPopover({ onSettingsOpen }: MediaPopoverProps) {
               enabled={ttsEnabled}
               onToggle={setTTSEnabled}
             >
-              {(() => {
-                const provider = TTS_PROVIDERS[ttsProviderId];
-                const voices = getTTSVoices(ttsProviderId);
-                if (!provider || !voices.length) return null;
-                const group: SelectGroupData = {
-                  groupId: ttsProviderId,
-                  groupName: getTTSProviderName(ttsProviderId, t),
-                  groupIcon: provider.icon,
-                  available: true,
-                  items: voices.map((v) => ({
-                    id: v.id,
-                    name: getVoiceDisplayName(v.name, locale),
-                  })),
-                };
-                return (
-                  <GroupedSelect
-                    groups={[group]}
-                    selectedGroupId={ttsProviderId}
-                    selectedItemId={ttsVoice}
-                    onSelect={(_gid, voiceId) => setTTSVoice(voiceId)}
-                  />
-                );
-              })()}
+              <GroupedSelect
+                groups={ttsGroups}
+                selectedGroupId={ttsProviderId}
+                selectedItemId={ttsVoice}
+                onSelect={(gid, voiceId) => {
+                  setTTSProvider(gid as import('@/lib/audio/types').TTSProviderId);
+                  setTTSVoice(voiceId);
+                }}
+              />
             </TabPanel>
           )}
 

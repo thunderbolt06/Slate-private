@@ -218,7 +218,6 @@ export async function generateTTSForClassroom(
     return;
   }
 
-  // Prefer hf-tts when available
   const providerId = (ttsProviderIds.includes('smallest-tts') ? 'smallest-tts' : ttsProviderIds[0]) as TTSProviderId;
   const apiKey = resolveTTSApiKey(providerId);
   if (!apiKey) {

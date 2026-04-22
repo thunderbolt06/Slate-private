@@ -194,26 +194,10 @@ export async function generateTTS(
       const r = await generateFishTTS(config, text);
       return { ...r, usedProviderId: 'fish-tts', usedVoice: voice };
     }
-    case 'smallest-tts':
-      try {
-        const r = await generateSmallestTTS(config, text);
-        return { ...r, usedProviderId: 'smallest-tts', usedVoice: voice };
-      } catch (e) {
-        const error = e as Error;
-        log.error('Smallest TTS failed, falling back to OpenAI', {
-          error: error.message,
-          provider: 'smallest-tts',
-        });
-        const fallbackVoice = 'alloy';
-        const openaiConfig: TTSModelConfig = {
-          providerId: 'openai-tts',
-          apiKey: process.env.TTS_OPENAI_API_KEY || process.env.OPENAI_API_KEY || config.apiKey,
-          voice: fallbackVoice,
-          speed: config.speed || 1.0,
-        };
-        const r = await generateOpenAITTS(openaiConfig, text);
-        return { ...r, usedProviderId: 'openai-tts', usedVoice: fallbackVoice };
-      }
+    case 'smallest-tts': {
+      const r = await generateSmallestTTS(config, text);
+      return { ...r, usedProviderId: 'smallest-tts', usedVoice: voice };
+    }
 
     case 'gemini-tts': {
       const r = await generateGeminiTTS(config, text);

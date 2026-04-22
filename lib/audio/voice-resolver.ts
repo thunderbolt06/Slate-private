@@ -97,7 +97,7 @@ export function getAvailableProvidersWithVoices(
     const hasApiKey = providerConfig?.apiKey && providerConfig.apiKey.trim().length > 0;
     const isServerConfigured = providerConfig?.isServerConfigured === true;
 
-    if (hasApiKey || isServerConfigured) {
+    if (hasApiKey || isServerConfigured || !config.requiresApiKey) {
       const allVoices = config.voices.map((v) => ({ id: v.id, name: v.name }));
 
       // Build model groups

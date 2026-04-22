@@ -9,7 +9,10 @@ import type { ProviderId } from '@/lib/ai/providers';
 import type { ProvidersConfig } from '@/lib/types/settings';
 import { PROVIDERS } from '@/lib/ai/providers';
 import type { TTSProviderId, ASRProviderId } from '@/lib/audio/types';
-import { ASR_PROVIDERS, DEFAULT_TTS_VOICES, TTS_PROVIDERS } from '@/lib/audio/constants';
+import { ASR_PROVIDERS, DEFAULT_TTS_VOICES, DEFAULT_TTS_MODELS, TTS_PROVIDERS } from '@/lib/audio/constants';
+
+const DEFAULT_TTS_PROVIDER: TTSProviderId = 'gemini-tts';
+const DEFAULT_TTS_VOICE = DEFAULT_TTS_VOICES[DEFAULT_TTS_PROVIDER];
 import { PDF_PROVIDERS } from '@/lib/pdf/constants';
 import type { PDFProviderId } from '@/lib/pdf/types';
 import type { ImageProviderId, VideoProviderId } from '@/lib/media/types';
@@ -283,12 +286,13 @@ const getDefaultProvidersConfig = (): ProvidersConfig => {
 
 // Initialize default audio config
 const getDefaultAudioConfig = () => ({
-  ttsProviderId: 'smallest-tts' as TTSProviderId,
-  ttsVoice: 'ethan',
+  ttsProviderId: DEFAULT_TTS_PROVIDER,
+  ttsVoice: DEFAULT_TTS_VOICE,
   ttsSpeed: 1,
   asrProviderId: 'openai-whisper' as ASRProviderId,
   asrLanguage: 'auto',
   ttsProvidersConfig: {
+    'gemini-tts': { apiKey: '', baseUrl: '', modelId: DEFAULT_TTS_MODELS['gemini-tts'], enabled: true },
     'openai-tts': { apiKey: '', baseUrl: '', enabled: true },
     'azure-tts': { apiKey: '', baseUrl: '', enabled: false },
     'glm-tts': { apiKey: '', baseUrl: '', enabled: false },
@@ -1035,7 +1039,7 @@ export const useSettingsStore = create<SettingsState>()(
                 state.ttsProviderId,
                 newTTSConfig,
                 ttsFallback,
-                'browser-native-tts' as TTSProviderId,
+                DEFAULT_TTS_PROVIDER,
               );
               const validASRProvider = validateProvider(
                 state.asrProviderId,
@@ -1125,13 +1129,15 @@ export const useSettingsStore = create<SettingsState>()(
                   autoPdfProvider = 'mineru' as PDFProviderId;
                 }
 
-                // TTS: select first server provider if current is not server-configured
+                // TTS: select preferred default provider if current is not server-configured
                 const serverTtsIds = Object.keys(data.tts) as TTSProviderId[];
                 if (
                   serverTtsIds.length > 0 &&
                   !newTTSConfig[state.ttsProviderId]?.isServerConfigured
                 ) {
-                  autoTtsProvider = serverTtsIds[0];
+                  autoTtsProvider = serverTtsIds.includes(DEFAULT_TTS_PROVIDER)
+                    ? DEFAULT_TTS_PROVIDER
+                    : serverTtsIds[0];
                   autoTtsVoice = DEFAULT_TTS_VOICES[autoTtsProvider] || 'default';
                 }
 
@@ -1295,8 +1301,7 @@ export const useSettingsStore = create<SettingsState>()(
           } else if (state.ttsModel === 'azure-tts') {
             state.ttsProviderId = 'azure-tts';
           } else {
-            // Default to OpenAI
-            state.ttsProviderId = 'openai-tts';
+            state.ttsProviderId = DEFAULT_TTS_PROVIDER;
           }
         }
 

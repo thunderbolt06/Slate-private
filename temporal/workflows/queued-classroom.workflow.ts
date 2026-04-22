@@ -70,14 +70,14 @@ export interface QueuedClassroomWorkflowInput {
 
 // ---------------------------------------------------------------------------
 // Workflow — same pipeline as classroomGenerationWorkflow but:
-//   • Uses an explicit TTS provider (default: smallest-tts, cheaper)
+//   • Uses an explicit TTS provider (default: gemini-tts, cheaper)
 //   • Sends a completion notification via sendCompletionNotificationActivity
 // ---------------------------------------------------------------------------
 
 export async function queuedClassroomGenerationWorkflow(
   args: QueuedClassroomWorkflowInput,
 ): Promise<PersistResult> {
-  const { input, baseUrl, userId, userEmail, jobId, ttsProvider = 'smallest-tts' } = args;
+  const { input, baseUrl, userId, userEmail, jobId, ttsProvider = 'gemini-tts' } = args;
 
   let status: ClassroomJobStatus = 'running';
   let step: ClassroomGenerationStep = 'initializing';
