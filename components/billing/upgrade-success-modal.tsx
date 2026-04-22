@@ -13,7 +13,7 @@ interface UpgradeSuccessModalProps {
 }
 
 const PLUS_FEATURES = [
-  { icon: <Zap className="size-4 text-[#118AB2]" />, label: '30 basic classrooms per month' },
+  { icon: <Zap className="size-4 text-[#118AB2]" />, label: '30 Standard Classrooms per month' },
   { icon: <RotateCcw className="size-4 text-[#06D6A0]" />, label: 'Monthly credit reset' },
   { icon: <BookOpen className="size-4 text-[#118AB2]" />, label: 'Cloud storage for all courses' },
   { icon: <MessageCircle className="size-4 text-[#118AB2]" />, label: 'Slate community access' },
@@ -22,7 +22,7 @@ const PLUS_FEATURES = [
 
 const ULTRA_FEATURES = [
   { icon: <span className="text-sm">⚡</span>, label: '30 instant classrooms per month' },
-  { icon: <span className="text-sm">∞</span>, label: 'Unlimited basic classrooms' },
+  { icon: <span className="text-sm">∞</span>, label: 'Unlimited Standard Classrooms' },
   { icon: <RotateCcw className="size-4 text-[#ffd166]" />, label: 'Monthly instant credit reset' },
   { icon: <Headphones className="size-4 text-[#ffd166]" />, label: '1-on-1 support from the team' },
   { icon: <MessageCircle className="size-4 text-[#ffd166]" />, label: 'Slate community access' },

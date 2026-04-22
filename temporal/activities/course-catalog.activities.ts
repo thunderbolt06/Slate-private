@@ -23,27 +23,11 @@ export async function insertCourseAndGenerateTagsActivity(
   params: InsertCourseAndGenerateTagsParams,
 ): Promise<void> {
   const { stage, outlines, requirement } = params;
-  const { callLLM } = await import('@/lib/ai/llm');
   const { resolveModel } = await import('@/lib/server/resolve-model');
 
-  const { model, modelInfo } = resolveModel({});
+  const { model } = resolveModel({});
 
-  const aiCall = async (systemPrompt: string, userPrompt: string): Promise<string> => {
-    const result = await callLLM(
-      {
-        model,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt },
-        ],
-        maxOutputTokens: modelInfo?.outputWindow,
-      },
-      'course-catalog-metadata',
-    );
-    return result.text;
-  };
-
-  await insertCourseAndGenerateTags(stage, outlines, requirement, aiCall);
+  await insertCourseAndGenerateTags(stage, outlines, requirement, model);
 }
 
 /**

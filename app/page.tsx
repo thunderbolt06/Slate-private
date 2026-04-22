@@ -197,7 +197,7 @@ function ClassroomSplitButton({
             >
               <Clock className="size-3.5 text-[#8338ec] shrink-0" />
               <div className="text-left">
-                <p className="font-bold text-[#073b4c] text-xs">Basic Classroom</p>
+                <p className="font-semibold text-[#073b4c] text-xs">Basic Classroom</p>
                 <p className="text-[10px] text-[#073b4c]/40">Background · 3–5 min</p>
               </div>
             </button>
@@ -269,15 +269,11 @@ function ClassroomSplitButton({
             onClick={() => { setDropdownOpen(false); onUpgradeToUltra(); }}
             className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[#fffdf0] transition-colors cursor-pointer"
           >
-            <span className="size-5 rounded-lg bg-[#ffd166]/20 flex items-center justify-center shrink-0 text-[11px]">
-              ⚡
-            </span>
+            <span className="size-5 rounded-md bg-amber-100 flex items-center justify-center shrink-0 text-[11px]">⚡</span>
             <div className="text-left">
-              <p className="font-black text-[#073b4c] text-xs flex items-center gap-1">
+              <p className="font-semibold text-[#073b4c] text-xs flex items-center gap-1.5">
                 Instant Classroom
-                <span className="px-1 py-0.5 rounded text-[8px] font-black bg-[#ffd166] text-[#073b4c] uppercase tracking-wide">
-                  Ultra
-                </span>
+                <span className="px-1 py-0.5 rounded text-[8px] font-bold bg-[#ffd166] text-[#073b4c] uppercase tracking-wide">Ultra</span>
               </p>
               <p className="text-[10px] text-[#073b4c]/40">Streams live · upgrade to unlock</p>
             </div>
@@ -1016,39 +1012,23 @@ function HomePage() {
               />
 
               {/* Toolbar row */}
-              <div className="px-3 pb-3 flex flex-col gap-2">
-                {/* Top row: tools + voice */}
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 min-w-0">
-                    <GenerationToolbar
-                      language={form.language}
-                      onLanguageChange={(lang) => updateForm('language', lang)}
-                      webSearch={form.webSearch}
-                      onWebSearchChange={(v) => updateForm('webSearch', v)}
-                      onSettingsOpen={(section) => {
-                        setSettingsSection(section);
-                        setSettingsOpen(true);
-                      }}
-                      pdfFile={form.pdfFile}
-                      onPdfFileChange={(f) => updateForm('pdfFile', f)}
-                      onPdfError={setError}
-                    />
-                  </div>
-
-                  {/* Voice input */}
-                  <SpeechButton
-                    size="md"
-                    onTranscription={(text) => {
-                      setForm((prev) => {
-                        const next = prev.requirement + (prev.requirement ? ' ' : '') + text;
-                        updateRequirementCache(next);
-                        return { ...prev, requirement: next };
-                      });
+              <div className="px-3 pb-3 flex items-center gap-2">
+                <div className="flex-1 min-w-0">
+                  <GenerationToolbar
+                    language={form.language}
+                    onLanguageChange={(lang) => updateForm('language', lang)}
+                    webSearch={form.webSearch}
+                    onWebSearchChange={(v) => updateForm('webSearch', v)}
+                    onSettingsOpen={(section) => {
+                      setSettingsSection(section);
+                      setSettingsOpen(true);
                     }}
+                    pdfFile={form.pdfFile}
+                    onPdfFileChange={(f) => updateForm('pdfFile', f)}
+                    onPdfError={setError}
                   />
                 </div>
 
-                {/* Voice input */}
                 <SpeechButton
                   size="md"
                   onTranscription={(text) => {
@@ -1060,7 +1040,6 @@ function HomePage() {
                   }}
                 />
 
-                {/* Smart classroom split-button */}
                 <ClassroomSplitButton
                   canGenerate={canGenerate}
                   canInstantClassroom={canInstantClassroom}

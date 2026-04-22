@@ -34,7 +34,7 @@ const FEATURES: {
   ultra: boolean | string;
 }[] = [
   { label: 'AI course generation', free: true, standard: true, ultra: true },
-  { label: 'Basic classrooms / mo', free: '2 total', standard: '30 / mo', ultra: 'Unlimited' },
+  { label: 'Standard Classrooms / mo', free: '2 total', standard: '30 / mo', ultra: 'Unlimited' },
   { label: 'Instant classrooms / mo', free: false, standard: false, ultra: '30 / mo' },
   { label: 'Cloud storage & quizzes', free: true, standard: true, ultra: true },
   { label: 'Monthly credit reset', free: false, standard: true, ultra: true },
@@ -121,20 +121,20 @@ function CreditsInfo() {
           <div className="space-y-1">
             <p className="text-xs font-black text-[#073b4c]/40 uppercase tracking-widest">Free</p>
             <p className="text-sm text-[#073b4c]/70">
-              2 lifetime credits. Once used, top up for $5 per 10 extra basic classrooms.
+              2 lifetime credits. Once used, top up for $5 per 10 extra Standard Classrooms.
             </p>
           </div>
           <div className="space-y-1">
             <p className="text-xs font-black text-[#118AB2] uppercase tracking-widest">Standard</p>
             <p className="text-sm text-[#073b4c]/70">
-              30 basic classroom credits reset every month on your billing date. Unused credits
+              30 Standard Classroom credits reset every month on your billing date. Unused credits
               don't carry over.
             </p>
           </div>
           <div className="space-y-1">
             <p className="text-xs font-black text-[#ffd166] uppercase tracking-widest">Ultra</p>
             <p className="text-sm text-[#073b4c]/70">
-              30 instant classroom credits + unlimited basic classrooms per month. Instant credits
+              30 instant classroom credits + unlimited Standard Classrooms per month. Instant credits
               reset monthly.
             </p>
           </div>
@@ -142,7 +142,7 @@ function CreditsInfo() {
         <div className="mt-4 pt-4 border-t border-[#073b4c]/5 flex items-start gap-2">
           <RefreshCw className="size-3.5 text-[#073b4c]/30 mt-0.5 shrink-0" />
           <p className="text-xs text-[#073b4c]/40">
-            Top-ups add 10 basic classroom credits for $5 and work on any plan. Credits never
+            Top-ups add 10 Standard Classroom credits for $5 and work on any plan. Credits never
             expire once purchased.
           </p>
         </div>
@@ -378,7 +378,7 @@ export function PricingClient() {
             <ul className="space-y-2.5 mb-8 flex-1">
               <li className="flex items-center gap-2 text-sm text-[#073b4c]/70">
                 <Check className="size-3.5 text-[#06D6A0] stroke-[3] shrink-0" />
-                <strong>2 basic classrooms</strong> (lifetime)
+                <strong>2 Standard Classrooms</strong> (lifetime)
               </li>
               <li className="flex items-center gap-2 text-sm text-[#073b4c]/70">
                 <Check className="size-3.5 text-[#06D6A0] stroke-[3] shrink-0" />
@@ -449,7 +449,7 @@ export function PricingClient() {
             <ul className="space-y-2.5 mb-8 flex-1">
               <li className="flex items-center gap-2 text-sm text-[#073b4c]/70">
                 <Check className="size-3.5 text-[#118AB2] stroke-[3] shrink-0" />
-                <strong>30 basic classrooms / month</strong>
+                <strong>30 Standard Classrooms / month</strong>
               </li>
               <li className="flex items-center gap-2 text-sm text-[#073b4c]/70">
                 <Check className="size-3.5 text-[#118AB2] stroke-[3] shrink-0" />
@@ -549,7 +549,7 @@ export function PricingClient() {
               </li>
               <li className="flex items-center gap-2 text-sm text-[#073b4c]/70">
                 <Infinity className="size-3.5 text-[#ffd166] shrink-0" />
-                <strong>Unlimited basic classrooms</strong>
+                <strong>Unlimited Standard Classrooms</strong>
               </li>
               <li className="flex items-center gap-2 text-sm text-[#073b4c]/70">
                 <Check className="size-3.5 text-[#ffd166] stroke-[3] shrink-0" />
@@ -602,7 +602,7 @@ export function PricingClient() {
           <div className="flex flex-col md:flex-row gap-5">
             <ClassroomTypeCard
               icon={<Clock className="size-5 text-[#8338ec]" />}
-              title="Basic Classroom"
+              title="Standard Classroom"
               color="#8338ec"
               borderColor="border-[#8338ec]/20"
               shadowColor="shadow-[4px_4px_0_#8338ec]/15"

@@ -14,7 +14,7 @@ export const PLAN_LIMITS: Record<AccountType, PlanLimits> = {
   ADMIN: { coursesPerMonth: 99999, isUnlimited: true,  canInstantClassroom: true  },
 };
 
-/** Basic classrooms per month (async/background generation) */
+/** Standard Classrooms per month (async/background generation) */
 export const BASIC_CLASSROOMS_PER_MONTH: Record<AccountType, number | 'unlimited'> = {
   FREE: 2,
   PLUS: 30,
