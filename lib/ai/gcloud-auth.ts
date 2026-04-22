@@ -11,7 +11,15 @@
  * When neither is set, falls back to API-key auth (existing behaviour).
  */
 
-import type { GoogleAuth, OAuth2Client } from 'google-auth-library';
+// IMPORTANT: This module is imported by some client-safe code paths.
+// To avoid bundling Node-only dependencies like `child_process` into the browser,
+// we must not use static imports or literal-string requires for `google-auth-library`.
+type GoogleAuthLike = {
+  getClient(): Promise<unknown>;
+};
+type OAuth2ClientLike = {
+  getAccessToken(): Promise<{ token?: string | null }>;
+};
 
 const SCOPES = ['https://www.googleapis.com/auth/cloud-platform'];
 
@@ -19,14 +27,17 @@ const SCOPES = ['https://www.googleapis.com/auth/cloud-platform'];
 // Singleton auth client
 // ---------------------------------------------------------------------------
 
-let _auth: GoogleAuth | null = null;
+let _auth: GoogleAuthLike | null = null;
 
-function getAuth(): GoogleAuth {
+function getAuth(): GoogleAuthLike {
   if (_auth) return _auth;
 
-  // Dynamic require keeps google-auth-library out of the client bundle
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { GoogleAuth } = require('google-auth-library') as typeof import('google-auth-library');
+  // NOTE: This file can be pulled into client-safe import graphs.
+  // Use eval('require') so Next doesn't bundle Node-only deps for the browser.
+  const req = eval('require') as (id: string) => unknown;
+  const { GoogleAuth } = req('google-auth-library') as {
+    GoogleAuth: new (args: { credentials?: object; scopes: string[] }) => GoogleAuthLike;
+  };
 
   const keyJson = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
   if (keyJson) {
@@ -63,7 +74,7 @@ export async function getGoogleAccessToken(): Promise<string> {
     return _cachedToken;
   }
 
-  const client = (await getAuth().getClient()) as OAuth2Client;
+  const client = (await getAuth().getClient()) as OAuth2ClientLike;
   const response = await client.getAccessToken();
 
   if (!response.token) {
@@ -92,6 +103,27 @@ export function isGCloudAuthConfigured(): boolean {
   return !!(
     process.env.GOOGLE_SERVICE_ACCOUNT_KEY || process.env.GOOGLE_APPLICATION_CREDENTIALS
   );
+}
+
+/**
+ * Returns the Google Cloud project ID for billing / request routing.
+ * Resolution order:
+ *   1. GOOGLE_CLOUD_PROJECT env var
+ *   2. project_id inside GOOGLE_SERVICE_ACCOUNT_KEY JSON
+ *   3. undefined (caller should treat as optional)
+ */
+export function getGoogleProjectId(): string | undefined {
+  if (process.env.GOOGLE_CLOUD_PROJECT) return process.env.GOOGLE_CLOUD_PROJECT;
+  const keyJson = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
+  if (keyJson) {
+    try {
+      const parsed = JSON.parse(keyJson) as { project_id?: string };
+      if (parsed.project_id) return parsed.project_id;
+    } catch {
+      // ignore parse errors here
+    }
+  }
+  return undefined;
 }
 
 /**

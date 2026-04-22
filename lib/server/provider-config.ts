@@ -62,6 +62,7 @@ const TTS_ENV_MAP: Record<string, string> = {
   TTS_MINIMAX: 'minimax-tts',
   TTS_HF: 'hf-tts',
   TTS_FISH: 'fish-tts',
+  TTS_GEMINI: 'gemini-tts',
 };
 
 const ASR_ENV_MAP: Record<string, string> = {
@@ -213,6 +214,10 @@ function applyGCloudServiceAccount(config: ServerConfig): void {
   // Video provider (Veo)
   if (!config.video['veo']) {
     config.video['veo'] = { apiKey: '' };
+  }
+  // TTS provider (Gemini TTS)
+  if (!config.tts['gemini-tts']) {
+    config.tts['gemini-tts'] = { apiKey: '' };
   }
 }
 

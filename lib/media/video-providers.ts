@@ -9,17 +9,6 @@ import type {
   VideoGenerationResult,
   VideoProviderConfig,
 } from './types';
-import { generateWithSeedance, testSeedanceConnectivity } from './adapters/seedance-adapter';
-import { generateWithKling, testKlingConnectivity } from './adapters/kling-adapter';
-import { generateWithVeo, testVeoConnectivity } from './adapters/veo-adapter';
-import {
-  generateWithMiniMaxVideo,
-  testMiniMaxVideoConnectivity,
-} from './adapters/minimax-video-adapter';
-import { generateWithGrokVideo, testGrokVideoConnectivity } from './adapters/grok-video-adapter';
-import { createLogger } from '@/lib/logger';
-
-const log = createLogger('VideoGen');
 
 export const VIDEO_PROVIDERS: Record<VideoProviderId, VideoProviderConfig> = {
   seedance: {
@@ -111,28 +100,6 @@ export const VIDEO_PROVIDERS: Record<VideoProviderId, VideoProviderConfig> = {
   },
 };
 
-export async function testVideoConnectivity(
-  config: VideoGenerationConfig,
-): Promise<{ success: boolean; message: string }> {
-  switch (config.providerId) {
-    case 'seedance':
-      return testSeedanceConnectivity(config);
-    case 'kling':
-      return testKlingConnectivity(config);
-    case 'veo':
-      return testVeoConnectivity(config);
-    case 'minimax-video':
-      return testMiniMaxVideoConnectivity(config);
-    case 'grok-video':
-      return testGrokVideoConnectivity(config);
-    default:
-      return {
-        success: false,
-        message: `Unsupported video provider: ${config.providerId}`,
-      };
-  }
-}
-
 /**
  * Normalize video generation options against provider capabilities.
  * Ensures duration, aspectRatio, and resolution are valid for the given provider.
@@ -173,33 +140,4 @@ export function normalizeVideoOptions(
   }
 
   return normalized;
-}
-
-export async function generateVideo(
-  config: VideoGenerationConfig,
-  options: VideoGenerationOptions,
-): Promise<VideoGenerationResult> {
-  const normalizedOptions = normalizeVideoOptions(config.providerId, options);
-
-  log.info('[TOKEN_USAGE] video-generation', {
-    service: 'video',
-    provider: config.providerId,
-    durationMs: normalizedOptions.duration ? normalizedOptions.duration * 1000 : 0,
-    usage: 1,
-  });
-
-  switch (config.providerId) {
-    case 'seedance':
-      return generateWithSeedance(config, options);
-    case 'kling':
-      return generateWithKling(config, options);
-    case 'veo':
-      return generateWithVeo(config, options);
-    case 'minimax-video':
-      return generateWithMiniMaxVideo(config, options);
-    case 'grok-video':
-      return generateWithGrokVideo(config, options);
-    default:
-      throw new Error(`Unsupported video provider: ${config.providerId}`);
-  }
 }

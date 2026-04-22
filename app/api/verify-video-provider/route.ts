@@ -15,7 +15,7 @@
  */
 
 import { NextRequest } from 'next/server';
-import { testVideoConnectivity } from '@/lib/media/video-providers';
+import { testVideoConnectivity } from '@/lib/server/media/video-generation';
 import { resolveVideoApiKey, resolveVideoBaseUrl } from '@/lib/server/provider-config';
 import type { VideoProviderId } from '@/lib/media/types';
 import { apiError, apiSuccess } from '@/lib/server/api-response';

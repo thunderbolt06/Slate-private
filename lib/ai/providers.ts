@@ -1141,51 +1141,9 @@ export function getModel(config: ModelConfig): ModelWithInfo {
 
     case 'google': {
       const googleOptions: Parameters<typeof createGoogleGenerativeAI>[0] = {
-        apiKey: effectiveApiKey || 'service-account',
+        apiKey: effectiveApiKey,
         baseURL: effectiveBaseUrl,
       };
-
-      // Check if a GCloud service account should be used instead of an API key.
-      // Dynamic require keeps server-only modules out of the client bundle.
-      const useServiceAccount =
-        !effectiveApiKey &&
-        !!(
-          process.env.GOOGLE_SERVICE_ACCOUNT_KEY ||
-          process.env.GOOGLE_APPLICATION_CREDENTIALS
-        );
-
-      if (useServiceAccount || config.proxy) {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const { ProxyAgent, fetch: undiciFetch } = require('undici') as typeof import('undici');
-
-        const proxyAgent = config.proxy ? new ProxyAgent(config.proxy) : undefined;
-
-        googleOptions.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
-          let headers: Record<string, string> = {
-            ...(init?.headers as Record<string, string>),
-          };
-
-          if (useServiceAccount) {
-            // Replace x-goog-api-key with a Bearer token from the service account
-            // eslint-disable-next-line @typescript-eslint/no-require-imports
-            const { getGoogleAccessToken, stripApiKeyFromUrl } =
-              require('./gcloud-auth') as typeof import('./gcloud-auth');
-            const token = await getGoogleAccessToken();
-            delete headers['x-goog-api-key'];
-            headers['Authorization'] = `Bearer ${token}`;
-            if (typeof input === 'string') {
-              input = stripApiKeyFromUrl(input);
-            }
-          }
-
-          const fetchFn = proxyAgent ? undiciFetch : fetch;
-          return fetchFn(input as string, {
-            ...(init as Record<string, unknown>),
-            headers,
-            ...(proxyAgent ? { dispatcher: proxyAgent } : {}),
-          }).then((r) => r as Response);
-        }) as typeof fetch;
-      }
 
       const google = createGoogleGenerativeAI(googleOptions);
       model = google.chat(config.modelId);

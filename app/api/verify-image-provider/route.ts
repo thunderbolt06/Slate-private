@@ -15,7 +15,7 @@
  */
 
 import { NextRequest } from 'next/server';
-import { testImageConnectivity } from '@/lib/media/image-providers';
+import { testImageConnectivity } from '@/lib/server/media/image-generation';
 import { resolveImageApiKey, resolveImageBaseUrl } from '@/lib/server/provider-config';
 import type { ImageProviderId } from '@/lib/media/types';
 import { apiError, apiSuccess } from '@/lib/server/api-response';

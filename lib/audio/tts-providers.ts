@@ -193,6 +193,10 @@ export async function generateTTS(
       const r = await generateFishTTS(config, text);
       return { ...r, usedProviderId: 'fish-tts', usedVoice: voice };
     }
+    case 'gemini-tts': {
+      const r = await generateGeminiTTS(config, text);
+      return { ...r, usedProviderId: 'gemini-tts', usedVoice: voice };
+    }
     case 'smallest-tts':
       try {
         const r = await generateSmallestTTS(config, text);
@@ -854,6 +858,89 @@ async function generateFishTTS(config: TTSModelConfig, text: string): Promise<TT
       typeof output === 'object' ? Object.keys(output).join(', ') : typeof output
     }`,
   );
+}
+
+/**
+ * Gemini TTS implementation (Google Cloud Text-to-Speech API)
+ *
+ * Voice IDs use a composite "VoiceName:languageCode" format so both pieces of
+ * information are available from a single field (e.g. "Charon:en-US").
+ *
+ * Authentication priority:
+ *   1. GCloud service account (GOOGLE_SERVICE_ACCOUNT_KEY / GOOGLE_APPLICATION_CREDENTIALS)
+ *   2. API key (config.apiKey)
+ *
+ * Docs: https://cloud.google.com/text-to-speech/docs/gemini-tts
+ */
+async function generateGeminiTTS(
+  config: TTSModelConfig,
+  text: string,
+): Promise<TTSProviderResult> {
+  const baseUrl = (config.baseUrl || TTS_PROVIDERS['gemini-tts'].defaultBaseUrl!).replace(/\/$/, '');
+  const modelId = config.modelId || TTS_PROVIDERS['gemini-tts'].defaultModelId;
+
+  // Parse "VoiceName:languageCode" composite voice ID
+  const rawVoice = config.voice || 'Charon:en-US';
+  const colonIdx = rawVoice.indexOf(':');
+  const voiceName = colonIdx > 0 ? rawVoice.slice(0, colonIdx) : rawVoice;
+  const languageCode = colonIdx > 0 ? rawVoice.slice(colonIdx + 1) : 'en-US';
+
+  // Build auth headers
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+
+  const { isGCloudAuthConfigured, getGoogleAccessToken, getGoogleProjectId } =
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    require('@/lib/ai/gcloud-auth') as typeof import('@/lib/ai/gcloud-auth');
+
+  if (isGCloudAuthConfigured()) {
+    const token = await getGoogleAccessToken();
+    headers['Authorization'] = `Bearer ${token}`;
+    const projectId = getGoogleProjectId();
+    if (projectId) headers['x-goog-user-project'] = projectId;
+  } else if (config.apiKey) {
+    headers['x-goog-api-key'] = config.apiKey;
+  } else {
+    throw new Error(
+      'Gemini TTS requires authentication: set GOOGLE_SERVICE_ACCOUNT_KEY, ' +
+        'GOOGLE_APPLICATION_CREDENTIALS, or TTS_GEMINI_API_KEY.',
+    );
+  }
+
+  const body = {
+    input: { text },
+    voice: {
+      languageCode,
+      name: voiceName,
+      modelName: modelId,
+    },
+    audioConfig: { audioEncoding: 'MP3' },
+  };
+
+  const response = await fetch(`${baseUrl}/v1/text:synthesize`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text().catch(() => response.statusText);
+    throw new Error(`Gemini TTS API error (${response.status}): ${errorText}`);
+  }
+
+  const data = (await response.json()) as { audioContent?: string; error?: { message: string } };
+
+  if (data.error) {
+    throw new Error(`Gemini TTS error: ${data.error.message}`);
+  }
+
+  if (!data.audioContent) {
+    throw new Error('Gemini TTS returned no audio content');
+  }
+
+  return {
+    audio: new Uint8Array(Buffer.from(data.audioContent, 'base64')),
+    format: 'mp3',
+  };
 }
 
 /**
