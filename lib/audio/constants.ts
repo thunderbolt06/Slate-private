@@ -940,6 +940,34 @@ export const TTS_PROVIDERS: Record<TTSProviderId, TTSProviderConfig> = {
     speedRange: { min: 0.1, max: 10.0, default: 1.0 },
   },
 
+  'gemini-tts': {
+    id: 'gemini-tts',
+    name: 'Gemini TTS (Google Cloud)',
+    requiresApiKey: false,
+    defaultBaseUrl: 'https://texttospeech.googleapis.com',
+    icon: '/logos/google.svg',
+    models: [
+      { id: 'gemini-2.5-flash-tts', name: 'Gemini 2.5 Flash TTS' },
+      { id: 'gemini-2.5-flash-lite-preview-tts', name: 'Gemini 2.5 Flash Lite TTS (Preview)' },
+      { id: 'gemini-2.5-pro-tts', name: 'Gemini 2.5 Pro TTS' },
+    ],
+    defaultModelId: 'gemini-2.5-flash-lite-preview-tts',
+    voices: [
+      { id: 'Kore', name: 'Kore', language: 'en', gender: 'female' },
+      { id: 'Charon', name: 'Charon', language: 'en', gender: 'male' },
+      { id: 'Aoede', name: 'Aoede', language: 'en', gender: 'female' },
+      { id: 'Leda', name: 'Leda', language: 'en', gender: 'female' },
+      { id: 'Puck', name: 'Puck', language: 'en', gender: 'male' },
+      { id: 'Callirrhoe', name: 'Callirrhoe', language: 'en', gender: 'female' },
+      { id: 'Fenrir', name: 'Fenrir', language: 'en', gender: 'male' },
+      { id: 'Orus', name: 'Orus', language: 'en', gender: 'male' },
+      { id: 'Zephyr', name: 'Zephyr', language: 'en', gender: 'neutral' },
+      { id: 'Achird', name: 'Achird', language: 'en', gender: 'neutral' },
+    ],
+    supportedFormats: ['mp3', 'wav', 'ogg'],
+    speedRange: { min: 0.25, max: 4.0, default: 1.0 },
+  },
+
   'fish-tts': {
     id: 'fish-tts',
     name: 'Fish Speech (RunPod)',
@@ -1189,6 +1217,7 @@ export const DEFAULT_TTS_VOICES: Record<TTSProviderId, string> = {
   'hf-tts': 'af_heart',
   'fish-tts': 'us-male-narrative',
   'browser-native-tts': 'default',
+  'gemini-tts': 'Kore',
 };
 
 export const DEFAULT_TTS_MODELS: Record<TTSProviderId, string> = {
@@ -1203,6 +1232,7 @@ export const DEFAULT_TTS_MODELS: Record<TTSProviderId, string> = {
   'hf-tts': 'hexgrad/Kokoro-82M',
   'fish-tts': 'fishaudio/s2-pro',
   'browser-native-tts': '',
+  'gemini-tts': 'gemini-2.5-flash-lite-preview-tts',
 };
 
 /**

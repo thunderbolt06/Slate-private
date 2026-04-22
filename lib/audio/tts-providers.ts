@@ -96,6 +96,7 @@ import type { TTSModelConfig } from './types';
 import { TTS_PROVIDERS } from './constants';
 import { createLogger } from '@/lib/logger';
 import { InferenceClient } from '@huggingface/inference';
+import { GoogleAuth } from 'google-auth-library';
 
 const log = createLogger('TTSGen');
 
@@ -213,6 +214,11 @@ export async function generateTTS(
         const r = await generateOpenAITTS(openaiConfig, text);
         return { ...r, usedProviderId: 'openai-tts', usedVoice: fallbackVoice };
       }
+
+    case 'gemini-tts': {
+      const r = await generateGeminiTTS(config, text);
+      return { ...r, usedProviderId: 'gemini-tts', usedVoice: voice };
+    }
 
     case 'browser-native-tts':
       throw new Error(
@@ -854,6 +860,77 @@ async function generateFishTTS(config: TTSModelConfig, text: string): Promise<TT
       typeof output === 'object' ? Object.keys(output).join(', ') : typeof output
     }`,
   );
+}
+
+/**
+ * Gemini TTS implementation (Google Cloud Text-to-Speech API)
+ * Uses Application Default Credentials (ADC) or API key for authentication.
+ * Supports gemini-2.5-flash-tts, gemini-2.5-flash-lite-preview-tts, gemini-2.5-pro-tts
+ */
+async function generateGeminiTTS(
+  config: TTSModelConfig,
+  text: string,
+): Promise<TTSProviderResult> {
+  const baseUrl = config.baseUrl || TTS_PROVIDERS['gemini-tts'].defaultBaseUrl!;
+  const modelName = config.modelId || 'gemini-2.5-flash-lite-preview-tts';
+
+  const audioEncodingMap: Record<string, string> = {
+    mp3: 'MP3',
+    wav: 'LINEAR16',
+    ogg: 'OGG_OPUS',
+  };
+  const requestedFormat = config.format || 'mp3';
+  const audioEncoding = audioEncodingMap[requestedFormat] || 'MP3';
+
+  const requestBody = {
+    input: { text },
+    voice: {
+      languageCode: 'en-US',
+      name: config.voice || 'Kore',
+      model_name: modelName,
+    },
+    audioConfig: { audioEncoding },
+  };
+
+  let authHeader: string;
+  if (config.apiKey) {
+    authHeader = `Bearer ${config.apiKey}`;
+  } else {
+    const auth = new GoogleAuth({
+      keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS,
+      scopes: ['https://www.googleapis.com/auth/cloud-platform'],
+    });
+    const client = await auth.getClient();
+    const tokenResponse = await client.getAccessToken();
+    if (!tokenResponse.token) throw new Error('Gemini TTS: failed to obtain ADC access token');
+    authHeader = `Bearer ${tokenResponse.token}`;
+  }
+
+  const projectId = process.env.GOOGLE_CLOUD_PROJECT || 'vocal-antler-494115-g4';
+  const response = await fetch(`${baseUrl}/v1/text:synthesize`, {
+    method: 'POST',
+    headers: {
+      Authorization: authHeader,
+      'Content-Type': 'application/json; charset=utf-8',
+      'x-goog-user-project': projectId,
+    },
+    body: JSON.stringify(requestBody),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text().catch(() => response.statusText);
+    throw new Error(`Gemini TTS API error (${response.status}): ${errorText}`);
+  }
+
+  const data = await response.json();
+  if (!data.audioContent) {
+    throw new Error(`Gemini TTS: no audioContent in response`);
+  }
+
+  return {
+    audio: new Uint8Array(Buffer.from(data.audioContent, 'base64')),
+    format: requestedFormat === 'wav' ? 'wav' : requestedFormat === 'ogg' ? 'ogg' : 'mp3',
+  };
 }
 
 /**

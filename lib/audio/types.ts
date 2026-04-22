@@ -89,7 +89,8 @@ export type TTSProviderId =
   | 'smallest-tts'
   | 'hf-tts'
   | 'fish-tts'
-  | 'browser-native-tts';
+  | 'browser-native-tts'
+  | 'gemini-tts';
 // Add new TTS providers below (uncomment and modify):
 // | 'fish-audio-tts'
 // | 'cartesia-tts'

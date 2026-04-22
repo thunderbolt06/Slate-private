@@ -542,6 +542,7 @@
     "providerHFTTS": "HuggingFace (Kokoro-82M)",
     "providerBrowserNativeTTS": "Browser Native TTS",
     "providerFishTTS": "Fish Speech (RunPod)",
+    "providerGeminiTTS": "Gemini TTS (Google Cloud)",
     "providerOpenAIWhisper": "OpenAI ASR (gpt-4o-mini-transcribe)",
     "providerBrowserNative": "Browser Native ASR",
     "providerQwenASR": "Qwen ASR (Alibaba Cloud Bailian)",
