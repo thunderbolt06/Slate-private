@@ -102,9 +102,15 @@ const log = createLogger('TTSGen');
 /**
  * Result of TTS generation
  */
-export interface TTSGenerationResult {
+/** Raw result returned by individual provider implementations */
+interface TTSProviderResult {
   audio: Uint8Array;
   format: string;
+}
+
+export interface TTSGenerationResult extends TTSProviderResult {
+  usedProviderId: string;
+  usedVoice: string;
 }
 
 /**
@@ -148,50 +154,64 @@ export async function generateTTS(
     usage: 1,
   });
 
+  const voice = config.voice || 'default';
+
   switch (config.providerId) {
-    case 'openai-tts':
-      return await generateOpenAITTS(config, text);
-
-    case 'azure-tts':
-      return await generateAzureTTS(config, text);
-
-    case 'glm-tts':
-      return await generateGLMTTS(config, text);
-
-    case 'qwen-tts':
-      return await generateQwenTTS(config, text);
-
-    case 'minimax-tts':
-      return await generateMiniMaxTTS(config, text);
-    case 'doubao-tts':
-      return await generateDoubaoTTS(config, text);
-    case 'elevenlabs-tts':
-      return await generateElevenLabsTTS(config, text);
-
-    case 'hf-tts':
-      return await generateHFTTS(config, text);
-
-    case 'fish-tts':
-      return await generateFishTTS(config, text);
-
+    case 'openai-tts': {
+      const r = await generateOpenAITTS(config, text);
+      return { ...r, usedProviderId: 'openai-tts', usedVoice: voice };
+    }
+    case 'azure-tts': {
+      const r = await generateAzureTTS(config, text);
+      return { ...r, usedProviderId: 'azure-tts', usedVoice: voice };
+    }
+    case 'glm-tts': {
+      const r = await generateGLMTTS(config, text);
+      return { ...r, usedProviderId: 'glm-tts', usedVoice: voice };
+    }
+    case 'qwen-tts': {
+      const r = await generateQwenTTS(config, text);
+      return { ...r, usedProviderId: 'qwen-tts', usedVoice: voice };
+    }
+    case 'minimax-tts': {
+      const r = await generateMiniMaxTTS(config, text);
+      return { ...r, usedProviderId: 'minimax-tts', usedVoice: voice };
+    }
+    case 'doubao-tts': {
+      const r = await generateDoubaoTTS(config, text);
+      return { ...r, usedProviderId: 'doubao-tts', usedVoice: voice };
+    }
+    case 'elevenlabs-tts': {
+      const r = await generateElevenLabsTTS(config, text);
+      return { ...r, usedProviderId: 'elevenlabs-tts', usedVoice: voice };
+    }
+    case 'hf-tts': {
+      const r = await generateHFTTS(config, text);
+      return { ...r, usedProviderId: 'hf-tts', usedVoice: voice };
+    }
+    case 'fish-tts': {
+      const r = await generateFishTTS(config, text);
+      return { ...r, usedProviderId: 'fish-tts', usedVoice: voice };
+    }
     case 'smallest-tts':
       try {
-        return await generateSmallestTTS(config, text);
+        const r = await generateSmallestTTS(config, text);
+        return { ...r, usedProviderId: 'smallest-tts', usedVoice: voice };
       } catch (e) {
         const error = e as Error;
         log.error('Smallest TTS failed, falling back to OpenAI', {
           error: error.message,
           provider: 'smallest-tts',
         });
-
-        // Use OpenAI TTS as backup
+        const fallbackVoice = 'alloy';
         const openaiConfig: TTSModelConfig = {
           providerId: 'openai-tts',
           apiKey: process.env.TTS_OPENAI_API_KEY || process.env.OPENAI_API_KEY || config.apiKey,
-          voice: 'alloy', // Generic fallback voice
+          voice: fallbackVoice,
           speed: config.speed || 1.0,
         };
-        return await generateOpenAITTS(openaiConfig, text);
+        const r = await generateOpenAITTS(openaiConfig, text);
+        return { ...r, usedProviderId: 'openai-tts', usedVoice: fallbackVoice };
       }
 
     case 'browser-native-tts':
@@ -210,7 +230,7 @@ export async function generateTTS(
 async function generateOpenAITTS(
   config: TTSModelConfig,
   text: string,
-): Promise<TTSGenerationResult> {
+): Promise<TTSProviderResult> {
   const baseUrl = config.baseUrl || TTS_PROVIDERS['openai-tts'].defaultBaseUrl;
 
   // Use gpt-4o-mini-tts for best quality and intelligent realtime applications
@@ -246,7 +266,7 @@ async function generateOpenAITTS(
 async function generateAzureTTS(
   config: TTSModelConfig,
   text: string,
-): Promise<TTSGenerationResult> {
+): Promise<TTSProviderResult> {
   const baseUrl = config.baseUrl || TTS_PROVIDERS['azure-tts'].defaultBaseUrl;
 
   // Build SSML
@@ -283,7 +303,7 @@ async function generateAzureTTS(
 /**
  * GLM TTS implementation (GLM API)
  */
-async function generateGLMTTS(config: TTSModelConfig, text: string): Promise<TTSGenerationResult> {
+async function generateGLMTTS(config: TTSModelConfig, text: string): Promise<TTSProviderResult> {
   const baseUrl = config.baseUrl || TTS_PROVIDERS['glm-tts'].defaultBaseUrl;
 
   const response = await fetch(`${baseUrl}/audio/speech`, {
@@ -326,7 +346,7 @@ async function generateGLMTTS(config: TTSModelConfig, text: string): Promise<TTS
 /**
  * Qwen TTS implementation (DashScope API - Qwen3 TTS Flash)
  */
-async function generateQwenTTS(config: TTSModelConfig, text: string): Promise<TTSGenerationResult> {
+async function generateQwenTTS(config: TTSModelConfig, text: string): Promise<TTSProviderResult> {
   const baseUrl = config.baseUrl || TTS_PROVIDERS['qwen-tts'].defaultBaseUrl;
 
   // Calculate speed: Qwen3 uses rate parameter from -500 to 500
@@ -386,7 +406,7 @@ async function generateQwenTTS(config: TTSModelConfig, text: string): Promise<TT
 async function generateMiniMaxTTS(
   config: TTSModelConfig,
   text: string,
-): Promise<TTSGenerationResult> {
+): Promise<TTSProviderResult> {
   const baseUrl = (config.baseUrl || TTS_PROVIDERS['minimax-tts'].defaultBaseUrl || '').replace(
     /\/$/,
     '',
@@ -449,7 +469,7 @@ async function generateMiniMaxTTS(
 async function generateElevenLabsTTS(
   config: TTSModelConfig,
   text: string,
-): Promise<TTSGenerationResult> {
+): Promise<TTSProviderResult> {
   const baseUrl = config.baseUrl || TTS_PROVIDERS['elevenlabs-tts'].defaultBaseUrl;
   const requestedFormat = config.format || 'mp3';
   const clampedSpeed = Math.min(1.2, Math.max(0.7, config.speed || 1.0));
@@ -529,7 +549,7 @@ export { getAllTTSProviders, getTTSProvider, getTTSVoices } from './constants';
 async function generateDoubaoTTS(
   config: TTSModelConfig,
   text: string,
-): Promise<TTSGenerationResult> {
+): Promise<TTSProviderResult> {
   const colonIdx = (config.apiKey || '').indexOf(':');
   if (colonIdx <= 0) {
     throw new Error(
@@ -626,7 +646,7 @@ async function generateDoubaoTTS(
 async function generateSmallestTTS(
   config: TTSModelConfig,
   text: string,
-): Promise<TTSGenerationResult> {
+): Promise<TTSProviderResult> {
   // Use model-specific endpoint if provided, otherwise default to lightning-v3.1
   const modelId = config.modelId || 'lightning-v3.1';
   const baseUrl = config.baseUrl || `https://api.smallest.ai/waves/v1/${modelId}/get_speech`;
@@ -661,7 +681,7 @@ async function generateSmallestTTS(
 /**
  * HuggingFace Kokoro-82M TTS via fal-ai provider
  */
-async function generateHFTTS(config: TTSModelConfig, text: string): Promise<TTSGenerationResult> {
+async function generateHFTTS(config: TTSModelConfig, text: string): Promise<TTSProviderResult> {
   const token = config.apiKey || process.env.HF_TOKEN;
   if (!token) {
     throw new Error('HuggingFace TTS requires an API token (HF_TOKEN)');
@@ -685,7 +705,7 @@ async function generateHFTTS(config: TTSModelConfig, text: string): Promise<TTSG
 /**
  * Fish Speech implementation (RunPod serverless)
  */
-async function generateFishTTS(config: TTSModelConfig, text: string): Promise<TTSGenerationResult> {
+async function generateFishTTS(config: TTSModelConfig, text: string): Promise<TTSProviderResult> {
   const baseUrl = config.baseUrl || TTS_PROVIDERS['fish-tts'].defaultBaseUrl!;
   const apiKey = config.apiKey!;
 

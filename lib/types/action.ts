@@ -43,6 +43,8 @@ export interface SpeechAction extends ActionBase {
   audioUrl?: string; // Server-generated TTS audio URL
   voice?: string;
   speed?: number; // default 1.0
+  ttsProviderId?: string; // Provider used to generate audioUrl
+  ttsVoice?: string; // Voice used to generate audioUrl
 }
 
 /** Open whiteboard (wait for animation) */

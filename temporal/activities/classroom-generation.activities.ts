@@ -592,7 +592,9 @@ export async function generateTTSWithProviderActivity(
             }
             speechAction.audioId = audioId;
             speechAction.audioUrl = `${supabasePublicUrl}/storage/v1/object/public/courses/${storagePath}`;
-            log.info(`TTS (${providerId}) uploaded: ${storagePath}`);
+            speechAction.ttsProviderId = result.usedProviderId;
+            speechAction.ttsVoice = result.usedVoice;
+            log.info(`TTS (${result.usedProviderId}) uploaded: ${storagePath}`);
           } catch (err) {
             log.warn(`TTS generation failed for ${speechAction.id}:`, err);
           }

@@ -186,6 +186,8 @@ export async function generateSceneTTSToSupabaseActivity(
         }
         speechAction.audioId = audioId;
         speechAction.audioUrl = getSupabasePublicUrl('courses', storagePath);
+        speechAction.ttsProviderId = result.usedProviderId;
+        speechAction.ttsVoice = result.usedVoice;
         log.info(`TTS uploaded: ${storagePath} (${result.audio.length} bytes)`);
       } catch (err) {
         log.warn(`TTS generation/upload failed for action ${speechAction.id}:`, err);

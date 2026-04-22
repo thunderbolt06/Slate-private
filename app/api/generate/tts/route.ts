@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
     );
 
     // Generate audio
-    const { audio, format } = await generateTTS(config, text);
+    const { audio, format, usedProviderId, usedVoice } = await generateTTS(config, text);
 
     // Convert to base64
     const base64 = Buffer.from(audio).toString('base64');
@@ -115,7 +115,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    return apiSuccess({ audioId, base64, format, audioUrl });
+    return apiSuccess({ audioId, base64, format, audioUrl, ttsProviderId: usedProviderId, ttsVoice: usedVoice });
   } catch (error) {
     log.error(
       `TTS generation failed [provider=${ttsProviderId ?? 'unknown'}, voice=${ttsVoice ?? 'unknown'}, audioId=${audioId ?? 'unknown'}]:`,
