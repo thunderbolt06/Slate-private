@@ -11,7 +11,7 @@ const log = createLogger('IntroSSE');
 
 export const maxDuration = 300;
 
-const DEFAULT_PROVIDER: TTSProviderId = 'hf-tts';
+const DEFAULT_PROVIDER: TTSProviderId = 'smallest-tts';
 
 /**
  * SSE Endpoint for prioritized course introduction.
