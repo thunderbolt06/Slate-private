@@ -943,7 +943,7 @@ export const TTS_PROVIDERS: Record<TTSProviderId, TTSProviderConfig> = {
   'gemini-tts': {
     id: 'gemini-tts',
     name: 'Gemini TTS',
-    requiresApiKey: false,
+    requiresApiKey: true,
     defaultBaseUrl: 'https://texttospeech.googleapis.com',
     icon: '/logos/google.svg',
     models: [
