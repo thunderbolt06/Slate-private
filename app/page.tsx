@@ -782,7 +782,7 @@ function HomePage() {
   const canGenerate = !!form.requirement.trim();
 
   const navPillClassName =
-    'flex items-center gap-2 h-9 px-4 rounded-full border-2 border-[#073b4c] bg-white text-[#073b4c] font-bold text-xs hover:translate-y-[-1px] shadow-[3px_3px_0_#073b4c] hover:shadow-[4px_4px_0_#073b4c] transition-all cursor-pointer active:translate-y-0 active:shadow-[1px_1px_0_#073b4c]';
+    'flex items-center gap-2 h-9 px-2 md:px-4 rounded-full border-2 border-[#073b4c] bg-white text-[#073b4c] font-bold text-xs hover:translate-y-[-1px] shadow-[3px_3px_0_#073b4c] hover:shadow-[4px_4px_0_#073b4c] transition-all cursor-pointer active:translate-y-0 active:shadow-[1px_1px_0_#073b4c]';
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
@@ -803,7 +803,7 @@ function HomePage() {
             className={navPillClassName}
           >
             <Trophy className="size-3.5" />
-            <span>Hall of Fame</span>
+            <span className="hidden md:inline">Hall of Fame</span>
           </button>
           <button
             type="button"
@@ -811,7 +811,7 @@ function HomePage() {
             className={navPillClassName}
           >
             <BookOpen className="size-3.5" />
-            <span>Catalog</span>
+            <span className="hidden md:inline">Catalog</span>
           </button>
 
           {/* Classroom generation status chip */}
@@ -955,7 +955,7 @@ function HomePage() {
           transition={{ duration: 0.6, ease: 'easeOut' }}
           className={cn(
             'relative z-20 w-full max-w-[800px] flex flex-col items-center',
-            classrooms.length === 0 ? 'justify-center min-h-[calc(100dvh-8rem)]' : 'mt-[10vh]',
+            classrooms.length === 0 ? 'justify-center min-h-[calc(100dvh-8rem)]' : 'mt-4 md:mt-[10vh]',
           )}
         >
           {/* ── Logo ── */}
@@ -970,7 +970,7 @@ function HomePage() {
             }}
             className="flex items-center gap-3 mb-6"
           >
-            <h1 className="text-6xl md:text-8xl font-black text-[#073b4c] tracking-[-0.025em]">
+            <h1 className="text-5xl md:text-8xl font-black text-[#073b4c] tracking-[-0.025em]">
               SLATE UP
             </h1>
             {/* <span className="px-3 py-1 bg-[#ef476f] text-white text-xs md:text-sm font-bold rounded-full border-2 border-[#073b4c] shadow-[2px_2px_0_#073b4c] uppercase tracking-widest mt-2 md:mt-4">BETA</span> */}
@@ -1014,20 +1014,35 @@ function HomePage() {
               />
 
               {/* Toolbar row */}
-              <div className="px-3 pb-3 flex items-end gap-2">
-                <div className="flex-1 min-w-0">
-                  <GenerationToolbar
-                    language={form.language}
-                    onLanguageChange={(lang) => updateForm('language', lang)}
-                    webSearch={form.webSearch}
-                    onWebSearchChange={(v) => updateForm('webSearch', v)}
-                    onSettingsOpen={(section) => {
-                      setSettingsSection(section);
-                      setSettingsOpen(true);
+              <div className="px-3 pb-3 flex flex-col gap-2">
+                {/* Top row: tools + voice */}
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 min-w-0">
+                    <GenerationToolbar
+                      language={form.language}
+                      onLanguageChange={(lang) => updateForm('language', lang)}
+                      webSearch={form.webSearch}
+                      onWebSearchChange={(v) => updateForm('webSearch', v)}
+                      onSettingsOpen={(section) => {
+                        setSettingsSection(section);
+                        setSettingsOpen(true);
+                      }}
+                      pdfFile={form.pdfFile}
+                      onPdfFileChange={(f) => updateForm('pdfFile', f)}
+                      onPdfError={setError}
+                    />
+                  </div>
+
+                  {/* Voice input */}
+                  <SpeechButton
+                    size="md"
+                    onTranscription={(text) => {
+                      setForm((prev) => {
+                        const next = prev.requirement + (prev.requirement ? ' ' : '') + text;
+                        updateRequirementCache(next);
+                        return { ...prev, requirement: next };
+                      });
                     }}
-                    pdfFile={form.pdfFile}
-                    onPdfFileChange={(f) => updateForm('pdfFile', f)}
-                    onPdfError={setError}
                   />
                 </div>
 
