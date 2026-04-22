@@ -136,32 +136,48 @@ function ClassroomSplitButton({
 
   if (canInstantClassroom) {
     // Ultra users — primary: Instant Classroom, dropdown: Basic Classroom
+    const active = canGenerate && !isLoading;
     return (
-      <div ref={containerRef} className="relative flex items-center shrink-0">
-        {/* Primary — Instant Classroom */}
+      <div ref={containerRef} className="relative shrink-0">
+        {/* Unified split button */}
         <Tooltip>
           <TooltipTrigger asChild>
-            <button
-              type="button"
-              onClick={onInstantClassroom}
-              disabled={!canGenerate || isLoading}
-              aria-busy={enterClassroomLoading}
+            <div
               className={cn(
-                'h-10 pl-5 pr-3 rounded-l-full flex items-center justify-center gap-2 transition-all duration-200 font-bold border-2 border-r-0 border-[#073b4c]',
-                !canGenerate
-                  ? 'bg-[#f0f4f8] text-[#073b4c]/30 border-[#073b4c]/20 cursor-not-allowed'
-                  : enterClassroomLoading
-                    ? 'bg-[#ffd166] text-[#073b4c] shadow-[3px_3px_0_#073b4c] cursor-wait opacity-95'
-                    : 'bg-[#ffd166] text-[#073b4c] hover:translate-y-[-2px] shadow-[3px_3px_0_#073b4c] hover:shadow-[5px_5px_0_#073b4c] cursor-pointer',
+                'flex items-center h-10 rounded-full border-2 overflow-hidden transition-all duration-200',
+                active
+                  ? 'border-[#073b4c] bg-[#ffd166] text-[#073b4c] shadow-[3px_3px_0_#073b4c] hover:-translate-y-px hover:shadow-[4px_4px_0_#073b4c]'
+                  : 'border-[#073b4c]/20 bg-[#f0f4f8] text-[#073b4c]/30',
               )}
             >
-              <span className="text-xs font-bold">⚡ Instant Classroom</span>
-              {enterClassroomLoading ? (
-                <Loader2 className="size-3.5 animate-spin" aria-hidden />
-              ) : (
-                <ArrowUp className="size-3.5" aria-hidden />
-              )}
-            </button>
+              {/* Primary action */}
+              <button
+                type="button"
+                onClick={onInstantClassroom}
+                disabled={!active}
+                aria-busy={enterClassroomLoading}
+                className="h-full pl-5 pr-3 flex items-center gap-2 font-bold cursor-pointer disabled:cursor-not-allowed"
+              >
+                <span className="text-xs font-bold">⚡ Instant Classroom</span>
+                {enterClassroomLoading ? (
+                  <Loader2 className="size-3.5 animate-spin" aria-hidden />
+                ) : (
+                  <ArrowUp className="size-3.5" aria-hidden />
+                )}
+              </button>
+              {/* Divider */}
+              <div className={cn('w-px h-5 shrink-0', active ? 'bg-[#073b4c]/20' : 'bg-[#073b4c]/10')} />
+              {/* Chevron */}
+              <button
+                type="button"
+                onClick={() => setDropdownOpen((v) => !v)}
+                disabled={!active}
+                className="h-full w-9 flex items-center justify-center cursor-pointer disabled:cursor-not-allowed"
+                aria-label="More classroom options"
+              >
+                <ChevronDown className={cn('size-3.5 transition-transform', dropdownOpen && 'rotate-180')} />
+              </button>
+            </div>
           </TooltipTrigger>
           {!canGenerate && (
             <TooltipContent side="top" sideOffset={8}>
@@ -170,30 +186,14 @@ function ClassroomSplitButton({
           )}
         </Tooltip>
 
-        {/* Chevron dropdown toggle */}
-        <button
-          type="button"
-          onClick={() => setDropdownOpen((v) => !v)}
-          disabled={!canGenerate || isLoading}
-          className={cn(
-            'h-10 w-8 rounded-r-full flex items-center justify-center border-2 border-[#073b4c] transition-all duration-200',
-            !canGenerate
-              ? 'bg-[#f0f4f8] text-[#073b4c]/20 border-[#073b4c]/20 cursor-not-allowed'
-              : 'bg-[#ffd166] text-[#073b4c] hover:bg-[#f5c842] cursor-pointer shadow-[3px_3px_0_#073b4c]',
-          )}
-          aria-label="More classroom options"
-        >
-          <ChevronDown className={cn('size-3.5 transition-transform', dropdownOpen && 'rotate-180')} />
-        </button>
-
         {/* Dropdown */}
         {dropdownOpen && (
-          <div className="absolute right-0 top-12 z-50 min-w-[200px] rounded-2xl border-2 border-[#073b4c]/10 bg-white shadow-[4px_4px_0_#073b4c]/10 overflow-hidden">
+          <div className="absolute right-0 top-12 z-50 min-w-[200px] rounded-2xl border-2 border-[#073b4c]/10 bg-white shadow-[4px_4px_0_rgba(7,59,76,0.08)] overflow-hidden">
             <button
               type="button"
               onClick={() => { setDropdownOpen(false); onBasicClassroom(); }}
               disabled={!canGenerate || createClassroomLoading}
-              className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-[#073b4c] hover:bg-[#f0f4f8] transition-colors cursor-pointer disabled:opacity-50"
+              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[#f0f4f8] transition-colors cursor-pointer disabled:opacity-50"
             >
               <Clock className="size-3.5 text-[#8338ec] shrink-0" />
               <div className="text-left">
@@ -207,33 +207,50 @@ function ClassroomSplitButton({
     );
   }
 
-  // Standard / Free / Lifetime — primary: Basic Classroom, dropdown: Instant Classroom → upgrade
+  // Standard / Free — primary: Basic Classroom, dropdown: Instant Classroom → upgrade
+  const active = canGenerate && !isLoading;
   return (
-    <div ref={containerRef} className="relative flex items-center shrink-0">
-      {/* Primary — Basic Classroom */}
+    <div ref={containerRef} className="relative shrink-0">
+      {/* Unified split button */}
       <Tooltip>
         <TooltipTrigger asChild>
-          <button
-            type="button"
-            onClick={onBasicClassroom}
-            disabled={!canGenerate || isLoading}
-            aria-busy={createClassroomLoading}
+          <div
             className={cn(
-              'h-10 pl-5 pr-3 rounded-l-full flex items-center justify-center gap-2 transition-all duration-200 font-bold border-2 border-r-0 border-[#073b4c]',
-              !canGenerate
-                ? 'bg-[#f0f4f8] text-[#073b4c]/30 border-[#073b4c]/20 cursor-not-allowed'
-                : createClassroomLoading
-                  ? 'bg-[#8338ec] text-[#fff0db] shadow-[3px_3px_0_#073b4c] cursor-wait opacity-95'
-                  : 'bg-[#8338ec] text-[#fff0db] hover:translate-y-[-2px] shadow-[3px_3px_0_#073b4c] hover:shadow-[5px_5px_0_#073b4c] cursor-pointer',
+              'flex items-center h-10 rounded-full border-2 overflow-hidden transition-all duration-200',
+              active
+                ? 'border-[#073b4c] bg-[#8338ec] text-[#fff0db] shadow-[3px_3px_0_#073b4c] hover:-translate-y-px hover:shadow-[4px_4px_0_#073b4c]'
+                : 'border-[#073b4c]/20 bg-[#f0f4f8] text-[#073b4c]/30',
+              isLoading && 'opacity-80',
             )}
           >
-            <span className="text-xs font-bold">Basic Classroom</span>
-            {createClassroomLoading ? (
-              <Loader2 className="size-3.5 animate-spin" aria-hidden />
-            ) : (
-              <Clock className="size-3.5" aria-hidden />
-            )}
-          </button>
+            {/* Primary action */}
+            <button
+              type="button"
+              onClick={onBasicClassroom}
+              disabled={!active}
+              aria-busy={createClassroomLoading}
+              className="h-full pl-5 pr-3 flex items-center gap-2 font-bold cursor-pointer disabled:cursor-not-allowed"
+            >
+              <span className="text-xs font-bold">Basic Classroom</span>
+              {createClassroomLoading ? (
+                <Loader2 className="size-3.5 animate-spin" aria-hidden />
+              ) : (
+                <Clock className="size-3.5" aria-hidden />
+              )}
+            </button>
+            {/* Divider */}
+            <div className={cn('w-px h-5 shrink-0', active ? 'bg-white/20' : 'bg-[#073b4c]/10')} />
+            {/* Chevron */}
+            <button
+              type="button"
+              onClick={() => setDropdownOpen((v) => !v)}
+              disabled={isLoading}
+              className="h-full w-9 flex items-center justify-center cursor-pointer disabled:cursor-not-allowed"
+              aria-label="More classroom options"
+            >
+              <ChevronDown className={cn('size-3.5 transition-transform', dropdownOpen && 'rotate-180')} />
+            </button>
+          </div>
         </TooltipTrigger>
         <TooltipContent side="top" sideOffset={8}>
           {canGenerate ? (
@@ -244,28 +261,13 @@ function ClassroomSplitButton({
         </TooltipContent>
       </Tooltip>
 
-      {/* Chevron dropdown toggle */}
-      <button
-        type="button"
-        onClick={() => setDropdownOpen((v) => !v)}
-        disabled={isLoading}
-        className={cn(
-          'h-10 w-8 rounded-r-full flex items-center justify-center border-2 border-[#073b4c] transition-all duration-200',
-          'bg-[#8338ec] text-[#fff0db] hover:bg-[#6e2fd6] cursor-pointer shadow-[3px_3px_0_#073b4c]',
-          isLoading && 'opacity-50 cursor-not-allowed',
-        )}
-        aria-label="More classroom options"
-      >
-        <ChevronDown className={cn('size-3.5 transition-transform', dropdownOpen && 'rotate-180')} />
-      </button>
-
       {/* Dropdown */}
       {dropdownOpen && (
-        <div className="absolute right-0 top-12 z-50 min-w-[210px] rounded-2xl border-2 border-[#073b4c]/10 bg-white shadow-[4px_4px_0_#073b4c]/10 overflow-hidden">
+        <div className="absolute right-0 top-12 z-50 min-w-[210px] rounded-2xl border-2 border-[#073b4c]/10 bg-white shadow-[4px_4px_0_rgba(7,59,76,0.08)] overflow-hidden">
           <button
             type="button"
             onClick={() => { setDropdownOpen(false); onUpgradeToUltra(); }}
-            className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-[#073b4c] hover:bg-[#fffdf0] transition-colors cursor-pointer"
+            className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[#fffdf0] transition-colors cursor-pointer"
           >
             <span className="size-5 rounded-lg bg-[#ffd166]/20 flex items-center justify-center shrink-0 text-[11px]">
               ⚡
