@@ -2,6 +2,7 @@ import { type NextRequest } from 'next/server';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { createClient } from '@/utils/supabase/server';
+import { createAdminClient } from '@/utils/supabase/admin';
 import { apiSuccess, apiError } from '@/lib/server/api-response';
 import { createLogger } from '@/lib/logger';
 
@@ -10,6 +11,26 @@ const log = createLogger('CatalogAPI');
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!;
 const anonSupabase = createSupabaseClient(supabaseUrl, supabaseKey);
+
+type CourseTagRowLike = { tag_type: string; tag_value: string };
+type CourseRowLike = {
+  id: string;
+  user_id: string | null;
+  name?: string | null;
+  title?: string | null;
+  headline?: string | null;
+  description?: string | null;
+  slide_count?: number | null;
+  language?: string | null;
+  created_at?: string | null;
+  subject?: string | null;
+  topic?: string | null;
+  sub_topic?: string | null;
+  age_range?: string | null;
+  course_tags?: CourseTagRowLike[] | null;
+  [key: string]: unknown;
+};
+type UserPlanVisibilityLike = { user_id: string; is_public: boolean };
 
 export async function GET(req: NextRequest) {
   try {
@@ -66,19 +87,21 @@ export async function GET(req: NextRequest) {
       return apiError('INTERNAL_ERROR', 500, 'Failed to fetch catalog');
     }
 
-    let filteredCourses = courses || [];
+    let filteredCourses = (courses || []) as CourseRowLike[];
 
     // ── For public filter: restrict to public users ───────────────────────────
     if (filter !== 'my' && filteredCourses.length > 0) {
       const userIds = [...new Set(filteredCourses.map((c) => c.user_id).filter(Boolean))];
       if (userIds.length > 0) {
-        const { data: publicUsers } = await anonSupabase
+        // IMPORTANT: user_plans is typically RLS-protected; use admin client to evaluate
+        // visibility without leaking anything beyond the boolean + user_id.
+        const admin = createAdminClient();
+        const { data: anyPlans } = await admin
           .from('user_plans')
-          .select('user_id')
-          .eq('is_public', true)
+          .select('user_id,is_public')
           .in('user_id', userIds);
-
-        const publicUserSet = new Set((publicUsers ?? []).map((u) => u.user_id));
+        const anyPlansArr = (anyPlans ?? []) as UserPlanVisibilityLike[];
+        const publicUserSet = new Set(anyPlansArr.filter((p) => p.is_public).map((p) => p.user_id));
         filteredCourses = filteredCourses.filter(
           (c) => !c.user_id || publicUserSet.has(c.user_id),
         );

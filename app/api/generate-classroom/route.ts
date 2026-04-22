@@ -5,6 +5,9 @@ import { type GenerateClassroomInput } from '@/lib/server/classroom-generation';
 import { getTemporalClient, TASK_QUEUE } from '@/temporal/client';
 import { buildRequestOrigin } from '@/lib/server/classroom-storage';
 import { createLogger } from '@/lib/logger';
+import { getPostHogClient } from '@/lib/posthog-server';
+import { cookies } from 'next/headers';
+import { createClient } from '@/utils/supabase/server';
 
 const log = createLogger('GenerateClassroom API');
 
@@ -12,6 +15,11 @@ export const maxDuration = 30;
 
 export async function POST(req: NextRequest) {
   let requirementSnippet: string | undefined;
+  const cookieStore = await cookies();
+  const supabase = createClient(cookieStore);
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   try {
     const rawBody = (await req.json()) as Partial<GenerateClassroomInput>;
     requirementSnippet = rawBody.requirement?.substring(0, 60);
@@ -45,6 +53,20 @@ export async function POST(req: NextRequest) {
     });
 
     const pollUrl = `${baseUrl}/api/generate-classroom/${jobId}`;
+
+    getPostHogClient().capture({
+      distinctId: user?.id ?? 'anonymous',
+      event: 'classroom_generation_queued',
+      properties: {
+        job_id: jobId,
+        has_pdf: !!body.pdfContent,
+        enable_web_search: body.enableWebSearch ?? false,
+        enable_image_generation: body.enableImageGeneration,
+        enable_video_generation: body.enableVideoGeneration,
+        enable_tts: body.enableTTS,
+        language: body.language ?? 'en',
+      },
+    });
 
     return apiSuccess(
       {

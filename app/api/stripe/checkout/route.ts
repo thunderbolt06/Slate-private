@@ -4,6 +4,7 @@ import { getStripePriceId, LIFETIME_MAX_SLOTS } from '@/lib/stripe/plans';
 import { cookies } from 'next/headers';
 import { createClient } from '@/utils/supabase/server';
 import { createAdminClient } from '@/utils/supabase/admin';
+import { getPostHogClient } from '@/lib/posthog-server';
 
 /**
  * POST /api/stripe/checkout
@@ -15,13 +16,15 @@ export async function POST(req: NextRequest) {
   try {
     const cookieStore = await cookies();
     const supabase = createClient(cookieStore);
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { period } = await req.json() as { period: 'monthly' | 'yearly' | 'lifetime' };
+    const { period } = (await req.json()) as { period: 'monthly' | 'yearly' | 'lifetime' };
 
     if (!['monthly', 'yearly', 'lifetime'].includes(period)) {
       return NextResponse.json({ error: 'Invalid plan period' }, { status: 400 });
@@ -65,7 +68,8 @@ export async function POST(req: NextRequest) {
     }
 
     const priceId = getStripePriceId(period);
-    const origin = req.headers.get('origin') || process.env.NEXT_PUBLIC_APP_URL || 'https://thechalklabs.com';
+    const origin =
+      req.headers.get('origin') || process.env.NEXT_PUBLIC_APP_URL || 'https://thechalklabs.com';
 
     const sessionParams: Parameters<typeof stripe.checkout.sessions.create>[0] = {
       customer: customerId,
@@ -88,6 +92,12 @@ export async function POST(req: NextRequest) {
     }
 
     const session = await stripe.checkout.sessions.create(sessionParams);
+
+    getPostHogClient().capture({
+      distinctId: user.id,
+      event: 'checkout_session_created',
+      properties: { plan_period: period, session_id: session.id },
+    });
 
     return NextResponse.json({ url: session.url });
   } catch (err: any) {

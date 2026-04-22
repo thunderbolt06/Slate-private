@@ -53,13 +53,14 @@ export interface StageListItem extends LocalStageListItem {
   supabase_id?: string;
 }
 import { ThumbnailSlide } from '@/components/slide-renderer/components/ThumbnailSlide';
+import posthog from 'posthog-js';
 import type { Slide } from '@/lib/types/slides';
 import { useMediaGenerationStore } from '@/lib/store/media-generation';
 import { toast } from 'sonner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useDraftCache } from '@/lib/hooks/use-draft-cache';
 import { SpeechButton } from '@/components/audio/speech-button';
-import { Cloud, CloudDownload } from 'lucide-react';
+import { Cloud } from 'lucide-react';
 import {
   fetchUserCoursesFromSupabase,
   downloadCourseFromSupabase,
@@ -70,7 +71,10 @@ import { NotificationBell } from '@/components/notifications/notification-bell';
 import { usePlanStore } from '@/lib/store/user-plan';
 import { PLAN_LIMITS } from '@/lib/stripe/plans';
 import { CreateClassroomModal } from '@/components/classroom/create-classroom-modal';
-import { ClassroomGenerationStatus, type ClassroomJobState } from '@/components/classroom/classroom-generation-status';
+import {
+  ClassroomGenerationStatus,
+  type ClassroomJobState,
+} from '@/components/classroom/classroom-generation-status';
 
 const log = createLogger('Home');
 
@@ -200,7 +204,7 @@ function HomePage() {
       const localMap = new Map(localList.map((c) => [c.id, c]));
 
       // 2. If logged in, load from Supabase and merge
-      let mergedList: StageListItem[] = [...localList];
+      const mergedList: StageListItem[] = [...localList];
       if (user) {
         const supabaseList = await fetchUserCoursesFromSupabase(user.id);
         for (const sCourse of supabaseList) {
@@ -245,12 +249,17 @@ function HomePage() {
   // Poll for classroom job completion when a background job is running
   useEffect(() => {
     if (!classroomJob || classroomJob.phase !== 'background') {
-      if (jobPollRef.current) { clearInterval(jobPollRef.current); jobPollRef.current = null; }
+      if (jobPollRef.current) {
+        clearInterval(jobPollRef.current);
+        jobPollRef.current = null;
+      }
       return;
     }
     const poll = async () => {
       try {
-        const res = await fetch('/api/notifications?unread_only=false&limit=20', { cache: 'no-store' });
+        const res = await fetch('/api/notifications?unread_only=false&limit=20', {
+          cache: 'no-store',
+        });
         if (!res.ok) return;
         const json = await res.json();
         const match = (json.notifications ?? []).find(
@@ -261,13 +270,20 @@ function HomePage() {
           setClassroomJob((prev) =>
             prev ? { ...prev, phase: 'done', classroomUrl: match.action_url ?? '' } : prev,
           );
-          if (jobPollRef.current) { clearInterval(jobPollRef.current); jobPollRef.current = null; }
+          if (jobPollRef.current) {
+            clearInterval(jobPollRef.current);
+            jobPollRef.current = null;
+          }
         }
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     };
     poll(); // immediate first check
     jobPollRef.current = setInterval(poll, 10_000);
-    return () => { if (jobPollRef.current) clearInterval(jobPollRef.current); };
+    return () => {
+      if (jobPollRef.current) clearInterval(jobPollRef.current);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [classroomJob?.phase, classroomJob?.jobId]);
 
@@ -351,7 +367,13 @@ function HomePage() {
 
   // Handle pending generation after login redirect
   useEffect(() => {
-    if (pendingGeneration === 'true' && !pendingHandled.current && !authLoading && user && form.requirement.trim()) {
+    if (
+      pendingGeneration === 'true' &&
+      !pendingHandled.current &&
+      !authLoading &&
+      user &&
+      form.requirement.trim()
+    ) {
       pendingHandled.current = true;
       // Small delay to ensure hydration completes
       const timer = setTimeout(() => handleGenerate(), 500);
@@ -369,7 +391,9 @@ function HomePage() {
       // Save the current prompt so we can resume after login
       try {
         localStorage.setItem('pendingPrompt', form.requirement);
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
       router.push(`/auth/login?redirect=${encodeURIComponent('/?pending_generation=true')}`);
       return;
     }
@@ -401,9 +425,10 @@ function HomePage() {
           if (planJson.success && planJson.credits) {
             const remaining = planJson.credits.remaining;
             if (remaining !== 'unlimited' && remaining <= 0) {
-              const reason = planJson.plan?.account_type === 'FREE'
-                ? 'free_limit_reached'
-                : 'monthly_limit_reached';
+              const reason =
+                planJson.plan?.account_type === 'FREE'
+                  ? 'free_limit_reached'
+                  : 'monthly_limit_reached';
               setExhaustedReason(reason);
               setShowExhaustedModal(true);
               setEnterClassroomLoading(false);
@@ -417,6 +442,11 @@ function HomePage() {
     }
 
     setError(null);
+    posthog.capture('classroom_generation_started', {
+      has_pdf: !!form.pdfFile,
+      web_search: !!form.webSearch,
+      language: form.language,
+    });
 
     try {
       const isPortrait = window.matchMedia('(orientation: portrait)').matches;
@@ -478,7 +508,11 @@ function HomePage() {
     if (createClassroomLoading) return;
 
     if (!authLoading && !user) {
-      try { localStorage.setItem('pendingPrompt', form.requirement); } catch { /* ignore */ }
+      try {
+        localStorage.setItem('pendingPrompt', form.requirement);
+      } catch {
+        /* ignore */
+      }
       router.push(`/auth/login?redirect=${encodeURIComponent('/?pending_generation=true')}`);
       return;
     }
@@ -553,20 +587,25 @@ function HomePage() {
         {/* ═══ Top-right bar: Auth button (always visible) + Admin pill ═══ */}
         <div className="fixed top-4 right-4 z-50 flex items-center gap-2 flex-wrap justify-end">
           {/* Hall of Fame & Catalog — same pill UI as Feedback */}
-          <button type="button" onClick={() => router.push('/leaderboard')} className={navPillClassName}>
+          <button
+            type="button"
+            onClick={() => router.push('/leaderboard')}
+            className={navPillClassName}
+          >
             <Trophy className="size-3.5" />
             <span>Hall of Fame</span>
           </button>
-          <button type="button" onClick={() => router.push('/catalog')} className={navPillClassName}>
+          <button
+            type="button"
+            onClick={() => router.push('/catalog')}
+            className={navPillClassName}
+          >
             <BookOpen className="size-3.5" />
             <span>Catalog</span>
           </button>
 
           {/* Classroom generation status chip */}
-          <ClassroomGenerationStatus
-            job={classroomJob}
-            onReopen={() => setShowCreateModal(true)}
-          />
+          <ClassroomGenerationStatus job={classroomJob} onReopen={() => setShowCreateModal(true)} />
 
           {/* Auth button — always visible */}
           <FeedbackButton variant="pill" showLabel />
@@ -578,84 +617,84 @@ function HomePage() {
             <div
               ref={toolbarRef}
               className="flex items-center gap-1 bg-white/60 dark:bg-gray-800/60 backdrop-blur-md px-2 py-1.5 rounded-full border border-gray-100/50 dark:border-gray-700/50 shadow-sm"
-          >
-            {/* Language Selector */}
-            <LanguageSwitcher onOpen={() => setThemeOpen(false)} />
+            >
+              {/* Language Selector */}
+              <LanguageSwitcher onOpen={() => setThemeOpen(false)} />
 
-            <div className="w-[1px] h-4 bg-gray-200 dark:bg-gray-700" />
+              <div className="w-[1px] h-4 bg-gray-200 dark:bg-gray-700" />
 
-            {/* Theme Selector */}
-            <div className="relative">
-              <button
-                onClick={() => {
-                  setThemeOpen(!themeOpen);
-                }}
-                className="p-2 rounded-full text-gray-400 dark:text-gray-500 hover:bg-white dark:hover:bg-gray-700 hover:text-gray-800 dark:hover:text-gray-200 hover:shadow-sm transition-all"
-              >
-                {theme === 'light' && <Sun className="w-4 h-4" />}
-                {theme === 'dark' && <Moon className="w-4 h-4" />}
-                {theme === 'system' && <Monitor className="w-4 h-4" />}
-              </button>
-              {themeOpen && (
-                <div className="absolute top-full mt-2 right-0 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg overflow-hidden z-50 min-w-[140px]">
-                  <button
-                    onClick={() => {
-                      setTheme('light');
-                      setThemeOpen(false);
-                    }}
-                    className={cn(
-                      'w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center gap-2',
-                      theme === 'light' &&
-                      'bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400',
-                    )}
-                  >
-                    <Sun className="w-4 h-4" />
-                    {t('settings.themeOptions.light')}
-                  </button>
-                  <button
-                    onClick={() => {
-                      setTheme('dark');
-                      setThemeOpen(false);
-                    }}
-                    className={cn(
-                      'w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center gap-2',
-                      theme === 'dark' &&
-                      'bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400',
-                    )}
-                  >
-                    <Moon className="w-4 h-4" />
-                    {t('settings.themeOptions.dark')}
-                  </button>
-                  <button
-                    onClick={() => {
-                      setTheme('system');
-                      setThemeOpen(false);
-                    }}
-                    className={cn(
-                      'w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center gap-2',
-                      theme === 'system' &&
-                      'bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400',
-                    )}
-                  >
-                    <Monitor className="w-4 h-4" />
-                    {t('settings.themeOptions.system')}
-                  </button>
-                </div>
-              )}
+              {/* Theme Selector */}
+              <div className="relative">
+                <button
+                  onClick={() => {
+                    setThemeOpen(!themeOpen);
+                  }}
+                  className="p-2 rounded-full text-gray-400 dark:text-gray-500 hover:bg-white dark:hover:bg-gray-700 hover:text-gray-800 dark:hover:text-gray-200 hover:shadow-sm transition-all"
+                >
+                  {theme === 'light' && <Sun className="w-4 h-4" />}
+                  {theme === 'dark' && <Moon className="w-4 h-4" />}
+                  {theme === 'system' && <Monitor className="w-4 h-4" />}
+                </button>
+                {themeOpen && (
+                  <div className="absolute top-full mt-2 right-0 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg overflow-hidden z-50 min-w-[140px]">
+                    <button
+                      onClick={() => {
+                        setTheme('light');
+                        setThemeOpen(false);
+                      }}
+                      className={cn(
+                        'w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center gap-2',
+                        theme === 'light' &&
+                          'bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400',
+                      )}
+                    >
+                      <Sun className="w-4 h-4" />
+                      {t('settings.themeOptions.light')}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setTheme('dark');
+                        setThemeOpen(false);
+                      }}
+                      className={cn(
+                        'w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center gap-2',
+                        theme === 'dark' &&
+                          'bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400',
+                      )}
+                    >
+                      <Moon className="w-4 h-4" />
+                      {t('settings.themeOptions.dark')}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setTheme('system');
+                        setThemeOpen(false);
+                      }}
+                      className={cn(
+                        'w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center gap-2',
+                        theme === 'system' &&
+                          'bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400',
+                      )}
+                    >
+                      <Monitor className="w-4 h-4" />
+                      {t('settings.themeOptions.system')}
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <div className="w-[1px] h-4 bg-gray-200 dark:bg-gray-700" />
+
+              {/* Settings Button */}
+              <div className="relative">
+                <button
+                  onClick={() => setSettingsOpen(true)}
+                  className="p-2 rounded-full text-gray-400 dark:text-gray-500 hover:bg-white dark:hover:bg-gray-700 hover:text-gray-800 dark:hover:text-gray-200 hover:shadow-sm transition-all group"
+                >
+                  <Settings className="w-4 h-4 group-hover:rotate-90 transition-transform duration-500" />
+                </button>
+              </div>
             </div>
-
-            <div className="w-[1px] h-4 bg-gray-200 dark:bg-gray-700" />
-
-            {/* Settings Button */}
-            <div className="relative">
-              <button
-                onClick={() => setSettingsOpen(true)}
-                className="p-2 rounded-full text-gray-400 dark:text-gray-500 hover:bg-white dark:hover:bg-gray-700 hover:text-gray-800 dark:hover:text-gray-200 hover:shadow-sm transition-all group"
-              >
-                <Settings className="w-4 h-4 group-hover:rotate-90 transition-transform duration-500" />
-              </button>
-            </div>
-          </div>
           )}
         </div>
         <SettingsDialog
@@ -669,12 +708,30 @@ function HomePage() {
 
         {/* Floating shapes */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden h-full w-full">
-          <div className="floating-shape absolute top-[8%] left-[4%] w-16 h-16 md:w-24 md:h-24 bg-[#FFD166] rounded-full border-4 border-[#073B4C] opacity-50" style={{ animationDelay: "0s" }} />
-          <div className="floating-shape-reverse absolute top-[15%] right-[8%] w-14 h-14 md:w-20 md:h-20 bg-[#EF476F] rounded-2xl border-4 border-[#073B4C] opacity-50" style={{ animationDelay: "1s" }} />
-          <div className="floating-shape absolute bottom-[12%] left-[12%] w-20 h-20 md:w-28 md:h-28 bg-[#118AB2] rounded-full border-4 border-[#073B4C] opacity-30" style={{ animationDelay: "2s" }} />
-          <div className="floating-shape-reverse absolute bottom-[20%] right-[6%] w-12 h-12 md:w-16 md:h-16 bg-[#06D6A0] rounded-3xl border-4 border-[#073B4C] opacity-40" style={{ animationDelay: "0.5s" }} />
-          <div className="floating-shape absolute top-[45%] left-[50%] w-10 h-10 bg-[#8338EC] rounded-full border-4 border-[#073B4C] opacity-25" style={{ animationDelay: "1.5s" }} />
-          <div className="floating-shape-reverse absolute top-[60%] left-[25%] w-8 h-8 bg-[#FF6B35] rounded-lg border-3 border-[#073B4C] opacity-30" style={{ animationDelay: "3s" }} />
+          <div
+            className="floating-shape absolute top-[8%] left-[4%] w-16 h-16 md:w-24 md:h-24 bg-[#FFD166] rounded-full border-4 border-[#073B4C] opacity-50"
+            style={{ animationDelay: '0s' }}
+          />
+          <div
+            className="floating-shape-reverse absolute top-[15%] right-[8%] w-14 h-14 md:w-20 md:h-20 bg-[#EF476F] rounded-2xl border-4 border-[#073B4C] opacity-50"
+            style={{ animationDelay: '1s' }}
+          />
+          <div
+            className="floating-shape absolute bottom-[12%] left-[12%] w-20 h-20 md:w-28 md:h-28 bg-[#118AB2] rounded-full border-4 border-[#073B4C] opacity-30"
+            style={{ animationDelay: '2s' }}
+          />
+          <div
+            className="floating-shape-reverse absolute bottom-[20%] right-[6%] w-12 h-12 md:w-16 md:h-16 bg-[#06D6A0] rounded-3xl border-4 border-[#073B4C] opacity-40"
+            style={{ animationDelay: '0.5s' }}
+          />
+          <div
+            className="floating-shape absolute top-[45%] left-[50%] w-10 h-10 bg-[#8338EC] rounded-full border-4 border-[#073B4C] opacity-25"
+            style={{ animationDelay: '1.5s' }}
+          />
+          <div
+            className="floating-shape-reverse absolute top-[60%] left-[25%] w-8 h-8 bg-[#FF6B35] rounded-lg border-3 border-[#073B4C] opacity-30"
+            style={{ animationDelay: '3s' }}
+          />
         </div>
 
         {/* ═══ Hero section: title + input (centered, wider) ═══ */}
@@ -699,7 +756,9 @@ function HomePage() {
             }}
             className="flex items-center gap-3 mb-6"
           >
-            <h1 className="text-6xl md:text-8xl font-black text-[#073b4c] tracking-[-0.025em]">SLATE UP</h1>
+            <h1 className="text-6xl md:text-8xl font-black text-[#073b4c] tracking-[-0.025em]">
+              SLATE UP
+            </h1>
             {/* <span className="px-3 py-1 bg-[#ef476f] text-white text-xs md:text-sm font-bold rounded-full border-2 border-[#073b4c] shadow-[2px_2px_0_#073b4c] uppercase tracking-widest mt-2 md:mt-4">BETA</span> */}
           </motion.div>
 
@@ -712,7 +771,6 @@ function HomePage() {
           >
             AI-powered interactive classroom. Learn anything, with anyone, anytime.
           </motion.p>
-
 
           {/* ── Unified input area ── */}
           <motion.div
@@ -780,15 +838,15 @@ function HomePage() {
                       disabled={!canGenerate || createClassroomLoading}
                       aria-busy={createClassroomLoading}
                       className={cn(
-                        'shrink-0 h-10 px-4 md:px-5 rounded-full flex items-center justify-center gap-2 transition-all font-bold border-2 border-[#073b4c]',
+                        'shrink-0 h-10 px-4 md:px-5 rounded-full flex items-center justify-center gap-2 transition-all duration-200 font-bold border-2 border-[#073b4c]',
                         canGenerate && !createClassroomLoading
-                          ? 'bg-[#06d6a0] text-[#073b4c] hover:translate-y-[-2px] shadow-[3px_3px_0_#073b4c] hover:shadow-[5px_5px_0_#073b4c] cursor-pointer'
+                          ? 'bg-[#8338ec] text-[#fff0db] hover:translate-y-[-2px] shadow-[3px_3px_0_#073b4c] hover:shadow-[5px_5px_0_#073b4c] cursor-pointer'
                           : canGenerate && createClassroomLoading
-                            ? 'bg-[#06d6a0] text-[#073b4c] shadow-[3px_3px_0_#073b4c] cursor-wait opacity-95'
-                            : 'bg-[#f0f4f8] text-[#073b4c]/40 cursor-not-allowed',
+                            ? 'bg-[#8338ec] text-[#fff0db] shadow-[3px_3px_0_#073b4c] cursor-wait opacity-95'
+                            : 'bg-[#f0f4f8] text-[#073b4c]/30 border-[#073b4c]/20 cursor-not-allowed',
                       )}
                     >
-                      <span className="text-xs font-medium">Create Classroom</span>
+                      <span className="text-xs font-medium">Generate Classroom</span>
                       {createClassroomLoading ? (
                         <Loader2 className="size-3.5 animate-spin" aria-hidden />
                       ) : (
@@ -797,7 +855,13 @@ function HomePage() {
                     </button>
                   </TooltipTrigger>
                   <TooltipContent side="top" sideOffset={8}>
-                    <p className="text-xs">Generate in the background — we&apos;ll notify you when ready</p>
+                    {canGenerate ? (
+                      <p className="text-xs">
+                        Generate in the background — we will notify you when ready in 3-5 minutes
+                      </p>
+                    ) : (
+                      <p className="text-xs">Write a prompt above to get started</p>
+                    )}
                   </TooltipContent>
                 </Tooltip>
 
@@ -807,17 +871,15 @@ function HomePage() {
                     <button
                       type="button"
                       onClick={canInstantClassroom ? handleGenerate : () => router.push('/pricing')}
-                      disabled={canInstantClassroom && (!canGenerate || enterClassroomLoading)}
+                      disabled={!canGenerate || enterClassroomLoading}
                       aria-busy={enterClassroomLoading}
                       className={cn(
-                        'shrink-0 h-10 px-5 md:px-6 rounded-full flex items-center justify-center gap-2 transition-all font-bold border-2 border-[#073b4c]',
-                        !canInstantClassroom
-                          ? 'bg-[#ffd166] text-[#073b4c] hover:translate-y-[-2px] shadow-[3px_3px_0_#073b4c] hover:shadow-[5px_5px_0_#073b4c] cursor-pointer'
-                          : canGenerate && !enterClassroomLoading
-                            ? 'bg-[#ef476f] text-white hover:translate-y-[-2px] shadow-[3px_3px_0_#073b4c] hover:shadow-[5px_5px_0_#073b4c] cursor-pointer'
-                            : canGenerate && enterClassroomLoading
-                              ? 'bg-[#ef476f] text-white shadow-[3px_3px_0_#073b4c] cursor-wait opacity-95'
-                              : 'bg-[#f0f4f8] text-[#073b4c]/40 cursor-not-allowed',
+                        'shrink-0 h-10 px-5 md:px-6 rounded-full flex items-center justify-center gap-2 transition-all duration-200 font-bold border-2 border-[#073b4c]',
+                        !canGenerate
+                          ? 'bg-[#f0f4f8] text-[#073b4c]/30 border-[#073b4c]/20 cursor-not-allowed'
+                          : enterClassroomLoading
+                            ? 'bg-[#06d6a0] text-[#073b4c] shadow-[3px_3px_0_#073b4c] cursor-wait opacity-95'
+                            : 'bg-[#06d6a0] text-[#073b4c] hover:translate-y-[-2px] shadow-[3px_3px_0_#073b4c] hover:shadow-[5px_5px_0_#073b4c] cursor-pointer',
                       )}
                     >
                       <span className="text-xs font-medium">
@@ -830,10 +892,16 @@ function HomePage() {
                       )}
                     </button>
                   </TooltipTrigger>
-                  {!canInstantClassroom && (
+                  {(!canInstantClassroom || !canGenerate) && (
                     <TooltipContent side="top" sideOffset={8}>
-                      <p className="text-xs font-bold">Ultra plan required</p>
-                      <p className="text-xs text-muted-foreground">Click to upgrade</p>
+                      {!canGenerate ? (
+                        <p className="text-xs">Write a prompt above to get started</p>
+                      ) : !canInstantClassroom ? (
+                        <>
+                          <p className="text-xs font-bold">Ultra plan required</p>
+                          <p className="text-xs text-muted-foreground">Click to upgrade</p>
+                        </>
+                      ) : null}
                     </TooltipContent>
                   )}
                 </Tooltip>
@@ -941,7 +1009,6 @@ function HomePage() {
             </AnimatePresence>
           </motion.div>
         )}
-
       </div>
       {/* Footer — flows with content, at the very end */}
       <div className="w-full shrink-0 pt-6 pb-4 text-center text-xs text-muted-foreground/100 bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-t border-border/10">
@@ -1341,7 +1408,9 @@ function ClassroomCard({
               className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 bg-black/40 backdrop-blur-md"
             >
               <div className="size-6 border-2 border-white/80 border-t-transparent rounded-full animate-spin" />
-              <span className="text-[11px] font-bold text-white tracking-wider uppercase">Syncing</span>
+              <span className="text-[11px] font-bold text-white tracking-wider uppercase">
+                Syncing
+              </span>
             </motion.div>
           )}
         </AnimatePresence>
@@ -1365,7 +1434,9 @@ function ClassroomCard({
         {classroom.is_cloud && (
           <div className="absolute top-2 left-2 z-10 px-1.5 py-0.5 rounded-full bg-black/30 backdrop-blur-sm border border-white/10 flex items-center gap-1">
             <Cloud className="size-3 text-white/90" />
-            <span className="text-[9px] font-bold text-white/90 uppercase tracking-tighter">Cloud</span>
+            <span className="text-[9px] font-bold text-white/90 uppercase tracking-tighter">
+              Cloud
+            </span>
           </div>
         )}
 

@@ -10,6 +10,7 @@ import { callLLM } from '@/lib/ai/llm';
 import { createLogger } from '@/lib/logger';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { resolveModelFromHeaders } from '@/lib/server/resolve-model';
+import { getPostHogClient } from '@/lib/posthog-server';
 const log = createLogger('Quiz Grade');
 
 interface GradeRequest {
@@ -90,11 +91,20 @@ ${commentPrompt ? `Grading guidance: ${commentPrompt}\n` : ''}Student answer: ${
       // Fallback: give partial credit with a generic comment
       gradeResult = {
         score: Math.round(points * 0.5),
-        comment: isZh
-          ? '，。'
-          : 'Answer received. Please refer to the standard answer.',
+        comment: isZh ? '，。' : 'Answer received. Please refer to the standard answer.',
       };
     }
+
+    const distinctId = req.headers.get('x-posthog-distinct-id') ?? 'anonymous';
+    getPostHogClient().capture({
+      distinctId,
+      event: 'quiz_graded',
+      properties: {
+        score: gradeResult.score,
+        max_points: points,
+        language: language ?? 'en',
+      },
+    });
 
     return apiSuccess({ ...gradeResult });
   } catch (error) {

@@ -4,6 +4,7 @@ import { createAdminClient } from '@/utils/supabase/admin';
 import { cookies } from 'next/headers';
 import { apiSuccess, apiError, API_ERROR_CODES } from '@/lib/server/api-response';
 import { createLogger } from '@/lib/logger';
+import { getPostHogClient } from '@/lib/posthog-server';
 
 const log = createLogger('Feedback API');
 const ADMIN_EMAIL = 'chalk.core@gmail.com';
@@ -13,7 +14,9 @@ export async function POST(request: NextRequest) {
     const cookieStore = await cookies();
     const supabase = createClient(cookieStore);
     const adminClient = createAdminClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     const body = await request.json();
     const { type, content, screenshot, url, metadata } = body;
@@ -40,9 +43,9 @@ export async function POST(request: NextRequest) {
       if (uploadError) {
         log.error('Failed to upload screenshot:', uploadError);
       } else {
-        const { data: { publicUrl } } = adminClient.storage
-          .from('feedback-screenshots')
-          .getPublicUrl(fileName);
+        const {
+          data: { publicUrl },
+        } = adminClient.storage.from('feedback-screenshots').getPublicUrl(fileName);
         screenshot_url = publicUrl;
       }
     }
@@ -62,6 +65,12 @@ export async function POST(request: NextRequest) {
       return apiError(API_ERROR_CODES.INTERNAL_ERROR, 500, 'Failed to save feedback');
     }
 
+    getPostHogClient().capture({
+      distinctId: user?.id ?? 'anonymous',
+      event: 'feedback_submitted',
+      properties: { feedback_type: type, has_screenshot: !!screenshot },
+    });
+
     return apiSuccess({ message: 'Feedback submitted successfully' });
   } catch (error) {
     log.error('Feedback submission error:', error);
@@ -73,7 +82,9 @@ export async function GET(request: NextRequest) {
   try {
     const cookieStore = await cookies();
     const supabase = createClient(cookieStore);
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (!user || user.email !== ADMIN_EMAIL) {
       return apiError(API_ERROR_CODES.INVALID_REQUEST, 403, 'Unauthorized');

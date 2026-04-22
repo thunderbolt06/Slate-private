@@ -275,6 +275,25 @@ export interface LLMRetryOptions {
 const DEFAULT_VALIDATE = (text: string) => text.trim().length > 0;
 
 /**
+ * Inject PostHog-compatible `experimental_telemetry` into LLM params so that
+ * the PostHogSpanProcessor receives `gen_ai.*` spans for every call.
+ * If the caller already provided `experimental_telemetry`, it is left untouched.
+ */
+function injectTelemetry<T extends GenerateTextParams | StreamTextParams>(
+  params: T,
+  source: string,
+): T {
+  if ((params as Record<string, unknown>).experimental_telemetry) return params;
+  return {
+    ...params,
+    experimental_telemetry: {
+      isEnabled: true,
+      functionId: source,
+    },
+  };
+}
+
+/**
  * Unified wrapper around `generateText`.
  *
  * @param params - Same parameters as AI SDK's `generateText`
@@ -300,7 +319,10 @@ export async function callLLM<T extends GenerateTextParams>(
     try {
       // Resolve effective thinking config: per-call > global env > undefined
       const effectiveThinking = thinking ?? getGlobalThinkingConfig();
-      const injectedParams = injectProviderOptions(params, effectiveThinking);
+      const injectedParams = injectProviderOptions(
+        injectTelemetry(params, source),
+        effectiveThinking,
+      );
 
       // Wrap in thinkingContext so the custom fetch wrapper in providers.ts
       // can read the config and inject vendor-specific body params for
@@ -362,23 +384,25 @@ export function streamLLM<T extends StreamTextParams>(
 ): StreamTextResult<any, any> {
   // Resolve effective thinking config and wrap in thinkingContext
   const effectiveThinking = thinking ?? getGlobalThinkingConfig();
-  const injectedParams = injectProviderOptions(params, effectiveThinking);
+  const injectedParams = injectProviderOptions(injectTelemetry(params, source), effectiveThinking);
   const result = thinkingContext.run(effectiveThinking, () => streamText(injectedParams));
 
   // Background token logging for streams
-  Promise.resolve(result.usage).then((usage: any) => {
-    if (usage) {
-      log.info(`[TOKEN_USAGE] ${source}`, {
-        service: 'llm',
-        provider: getModelId(params),
-        promptTokens: usage.promptTokens,
-        completionTokens: usage.completionTokens,
-        totalTokens: usage.totalTokens,
-      });
-    }
-  }).catch((err: any) => {
-    log.warn(`[TOKEN_USAGE] ${source} failed to get usage:`, err);
-  });
+  Promise.resolve(result.usage)
+    .then((usage: any) => {
+      if (usage) {
+        log.info(`[TOKEN_USAGE] ${source}`, {
+          service: 'llm',
+          provider: getModelId(params),
+          promptTokens: usage.promptTokens,
+          completionTokens: usage.completionTokens,
+          totalTokens: usage.totalTokens,
+        });
+      }
+    })
+    .catch((err: any) => {
+      log.warn(`[TOKEN_USAGE] ${source} failed to get usage:`, err);
+    });
 
   return result;
 }
