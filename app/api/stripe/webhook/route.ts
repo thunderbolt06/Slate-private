@@ -43,14 +43,13 @@ export async function POST(req: NextRequest) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
         const userId = session.metadata?.supabase_user_id;
-        const period = session.metadata?.period as 'monthly' | 'yearly' | 'lifetime' | undefined;
+        const period = session.metadata?.period as SubscriptionPeriodWebhook | undefined;
         const type = session.metadata?.type;
 
         if (!userId) break;
 
         // ── Course top-up (one-time, +10 courses) ──────────────────────────
         if (type === 'topup') {
-          // Verify payment succeeded by retrieving the PaymentIntent from Stripe
           if (session.payment_intent) {
             const pi = await stripe.paymentIntents.retrieve(session.payment_intent as string);
             if (pi.status !== 'succeeded') {
@@ -87,63 +86,12 @@ export async function POST(req: NextRequest) {
 
         if (!period) break;
 
-        if (period === 'lifetime') {
-          // Verify via Stripe API that this one-time payment actually succeeded
-          if (session.payment_status !== 'paid') {
-            console.warn(
-              `[stripe/webhook] lifetime payment_status=${session.payment_status} — not fulfilling for user ${userId}`,
-            );
-            break;
-          }
-
-          // Double-check by retrieving the PaymentIntent
-          if (session.payment_intent) {
-            const pi = await stripe.paymentIntents.retrieve(session.payment_intent as string);
-            if (pi.status !== 'succeeded') {
-              console.warn(
-                `[stripe/webhook] lifetime payment_intent not succeeded (${pi.status}) for user ${userId}`,
-              );
-              break;
-            }
-          }
-
-          // Atomically claim a slot; abort if sold out
-          const { data: claimed } = await admin.rpc('claim_lifetime_slot');
-          if (!claimed) {
-            console.error('[stripe/webhook] lifetime sold out — could not fulfil', userId);
-            break;
-          }
-
-          await admin.from('user_plans').upsert(
-            {
-              user_id: userId,
-              account_type: 'PLUS',
-              stripe_customer_id: session.customer as string,
-              subscription_period: 'lifetime',
-              subscription_status: 'active',
-              stripe_price_id: null,
-              current_period_end: null,
-              lifetime_claimed: true,
-            },
-            { onConflict: 'user_id' },
-          );
-
-          getPostHogClient().capture({
-            distinctId: userId,
-            event: 'subscription_activated',
-            properties: { plan_period: 'lifetime' },
-          });
-          console.log(`[stripe/webhook] lifetime access granted for user ${userId}`);
-        } else {
-          // Monthly / yearly subscription — retrieve full subscription object from Stripe
-          // so we get the authoritative status, price ID, and period end.
-          if (session.subscription) {
-            const sub = await stripe.subscriptions.retrieve(session.subscription as string);
-            // Prefer period from subscription metadata; fall back to session metadata
-            const resolvedPeriod =
-              (sub.metadata?.period as 'monthly' | 'yearly' | undefined) ?? period;
-            await upsertSubscription(admin, userId, sub, resolvedPeriod);
-          }
+        // Subscription checkout completed
+        if (session.subscription) {
+          const sub = await stripe.subscriptions.retrieve(session.subscription as string);
+          const resolvedPeriod =
+            (sub.metadata?.period as SubscriptionPeriodWebhook | undefined) ?? period;
+          await upsertSubscription(admin, userId, sub, resolvedPeriod);
         }
         break;
       }
@@ -153,7 +101,7 @@ export async function POST(req: NextRequest) {
       case 'customer.subscription.created': {
         const sub = event.data.object as Stripe.Subscription;
         const userId = sub.metadata?.supabase_user_id;
-        const period = sub.metadata?.period as 'monthly' | 'yearly' | undefined;
+        const period = sub.metadata?.period as SubscriptionPeriodWebhook | undefined;
         if (!userId) break;
 
         // Re-retrieve the subscription so we have the latest state (avoids stale webhook payloads)
@@ -167,7 +115,6 @@ export async function POST(req: NextRequest) {
         const userId = sub.metadata?.supabase_user_id;
         if (!userId) break;
 
-        // Downgrade to FREE when subscription is fully canceled
         await admin.from('user_plans').upsert(
           {
             user_id: userId,
@@ -210,24 +157,23 @@ export async function POST(req: NextRequest) {
         // Retrieve fresh subscription to sync the latest billing state
         try {
           const sub = await stripe.subscriptions.retrieve(subId);
-          // In Stripe v22 (dahlia), current_period_end lives on the subscription item
           const itemPeriodEnd = sub.items.data[0]?.current_period_end ?? null;
           const periodEnd = itemPeriodEnd ? new Date(itemPeriodEnd * 1000).toISOString() : null;
           const isActive = ['active', 'trialing'].includes(sub.status);
+          const resolvedPeriod = sub.metadata?.period as SubscriptionPeriodWebhook | undefined;
+          const isUltra = resolvedPeriod === 'ultra_monthly' || resolvedPeriod === 'ultra_yearly';
 
           await admin
             .from('user_plans')
             .update({
               subscription_status: isActive ? 'active' : sub.status,
-              account_type: isActive ? 'PLUS' : 'FREE',
+              account_type: isActive ? (isUltra ? 'ULTRA' : 'PLUS') : 'FREE',
               current_period_end: periodEnd,
-              // Reset monthly course counter on successful renewal
               courses_generated_month: 0,
               courses_month_reset_at: new Date().toISOString(),
             })
             .eq('stripe_subscription_id', subId);
         } catch (subErr) {
-          // Fallback: mark as active and reset counter without period details
           await admin
             .from('user_plans')
             .update({
@@ -262,16 +208,19 @@ export async function POST(req: NextRequest) {
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
+type SubscriptionPeriodWebhook = 'monthly' | 'yearly' | 'ultra_monthly' | 'ultra_yearly';
+
 async function upsertSubscription(
   admin: ReturnType<typeof createAdminClient>,
   userId: string,
   sub: Stripe.Subscription,
-  period?: 'monthly' | 'yearly',
+  period?: SubscriptionPeriodWebhook,
 ) {
   const firstItem = sub.items.data[0];
   const priceId = firstItem?.price?.id ?? null;
   const isActive = ['active', 'trialing'].includes(sub.status);
-  const accountType = isActive ? 'PLUS' : 'FREE';
+  const isUltra = period === 'ultra_monthly' || period === 'ultra_yearly';
+  const accountType = isActive ? (isUltra ? 'ULTRA' : 'PLUS') : 'FREE';
 
   // In Stripe v22 (API version dahlia), current_period_end lives on the
   // subscription item, not on the subscription object itself.

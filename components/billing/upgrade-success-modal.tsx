@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Zap, Crown, Check, Sparkles, BookOpen, MessageCircle, Headphones, RotateCcw } from 'lucide-react';
+import { X, Zap, Check, Sparkles, BookOpen, MessageCircle, Headphones, RotateCcw } from 'lucide-react';
 import type { SubscriptionPeriod } from '@/lib/stripe/plans';
 
 interface UpgradeSuccessModalProps {
@@ -13,32 +13,32 @@ interface UpgradeSuccessModalProps {
 }
 
 const PLUS_FEATURES = [
-  { icon: <Zap className="size-4 text-[#118AB2]" />, label: '30 AI course credits per month' },
+  { icon: <Zap className="size-4 text-[#118AB2]" />, label: '30 basic classrooms per month' },
   { icon: <RotateCcw className="size-4 text-[#06D6A0]" />, label: 'Monthly credit reset' },
   { icon: <BookOpen className="size-4 text-[#118AB2]" />, label: 'Cloud storage for all courses' },
   { icon: <MessageCircle className="size-4 text-[#118AB2]" />, label: 'Slate community access' },
   { icon: <Check className="size-4 text-[#06D6A0] stroke-[3]" />, label: 'Priority AI generation' },
 ];
 
-const LIFETIME_FEATURES = [
-  { icon: <Crown className="size-4 text-[#ffd166]" />, label: '30 courses/month — forever' },
-  { icon: <RotateCcw className="size-4 text-[#ffd166]" />, label: 'No subscription, no renewal' },
-  { icon: <BookOpen className="size-4 text-[#118AB2]" />, label: 'Cloud storage for all courses' },
-  { icon: <MessageCircle className="size-4 text-[#ffd166]" />, label: 'Slate community access' },
+const ULTRA_FEATURES = [
+  { icon: <span className="text-sm">⚡</span>, label: '30 instant classrooms per month' },
+  { icon: <span className="text-sm">∞</span>, label: 'Unlimited basic classrooms' },
+  { icon: <RotateCcw className="size-4 text-[#ffd166]" />, label: 'Monthly instant credit reset' },
   { icon: <Headphones className="size-4 text-[#ffd166]" />, label: '1-on-1 support from the team' },
+  { icon: <MessageCircle className="size-4 text-[#ffd166]" />, label: 'Slate community access' },
 ];
 
 export function UpgradeSuccessModal({ open, onClose, period }: UpgradeSuccessModalProps) {
   const overlayRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
-  const isLifetime = period === 'lifetime';
-  const features = isLifetime ? LIFETIME_FEATURES : PLUS_FEATURES;
+  const isUltra = period === 'ultra_monthly' || period === 'ultra_yearly';
+  const features = isUltra ? ULTRA_FEATURES : PLUS_FEATURES;
 
-  const accentColor = isLifetime ? '#ffd166' : '#06D6A0';
-  const accentText = isLifetime ? 'text-[#ffd166]' : 'text-[#06D6A0]';
-  const shadowColor = isLifetime ? 'shadow-[6px_6px_0_#ffd166]' : 'shadow-[6px_6px_0_#06D6A0]';
-  const borderColor = isLifetime ? 'border-[#ffd166]' : 'border-[#06D6A0]';
-  const btnBg = isLifetime
+  const accentColor = isUltra ? '#ffd166' : '#06D6A0';
+  const accentText = isUltra ? 'text-[#ffd166]' : 'text-[#06D6A0]';
+  const shadowColor = isUltra ? 'shadow-[6px_6px_0_#ffd166]' : 'shadow-[6px_6px_0_#06D6A0]';
+  const borderColor = isUltra ? 'border-[#ffd166]' : 'border-[#06D6A0]';
+  const btnBg = isUltra
     ? 'bg-[#ffd166] border-[#073b4c] text-[#073b4c] hover:bg-[#f5c842]'
     : 'bg-[#06D6A0] border-[#073b4c] text-[#073b4c] hover:bg-[#04b889]';
 
@@ -100,24 +100,24 @@ export function UpgradeSuccessModal({ open, onClose, period }: UpgradeSuccessMod
                   className="size-12 rounded-2xl flex items-center justify-center border-[3px] border-[#073b4c]/10"
                   style={{ backgroundColor: `${accentColor}30` }}
                 >
-                  {isLifetime
-                    ? <Crown className="size-6 text-[#ffd166]" />
+                  {isUltra
+                    ? <span className="text-2xl">⚡</span>
                     : <Sparkles className="size-6 text-[#06D6A0]" />}
                 </div>
                 <div>
                   <p className={`text-xs font-black uppercase tracking-widest ${accentText} mb-0.5`}>
-                    {isLifetime ? 'Lifetime Access Unlocked' : 'Plus Plan Active'}
+                    {isUltra ? 'Ultra Plan Active' : 'Standard Plan Active'}
                   </p>
                   <h2 className="text-xl font-black text-[#073b4c] leading-tight">
-                    {isLifetime ? 'Welcome to the club! 🎉' : 'You\'re all set! 🚀'}
+                    {isUltra ? 'Instant classrooms unlocked! ⚡' : 'You\'re all set! 🚀'}
                   </h2>
                 </div>
               </div>
 
               <p className="text-sm text-[#073b4c]/60 mb-5 leading-relaxed">
-                {isLifetime
-                  ? 'Your account has been upgraded to Lifetime Plus. These features are now unlocked:'
-                  : `Your ${period === 'yearly' ? 'yearly' : 'monthly'} Plus subscription is now active. Here's what you've unlocked:`}
+                {isUltra
+                  ? `Your Ultra subscription is now active. Here's what you've unlocked:`
+                  : `Your ${period === 'yearly' ? 'yearly' : 'monthly'} Standard subscription is now active. Here's what you've unlocked:`}
               </p>
 
               {/* Features list */}

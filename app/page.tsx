@@ -97,6 +97,197 @@ const initialFormState: FormState = {
   webSearch: true,
 };
 
+// ── Classroom split button ─────────────────────────────────────────────────
+
+interface ClassroomSplitButtonProps {
+  canGenerate: boolean;
+  canInstantClassroom: boolean;
+  createClassroomLoading: boolean;
+  enterClassroomLoading: boolean;
+  onBasicClassroom: () => void;
+  onInstantClassroom: () => void;
+  onUpgradeToUltra: () => void;
+}
+
+function ClassroomSplitButton({
+  canGenerate,
+  canInstantClassroom,
+  createClassroomLoading,
+  enterClassroomLoading,
+  onBasicClassroom,
+  onInstantClassroom,
+  onUpgradeToUltra,
+}: ClassroomSplitButtonProps) {
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!dropdownOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [dropdownOpen]);
+
+  const isLoading = createClassroomLoading || enterClassroomLoading;
+
+  if (canInstantClassroom) {
+    // Ultra users — primary: Instant Classroom, dropdown: Basic Classroom
+    return (
+      <div ref={containerRef} className="relative flex items-center shrink-0">
+        {/* Primary — Instant Classroom */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              onClick={onInstantClassroom}
+              disabled={!canGenerate || isLoading}
+              aria-busy={enterClassroomLoading}
+              className={cn(
+                'h-10 pl-5 pr-3 rounded-l-full flex items-center justify-center gap-2 transition-all duration-200 font-bold border-2 border-r-0 border-[#073b4c]',
+                !canGenerate
+                  ? 'bg-[#f0f4f8] text-[#073b4c]/30 border-[#073b4c]/20 cursor-not-allowed'
+                  : enterClassroomLoading
+                    ? 'bg-[#ffd166] text-[#073b4c] shadow-[3px_3px_0_#073b4c] cursor-wait opacity-95'
+                    : 'bg-[#ffd166] text-[#073b4c] hover:translate-y-[-2px] shadow-[3px_3px_0_#073b4c] hover:shadow-[5px_5px_0_#073b4c] cursor-pointer',
+              )}
+            >
+              <span className="text-xs font-bold">⚡ Instant Classroom</span>
+              {enterClassroomLoading ? (
+                <Loader2 className="size-3.5 animate-spin" aria-hidden />
+              ) : (
+                <ArrowUp className="size-3.5" aria-hidden />
+              )}
+            </button>
+          </TooltipTrigger>
+          {!canGenerate && (
+            <TooltipContent side="top" sideOffset={8}>
+              <p className="text-xs">Write a prompt above to get started</p>
+            </TooltipContent>
+          )}
+        </Tooltip>
+
+        {/* Chevron dropdown toggle */}
+        <button
+          type="button"
+          onClick={() => setDropdownOpen((v) => !v)}
+          disabled={!canGenerate || isLoading}
+          className={cn(
+            'h-10 w-8 rounded-r-full flex items-center justify-center border-2 border-[#073b4c] transition-all duration-200',
+            !canGenerate
+              ? 'bg-[#f0f4f8] text-[#073b4c]/20 border-[#073b4c]/20 cursor-not-allowed'
+              : 'bg-[#ffd166] text-[#073b4c] hover:bg-[#f5c842] cursor-pointer shadow-[3px_3px_0_#073b4c]',
+          )}
+          aria-label="More classroom options"
+        >
+          <ChevronDown className={cn('size-3.5 transition-transform', dropdownOpen && 'rotate-180')} />
+        </button>
+
+        {/* Dropdown */}
+        {dropdownOpen && (
+          <div className="absolute right-0 top-12 z-50 min-w-[200px] rounded-2xl border-2 border-[#073b4c]/10 bg-white shadow-[4px_4px_0_#073b4c]/10 overflow-hidden">
+            <button
+              type="button"
+              onClick={() => { setDropdownOpen(false); onBasicClassroom(); }}
+              disabled={!canGenerate || createClassroomLoading}
+              className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-[#073b4c] hover:bg-[#f0f4f8] transition-colors cursor-pointer disabled:opacity-50"
+            >
+              <Clock className="size-3.5 text-[#8338ec] shrink-0" />
+              <div className="text-left">
+                <p className="font-bold text-[#073b4c] text-xs">Basic Classroom</p>
+                <p className="text-[10px] text-[#073b4c]/40">Background · 3–5 min</p>
+              </div>
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Standard / Free / Lifetime — primary: Basic Classroom, dropdown: Instant Classroom → upgrade
+  return (
+    <div ref={containerRef} className="relative flex items-center shrink-0">
+      {/* Primary — Basic Classroom */}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            onClick={onBasicClassroom}
+            disabled={!canGenerate || isLoading}
+            aria-busy={createClassroomLoading}
+            className={cn(
+              'h-10 pl-5 pr-3 rounded-l-full flex items-center justify-center gap-2 transition-all duration-200 font-bold border-2 border-r-0 border-[#073b4c]',
+              !canGenerate
+                ? 'bg-[#f0f4f8] text-[#073b4c]/30 border-[#073b4c]/20 cursor-not-allowed'
+                : createClassroomLoading
+                  ? 'bg-[#8338ec] text-[#fff0db] shadow-[3px_3px_0_#073b4c] cursor-wait opacity-95'
+                  : 'bg-[#8338ec] text-[#fff0db] hover:translate-y-[-2px] shadow-[3px_3px_0_#073b4c] hover:shadow-[5px_5px_0_#073b4c] cursor-pointer',
+            )}
+          >
+            <span className="text-xs font-bold">Basic Classroom</span>
+            {createClassroomLoading ? (
+              <Loader2 className="size-3.5 animate-spin" aria-hidden />
+            ) : (
+              <Clock className="size-3.5" aria-hidden />
+            )}
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="top" sideOffset={8}>
+          {canGenerate ? (
+            <p className="text-xs">Generate in the background — ready in 3–5 min</p>
+          ) : (
+            <p className="text-xs">Write a prompt above to get started</p>
+          )}
+        </TooltipContent>
+      </Tooltip>
+
+      {/* Chevron dropdown toggle */}
+      <button
+        type="button"
+        onClick={() => setDropdownOpen((v) => !v)}
+        disabled={isLoading}
+        className={cn(
+          'h-10 w-8 rounded-r-full flex items-center justify-center border-2 border-[#073b4c] transition-all duration-200',
+          'bg-[#8338ec] text-[#fff0db] hover:bg-[#6e2fd6] cursor-pointer shadow-[3px_3px_0_#073b4c]',
+          isLoading && 'opacity-50 cursor-not-allowed',
+        )}
+        aria-label="More classroom options"
+      >
+        <ChevronDown className={cn('size-3.5 transition-transform', dropdownOpen && 'rotate-180')} />
+      </button>
+
+      {/* Dropdown */}
+      {dropdownOpen && (
+        <div className="absolute right-0 top-12 z-50 min-w-[210px] rounded-2xl border-2 border-[#073b4c]/10 bg-white shadow-[4px_4px_0_#073b4c]/10 overflow-hidden">
+          <button
+            type="button"
+            onClick={() => { setDropdownOpen(false); onUpgradeToUltra(); }}
+            className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-[#073b4c] hover:bg-[#fffdf0] transition-colors cursor-pointer"
+          >
+            <span className="size-5 rounded-lg bg-[#ffd166]/20 flex items-center justify-center shrink-0 text-[11px]">
+              ⚡
+            </span>
+            <div className="text-left">
+              <p className="font-black text-[#073b4c] text-xs flex items-center gap-1">
+                Instant Classroom
+                <span className="px-1 py-0.5 rounded text-[8px] font-black bg-[#ffd166] text-[#073b4c] uppercase tracking-wide">
+                  Ultra
+                </span>
+              </p>
+              <p className="text-[10px] text-[#073b4c]/40">Streams live · upgrade to unlock</p>
+            </div>
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+
 function HomePage() {
   const { t } = useI18n();
   const { theme, setTheme } = useTheme();
@@ -855,85 +1046,28 @@ function HomePage() {
                   />
                 </div>
 
-                {/* Bottom row: action buttons (full-width on mobile) */}
-                <div className="flex items-center gap-2">
-                  {/* Create Classroom — background Temporal job (all users) */}
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        type="button"
-                        onClick={handleCreateClassroom}
-                        disabled={!canGenerate || createClassroomLoading}
-                        aria-busy={createClassroomLoading}
-                        className={cn(
-                          'flex-1 h-10 px-4 rounded-full flex items-center justify-center gap-2 transition-all duration-200 font-bold border-2 border-[#073b4c]',
-                          canGenerate && !createClassroomLoading
-                            ? 'bg-[#8338ec] text-[#fff0db] hover:translate-y-[-2px] shadow-[3px_3px_0_#073b4c] hover:shadow-[5px_5px_0_#073b4c] cursor-pointer'
-                            : canGenerate && createClassroomLoading
-                              ? 'bg-[#8338ec] text-[#fff0db] shadow-[3px_3px_0_#073b4c] cursor-wait opacity-95'
-                              : 'bg-[#f0f4f8] text-[#073b4c]/30 border-[#073b4c]/20 cursor-not-allowed',
-                        )}
-                      >
-                        <span className="text-xs font-medium">Generate Classroom</span>
-                        {createClassroomLoading ? (
-                          <Loader2 className="size-3.5 animate-spin" aria-hidden />
-                        ) : (
-                          <Clock className="size-3.5" aria-hidden />
-                        )}
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent side="top" sideOffset={8}>
-                      {canGenerate ? (
-                        <p className="text-xs">
-                          Generate in the background — we will notify you when ready in 3-5 minutes
-                        </p>
-                      ) : (
-                        <p className="text-xs">Write a prompt above to get started</p>
-                      )}
-                    </TooltipContent>
-                  </Tooltip>
+                {/* Voice input */}
+                <SpeechButton
+                  size="md"
+                  onTranscription={(text) => {
+                    setForm((prev) => {
+                      const next = prev.requirement + (prev.requirement ? ' ' : '') + text;
+                      updateRequirementCache(next);
+                      return { ...prev, requirement: next };
+                    });
+                  }}
+                />
 
-                  {/* Instant Classroom — real-time, Ultra only */}
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        type="button"
-                        onClick={canInstantClassroom ? handleGenerate : () => router.push('/pricing')}
-                        disabled={!canGenerate || enterClassroomLoading}
-                        aria-busy={enterClassroomLoading}
-                        className={cn(
-                          'flex-1 h-10 px-4 rounded-full flex items-center justify-center gap-2 transition-all duration-200 font-bold border-2 border-[#073b4c]',
-                          !canGenerate
-                            ? 'bg-[#f0f4f8] text-[#073b4c]/30 border-[#073b4c]/20 cursor-not-allowed'
-                            : enterClassroomLoading
-                              ? 'bg-[#06d6a0] text-[#073b4c] shadow-[3px_3px_0_#073b4c] cursor-wait opacity-95'
-                              : 'bg-[#06d6a0] text-[#073b4c] hover:translate-y-[-2px] shadow-[3px_3px_0_#073b4c] hover:shadow-[5px_5px_0_#073b4c] cursor-pointer',
-                        )}
-                      >
-                        <span className="text-xs font-medium">
-                          {canInstantClassroom ? 'Instant Classroom' : '⚡ Instant Classroom'}
-                        </span>
-                        {enterClassroomLoading && canInstantClassroom ? (
-                          <Loader2 className="size-3.5 animate-spin" aria-hidden />
-                        ) : (
-                          <ArrowUp className="size-3.5" aria-hidden />
-                        )}
-                      </button>
-                    </TooltipTrigger>
-                    {(!canInstantClassroom || !canGenerate) && (
-                      <TooltipContent side="top" sideOffset={8}>
-                        {!canGenerate ? (
-                          <p className="text-xs">Write a prompt above to get started</p>
-                        ) : !canInstantClassroom ? (
-                          <>
-                            <p className="text-xs font-bold">Ultra plan required</p>
-                            <p className="text-xs text-muted-foreground">Click to upgrade</p>
-                          </>
-                        ) : null}
-                      </TooltipContent>
-                    )}
-                  </Tooltip>
-                </div>
+                {/* Smart classroom split-button */}
+                <ClassroomSplitButton
+                  canGenerate={canGenerate}
+                  canInstantClassroom={canInstantClassroom}
+                  createClassroomLoading={createClassroomLoading}
+                  enterClassroomLoading={enterClassroomLoading}
+                  onBasicClassroom={handleCreateClassroom}
+                  onInstantClassroom={handleGenerate}
+                  onUpgradeToUltra={() => router.push('/pricing#ultra')}
+                />
               </div>
             </div>
           </motion.div>
