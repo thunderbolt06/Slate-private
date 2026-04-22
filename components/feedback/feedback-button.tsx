@@ -24,12 +24,12 @@ export function FeedbackButton({ className, variant = 'outline', showLabel = fal
             <button
               onClick={() => setOpen(true)}
               className={cn(
-                "flex items-center gap-2 h-9 px-4 rounded-full border-2 border-[#073b4c] bg-white text-[#073b4c] font-bold text-xs hover:translate-y-[-1px] shadow-[3px_3px_0_#073b4c] hover:shadow-[4px_4px_0_#073b4c] transition-all cursor-pointer active:translate-y-0 active:shadow-[1px_1px_0_#073b4c]",
+                "flex items-center gap-2 h-9 px-2 md:px-4 rounded-full border-2 border-[#073b4c] bg-white text-[#073b4c] font-bold text-xs hover:translate-y-[-1px] shadow-[3px_3px_0_#073b4c] hover:shadow-[4px_4px_0_#073b4c] transition-all cursor-pointer active:translate-y-0 active:shadow-[1px_1px_0_#073b4c]",
                 className
               )}
             >
               <MessageSquarePlus className="size-3.5" />
-              {showLabel && "Feedback"}
+              {showLabel && <span className="hidden md:inline">Feedback</span>}
             </button>
           ) : (
             <Button
