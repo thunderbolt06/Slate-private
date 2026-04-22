@@ -17,9 +17,10 @@ export interface ClassroomJobState {
 interface Props {
   job: ClassroomJobState | null;
   onReopen?: () => void;
+  onClear?: () => void;
 }
 
-export function ClassroomGenerationStatus({ job, onReopen }: Props) {
+export function ClassroomGenerationStatus({ job, onReopen, onClear }: Props) {
   const router = useRouter();
 
   return (
@@ -76,6 +77,7 @@ export function ClassroomGenerationStatus({ job, onReopen }: Props) {
                       return job.classroomUrl;
                     }
                   })();
+                  onClear?.();
                   router.push(path);
                 }
               }}
