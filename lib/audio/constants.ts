@@ -944,7 +944,7 @@ export const TTS_PROVIDERS: Record<TTSProviderId, TTSProviderConfig> = {
     id: 'fish-tts',
     name: 'Fish Speech (RunPod)',
     requiresApiKey: true,
-    defaultBaseUrl: 'https://api.runpod.ai/v2/p174wxl29u5r7n/run',
+    defaultBaseUrl: 'https://api.runpod.ai/v2/1srzlgqu47vahj/run',
     icon: '/logos/fish.svg',
     models: [{ id: 'fishaudio/s2-pro', name: 'Fish Speech S2 Pro' }],
     defaultModelId: 'fishaudio/s2-pro',

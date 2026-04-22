@@ -39,7 +39,7 @@ async function main() {
     taskQueue: TASK_QUEUE,
     // Temporal bundles workflow code with webpack; the workflowsPath must be
     // an absolute path to the file containing all workflow exports.
-    workflowsPath: path.join(__dirname, 'workflows'),
+    workflowsPath: path.join(__dirname, 'workflows', 'index.ts'),
     activities: {
       ...classroomActivities,
       ...catalogActivities,
