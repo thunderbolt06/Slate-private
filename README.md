@@ -2,6 +2,8 @@
   <img src="assets/logo-horizontal.png" alt="OpenMAIC" width="420"/>
 </p> -->
 
+
+
 <p align="center">
   <img src="assets/banner.png" alt="OpenMAIC Banner" width="680"/>
 </p>
