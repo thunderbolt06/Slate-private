@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
         userId: user.id,
         userEmail: user.email,
         jobId,
-        ttsProvider: 'fish-tts',
+        ttsProvider: 'smallest-tts',
       }],
     });
 
