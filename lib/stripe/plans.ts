@@ -1,5 +1,5 @@
 export type AccountType = 'FREE' | 'PLUS' | 'ULTRA' | 'ADMIN';
-export type SubscriptionPeriod = 'monthly' | 'yearly' | 'lifetime' | null;
+export type SubscriptionPeriod = 'monthly' | 'yearly' | 'ultra_monthly' | 'ultra_yearly' | null;
 
 export interface PlanLimits {
   coursesPerMonth: number;      // for FREE: total lifetime cap
@@ -14,13 +14,27 @@ export const PLAN_LIMITS: Record<AccountType, PlanLimits> = {
   ADMIN: { coursesPerMonth: 99999, isUnlimited: true,  canInstantClassroom: true  },
 };
 
-export const LIFETIME_MAX_SLOTS = 100;
+/** Basic classrooms per month (async/background generation) */
+export const BASIC_CLASSROOMS_PER_MONTH: Record<AccountType, number | 'unlimited'> = {
+  FREE: 2,
+  PLUS: 30,
+  ULTRA: 'unlimited',
+  ADMIN: 'unlimited',
+};
+
+/** Instant classrooms per month (real-time live generation, Ultra only) */
+export const INSTANT_CLASSROOMS_PER_MONTH: Record<AccountType, number | 'unlimited'> = {
+  FREE: 0,
+  PLUS: 0,
+  ULTRA: 30,
+  ADMIN: 'unlimited',
+};
 
 /** Number of courses added per top-up purchase */
 export const TOPUP_COURSES_AMOUNT = 10;
 
 export interface PricingPlan {
-  id: 'monthly' | 'yearly' | 'lifetime' | 'topup' | 'ultra_monthly' | 'ultra_yearly';
+  id: 'monthly' | 'yearly' | 'topup' | 'ultra_monthly' | 'ultra_yearly';
   label: string;
   price: number;          // in cents
   displayPrice: string;
@@ -34,32 +48,22 @@ export interface PricingPlan {
 export const PRICING_PLANS: PricingPlan[] = [
   {
     id: 'monthly',
-    label: 'Plus Monthly',
-    price: 500,
-    displayPrice: '$5',
+    label: 'Standard Monthly',
+    price: 2000,
+    displayPrice: '$20',
     period: '/month',
     stripePriceEnvKey: 'STRIPE_PRICE_MONTHLY',
     tier: 'plus',
   },
   {
     id: 'yearly',
-    label: 'Plus Yearly',
-    price: 5000,
-    displayPrice: '$50',
+    label: 'Standard Yearly',
+    price: 19200,
+    displayPrice: '$192',
     period: '/year',
     stripePriceEnvKey: 'STRIPE_PRICE_YEARLY',
-    savings: 'Save $10',
+    savings: 'Save $48',
     badge: 'Best Value',
-    tier: 'plus',
-  },
-  {
-    id: 'lifetime',
-    label: 'Lifetime',
-    price: 10000,
-    displayPrice: '$100',
-    period: 'one-time',
-    stripePriceEnvKey: 'STRIPE_PRICE_LIFETIME',
-    badge: 'Limited — 100 spots',
     tier: 'plus',
   },
   {
@@ -74,8 +78,8 @@ export const PRICING_PLANS: PricingPlan[] = [
   {
     id: 'ultra_monthly',
     label: 'Ultra Monthly',
-    price: 2000,
-    displayPrice: '$20',
+    price: 20000,
+    displayPrice: '$200',
     period: '/month',
     stripePriceEnvKey: 'STRIPE_PRICE_ULTRA_MONTHLY',
     badge: 'Instant Classroom',
@@ -84,17 +88,17 @@ export const PRICING_PLANS: PricingPlan[] = [
   {
     id: 'ultra_yearly',
     label: 'Ultra Yearly',
-    price: 18000,
-    displayPrice: '$180',
+    price: 180000,
+    displayPrice: '$1,800',
     period: '/year',
     stripePriceEnvKey: 'STRIPE_PRICE_ULTRA_YEARLY',
-    savings: 'Save $60',
+    savings: 'Save $600',
     badge: 'Best Value',
     tier: 'ultra',
   },
 ];
 
-export function getStripePriceId(period: 'monthly' | 'yearly' | 'lifetime' | 'topup' | 'ultra_monthly' | 'ultra_yearly'): string {
+export function getStripePriceId(period: 'monthly' | 'yearly' | 'topup' | 'ultra_monthly' | 'ultra_yearly'): string {
   const plan = PRICING_PLANS.find((p) => p.id === period);
   if (!plan) throw new Error(`Unknown plan period: ${period}`);
   const priceId = process.env[plan.stripePriceEnvKey];

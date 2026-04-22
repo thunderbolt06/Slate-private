@@ -99,7 +99,7 @@ function PlanCreditsSection({
             <Crown className="size-3" /> Upgrade
           </button>
         )}
-        {isPaid && plan.subscription_period !== 'lifetime' && (
+        {isPaid && (
           <button
             onClick={handleManageBilling}
             className="flex items-center gap-1 text-[10px] font-semibold text-[#073b4c]/40 hover:text-[#073b4c] transition-colors cursor-pointer"

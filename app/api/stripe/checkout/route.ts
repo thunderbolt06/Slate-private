@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe/client';
-import { getStripePriceId, LIFETIME_MAX_SLOTS } from '@/lib/stripe/plans';
+import { getStripePriceId } from '@/lib/stripe/plans';
 import { cookies } from 'next/headers';
 import { createClient } from '@/utils/supabase/server';
 import { createAdminClient } from '@/utils/supabase/admin';
@@ -24,26 +24,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { period } = (await req.json()) as { period: 'monthly' | 'yearly' | 'lifetime' };
+    const { period } = (await req.json()) as {
+      period: 'monthly' | 'yearly' | 'ultra_monthly' | 'ultra_yearly';
+    };
 
-    if (!['monthly', 'yearly', 'lifetime'].includes(period)) {
+    if (!['monthly', 'yearly', 'ultra_monthly', 'ultra_yearly'].includes(period)) {
       return NextResponse.json({ error: 'Invalid plan period' }, { status: 400 });
     }
 
     const admin = createAdminClient();
-
-    // Check lifetime slot availability before proceeding
-    if (period === 'lifetime') {
-      const { data: slots } = await admin
-        .from('lifetime_slots')
-        .select('slots_taken, max_slots')
-        .eq('id', 1)
-        .single();
-
-      if (slots && slots.slots_taken >= slots.max_slots) {
-        return NextResponse.json({ error: 'Lifetime plan is sold out' }, { status: 409 });
-      }
-    }
 
     // Fetch or create Stripe customer for this user
     const { data: plan } = await admin
@@ -74,7 +63,7 @@ export async function POST(req: NextRequest) {
     const sessionParams: Parameters<typeof stripe.checkout.sessions.create>[0] = {
       customer: customerId,
       line_items: [{ price: priceId, quantity: 1 }],
-      mode: period === 'lifetime' ? 'payment' : 'subscription',
+      mode: 'subscription',
       success_url: `${origin}/pricing?success=true&period=${period}`,
       cancel_url: `${origin}/pricing?canceled=true`,
       metadata: {
@@ -84,12 +73,9 @@ export async function POST(req: NextRequest) {
       allow_promotion_codes: true,
     };
 
-    // For subscriptions attach the customer update to keep billing info synced
-    if (period !== 'lifetime') {
-      sessionParams.subscription_data = {
-        metadata: { supabase_user_id: user.id, period },
-      };
-    }
+    sessionParams.subscription_data = {
+      metadata: { supabase_user_id: user.id, period },
+    };
 
     const session = await stripe.checkout.sessions.create(sessionParams);
 

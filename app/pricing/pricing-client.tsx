@@ -6,64 +6,164 @@ import { motion } from 'motion/react';
 import {
   Check,
   Zap,
-  Crown,
   Shield,
   BookOpen,
   Sparkles,
   Clock,
-  Users,
   MessageCircle,
   Headphones,
   ChevronLeft,
+  Bolt,
+  Infinity,
+  RefreshCw,
+  Info,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { LIFETIME_MAX_SLOTS } from '@/lib/stripe/plans';
 import type { UserPlan, SubscriptionPeriod } from '@/lib/stripe/plans';
 import { UpgradeSuccessModal } from '@/components/billing/upgrade-success-modal';
 import { usePlanStore } from '@/lib/store/user-plan';
 import { Button } from '@/components/ui/button';
 import posthog from 'posthog-js';
 
-// ── Feature rows ──────────────────────────────────────────────────────────────
+// ── Feature table ───────────────────────────────────────────────────────────
 
 const FEATURES: {
   label: string;
   free: boolean | string;
-  plus: boolean | string;
-  lifetime: boolean | string;
+  standard: boolean | string;
+  ultra: boolean | string;
 }[] = [
-  { label: 'AI course generation', free: true, plus: true, lifetime: true },
-  { label: 'Course credits', free: '2 total', plus: '30 / mo', lifetime: '30 / mo' },
-  { label: 'Cloud course storage', free: true, plus: true, lifetime: true },
-  { label: 'Quizzes & leaderboard', free: true, plus: true, lifetime: true },
-  { label: 'PDF & web-search input', free: true, plus: true, lifetime: true },
-  { label: 'Slate community access', free: false, plus: true, lifetime: true },
-  { label: 'Priority generation', free: false, plus: true, lifetime: true },
-  { label: '1-on-1 support', free: false, plus: false, lifetime: true },
+  { label: 'AI course generation', free: true, standard: true, ultra: true },
+  { label: 'Basic classrooms / mo', free: '2 total', standard: '30 / mo', ultra: 'Unlimited' },
+  { label: 'Instant classrooms / mo', free: false, standard: false, ultra: '30 / mo' },
+  { label: 'Cloud storage & quizzes', free: true, standard: true, ultra: true },
+  { label: 'Monthly credit reset', free: false, standard: true, ultra: true },
+  { label: 'Priority generation', free: false, standard: true, ultra: true },
+  { label: 'Slate community', free: false, standard: true, ultra: true },
+  { label: '1-on-1 support', free: false, standard: false, ultra: true },
 ];
 
-function FeatureCheck({ value, lifetime }: { value: boolean | string; lifetime?: boolean }) {
+function FeatureVal({ value, color }: { value: boolean | string; color: string }) {
   if (value === false)
-    return <span className="text-[#073b4c]/20 font-bold text-lg leading-none">—</span>;
-  if (value === true)
-    return (
-      <Check className={`size-4 stroke-[3] ${lifetime ? 'text-[#ffd166]' : 'text-[#06D6A0]'}`} />
-    );
-  return <span className="text-xs font-bold text-[#073b4c]">{value}</span>;
+    return <span className="text-[#073b4c]/20 font-bold text-base leading-none">—</span>;
+  if (value === true) return <Check className={`size-4 stroke-[3] ${color}`} />;
+  return <span className="text-[10px] font-black text-[#073b4c]">{value}</span>;
 }
+
+// ── Classroom type card ─────────────────────────────────────────────────────
+
+function ClassroomTypeCard({
+  icon,
+  title,
+  color,
+  borderColor,
+  shadowColor,
+  badge,
+  features,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  color: string;
+  borderColor: string;
+  shadowColor: string;
+  badge: string;
+  features: string[];
+}) {
+  return (
+    <div className={`flex-1 rounded-3xl border-[3px] ${borderColor} bg-white p-6 ${shadowColor}`}>
+      <div className="flex items-center gap-3 mb-4">
+        <div
+          className={`size-10 rounded-2xl flex items-center justify-center border-2 ${borderColor}/40`}
+          style={{ background: `${color}18` }}
+        >
+          {icon}
+        </div>
+        <div>
+          <span
+            className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full"
+            style={{ background: `${color}22`, color }}
+          >
+            {badge}
+          </span>
+          <h4 className="text-base font-black text-[#073b4c] mt-0.5">{title}</h4>
+        </div>
+      </div>
+      <ul className="space-y-2">
+        {features.map((f) => (
+          <li key={f} className="flex items-start gap-2 text-sm text-[#073b4c]/65">
+            <Check className="size-3.5 mt-0.5 shrink-0 stroke-[3]" style={{ color }} />
+            {f}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+// ── Credits info ────────────────────────────────────────────────────────────
+
+function CreditsInfo() {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ delay: 0.5 }}
+      className="max-w-3xl mx-auto mb-12"
+    >
+      <div className="rounded-3xl border-[3px] border-[#073b4c]/10 bg-white p-7">
+        <div className="flex items-center gap-2 mb-4">
+          <Info className="size-4 text-[#118AB2]" />
+          <h3 className="text-sm font-black text-[#073b4c] uppercase tracking-widest">
+            How credits work
+          </h3>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <div className="space-y-1">
+            <p className="text-xs font-black text-[#073b4c]/40 uppercase tracking-widest">Free</p>
+            <p className="text-sm text-[#073b4c]/70">
+              2 lifetime credits. Once used, top up for $5 per 10 extra basic classrooms.
+            </p>
+          </div>
+          <div className="space-y-1">
+            <p className="text-xs font-black text-[#118AB2] uppercase tracking-widest">Standard</p>
+            <p className="text-sm text-[#073b4c]/70">
+              30 basic classroom credits reset every month on your billing date. Unused credits
+              don't carry over.
+            </p>
+          </div>
+          <div className="space-y-1">
+            <p className="text-xs font-black text-[#ffd166] uppercase tracking-widest">Ultra</p>
+            <p className="text-sm text-[#073b4c]/70">
+              30 instant classroom credits + unlimited basic classrooms per month. Instant credits
+              reset monthly.
+            </p>
+          </div>
+        </div>
+        <div className="mt-4 pt-4 border-t border-[#073b4c]/5 flex items-start gap-2">
+          <RefreshCw className="size-3.5 text-[#073b4c]/30 mt-0.5 shrink-0" />
+          <p className="text-xs text-[#073b4c]/40">
+            Top-ups add 10 basic classroom credits for $5 and work on any plan. Credits never
+            expire once purchased.
+          </p>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+// ── Main component ──────────────────────────────────────────────────────────
 
 export function PricingClient() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [plan, setPlan] = useState<UserPlan | null>(null);
-  const [lifetimeSlots, setSlots] = useState<{ taken: number; max: number } | null>(null);
   const [loading, setLoading] = useState<string | null>(null);
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
   const [successModal, setSuccessModal] = useState<{ open: boolean; period: SubscriptionPeriod }>({
     open: false,
     period: null,
   });
 
-  // Show success modal (or toast) on redirect back from Stripe
   useEffect(() => {
     const successParam = searchParams.get('success');
     const periodParam = searchParams.get('period') as SubscriptionPeriod | null;
@@ -76,8 +176,6 @@ export function PricingClient() {
         toast.success('10 courses added to your account! Happy learning 🎉');
       }
 
-      // ── Sync logic ──────────────────────────────────────────────────────────
-      // Poll /api/user/plan every 2s for 10s to ensure the UI catches the webhook.
       let count = 0;
       const interval = setInterval(async () => {
         count++;
@@ -85,14 +183,11 @@ export function PricingClient() {
         const json = await res.json();
         if (json.success) {
           setPlan(json.plan);
-          // Also update global store so profile modal is in sync
           usePlanStore.getState().refetch();
-
-          // Stop polling once we see the update (or after 5 tries)
           const isUpdated = successParam
-            ? json.plan.account_type === 'PLUS' || json.plan.subscription_status === 'active'
-            : true; // for topup, we just refresh a few times to be sure
-
+            ? ['PLUS', 'ULTRA'].includes(json.plan.account_type) ||
+              json.plan.subscription_status === 'active'
+            : true;
           if (isUpdated || count >= 5) clearInterval(interval);
         }
       }, 2000);
@@ -103,24 +198,16 @@ export function PricingClient() {
     }
   }, [searchParams]);
 
-  // Fetch current user plan & lifetime slot count
   useEffect(() => {
     fetch('/api/user/plan', { cache: 'no-store' })
       .then((r) => r.json())
-      .then((j) => {
-        if (j.success) setPlan(j.plan);
-      })
-      .catch(() => {});
-
-    fetch('/api/lifetime-slots')
-      .then((r) => r.json())
-      .then((j) => {
-        if (j.slots) setSlots(j.slots);
-      })
+      .then((j) => { if (j.success) setPlan(j.plan); })
       .catch(() => {});
   }, []);
 
-  const handleCheckout = async (period: 'monthly' | 'yearly' | 'lifetime') => {
+  const handleCheckout = async (
+    period: 'monthly' | 'yearly' | 'ultra_monthly' | 'ultra_yearly',
+  ) => {
     setLoading(period);
     posthog.capture('checkout_initiated', { plan_period: period });
     try {
@@ -155,10 +242,21 @@ export function PricingClient() {
   };
 
   const currentPeriod = plan?.subscription_period;
-  const isPlus = plan?.account_type === 'PLUS';
-  const isAdmin = plan?.account_type === 'ADMIN';
+  const accountType = plan?.account_type ?? 'FREE';
+  const isPlus = accountType === 'PLUS';
+  const isUltra = accountType === 'ULTRA';
+  const isAdmin = accountType === 'ADMIN';
 
-  const slotsLeft = lifetimeSlots ? lifetimeSlots.max - lifetimeSlots.taken : LIFETIME_MAX_SLOTS;
+  const isStandardMonthlyActive = isPlus && currentPeriod === 'monthly';
+  const isStandardYearlyActive = isPlus && currentPeriod === 'yearly';
+  const isUltraMonthlyActive = isUltra && currentPeriod === 'monthly';
+  const isUltraYearlyActive = isUltra && currentPeriod === 'yearly';
+
+  const standardCheckoutId = billingCycle === 'monthly' ? 'monthly' : 'yearly';
+  const ultraCheckoutId = billingCycle === 'monthly' ? 'ultra_monthly' : 'ultra_yearly';
+  const isStandardActive =
+    billingCycle === 'monthly' ? isStandardMonthlyActive : isStandardYearlyActive;
+  const isUltraActive = billingCycle === 'monthly' ? isUltraMonthlyActive : isUltraYearlyActive;
 
   return (
     <>
@@ -167,6 +265,8 @@ export function PricingClient() {
         period={successModal.period}
         onClose={() => setSuccessModal((s) => ({ ...s, open: false }))}
       />
+
+      {/* ── Header ── */}
       <header className="sticky top-0 z-40 w-full bg-[#f0f4f8]/80 backdrop-blur-md border-b-[3px] border-[#073b4c]">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <Button
@@ -185,12 +285,14 @@ export function PricingClient() {
               BETA
             </span>
           </div>
-          <div className="w-20" /> {/* Spacer */}
+          <div className="w-20" />
         </div>
       </header>
+
       <main className="min-h-screen bg-[#f0f4f8] py-16 px-4">
+
         {/* ── Hero ── */}
-        <div className="text-center mb-14">
+        <div className="text-center mb-10">
           <motion.div
             initial={{ opacity: 0, y: -16 }}
             animate={{ opacity: 1, y: 0 }}
@@ -207,103 +309,43 @@ export function PricingClient() {
           </motion.div>
         </div>
 
-        {/* ── Lifetime offer ── */}
+        {/* ── Billing toggle ── */}
         <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.35 }}
-          className="max-w-2xl mx-auto mb-16"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.15 }}
+          className="flex justify-center mb-10"
         >
-          <div className="relative rounded-3xl border-[3px] border-[#ffd166] bg-gradient-to-br from-[#fff9e6] to-white p-8 shadow-[6px_6px_0_#ffd166]">
-            <div className="absolute -top-4 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-4 py-1 bg-[#ffd166] rounded-full border-2 border-[#073b4c]/10 shadow">
-              <Crown className="size-3.5 text-[#073b4c]" />
-              <span className="text-xs font-black text-[#073b4c] uppercase tracking-widest">
-                Limited Lifetime Offer
+          <div className="flex items-center gap-1 p-1 rounded-full border-[3px] border-[#073b4c]/10 bg-white">
+            <button
+              onClick={() => setBillingCycle('monthly')}
+              className={`px-5 py-2 rounded-full text-sm font-black transition-all cursor-pointer ${
+                billingCycle === 'monthly'
+                  ? 'bg-[#073b4c] text-white shadow-[2px_2px_0_#073b4c]/20'
+                  : 'text-[#073b4c]/50 hover:text-[#073b4c]'
+              }`}
+            >
+              Monthly
+            </button>
+            <button
+              onClick={() => setBillingCycle('yearly')}
+              className={`px-5 py-2 rounded-full text-sm font-black transition-all cursor-pointer flex items-center gap-2 ${
+                billingCycle === 'yearly'
+                  ? 'bg-[#073b4c] text-white shadow-[2px_2px_0_#073b4c]/20'
+                  : 'text-[#073b4c]/50 hover:text-[#073b4c]'
+              }`}
+            >
+              Yearly
+              <span className="px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-[#06D6A0] text-[#073b4c]">
+                Save up to 25%
               </span>
-            </div>
-
-            <div className="flex flex-col md:flex-row items-center gap-8 pt-2">
-              <div className="flex-1">
-                <h3 className="text-2xl font-black text-[#073b4c] mb-1">Pay Once. Use Forever.</h3>
-                <p className="text-[#073b4c]/50 text-sm mb-4">
-                  One-time payment. 30 courses/month, every month — no subscription required.
-                </p>
-
-                <ul className="space-y-1.5 mb-4">
-                  <li className="flex items-center gap-2 text-sm text-[#073b4c]/70">
-                    <Check className="size-3.5 text-[#ffd166] stroke-[3] shrink-0" />
-                    <strong>30 courses/month</strong>, forever
-                  </li>
-                  <li className="flex items-center gap-2 text-sm text-[#073b4c]/70">
-                    <MessageCircle className="size-3.5 text-[#ffd166] shrink-0" />
-                    Slate community access
-                  </li>
-                  <li className="flex items-center gap-2 text-sm text-[#073b4c]/70">
-                    <Headphones className="size-3.5 text-[#ffd166] shrink-0" />
-                    <span>
-                      <strong>1-on-1 support</strong> from the team
-                    </span>
-                  </li>
-                </ul>
-
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-[#073b4c]/60">
-                    <Users className="size-3.5" />
-                    <span>
-                      <span className="text-[#ef476f] font-black">{slotsLeft}</span> of{' '}
-                      {LIFETIME_MAX_SLOTS} spots left
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-[#073b4c]/60">
-                    <Clock className="size-3.5" />
-                    No recurring fees
-                  </div>
-                </div>
-
-                {/* Slot progress bar */}
-                <div className="w-full h-2 rounded-full bg-[#073b4c]/10 overflow-hidden mb-1">
-                  <div
-                    className="h-full rounded-full bg-gradient-to-r from-[#ffd166] to-[#ef476f] transition-all duration-700"
-                    style={{
-                      width: `${Math.min(100, ((LIFETIME_MAX_SLOTS - slotsLeft) / LIFETIME_MAX_SLOTS) * 100)}%`,
-                    }}
-                  />
-                </div>
-                <p className="text-[9px] text-[#073b4c]/30 mb-5">
-                  {LIFETIME_MAX_SLOTS - slotsLeft} of {LIFETIME_MAX_SLOTS} lifetime spots claimed
-                </p>
-              </div>
-
-              <div className="shrink-0 text-center">
-                <div className="mb-2">
-                  <span className="text-5xl font-black text-[#073b4c]">$100</span>
-                  <p className="text-xs text-[#073b4c]/40 font-semibold">one-time</p>
-                </div>
-
-                {isPlus && currentPeriod === 'lifetime' ? (
-                  <div className="px-6 py-2.5 rounded-2xl bg-[#ffd166] border-[3px] border-[#073b4c]/20 font-black text-sm text-[#073b4c]">
-                    ✓ You own this
-                  </div>
-                ) : slotsLeft <= 0 ? (
-                  <div className="px-6 py-2.5 rounded-2xl bg-[#f0f4f8] border-[3px] border-[#073b4c]/10 font-black text-sm text-[#073b4c]/40">
-                    Sold Out
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => handleCheckout('lifetime')}
-                    disabled={!!loading || isAdmin}
-                    className="px-8 py-2.5 rounded-2xl border-[3px] border-[#073b4c] bg-[#073b4c] text-white font-black text-sm hover:bg-[#118AB2] hover:border-[#118AB2] hover:shadow-[4px_4px_0_#073b4c] transition-all cursor-pointer disabled:opacity-50 shadow-[3px_3px_0_#ffd166]"
-                  >
-                    {loading === 'lifetime' ? 'Redirecting…' : 'Claim Lifetime Access'}
-                  </button>
-                )}
-              </div>
-            </div>
+            </button>
           </div>
         </motion.div>
 
         {/* ── Plan cards ── */}
-        <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
+        <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6 mb-14">
+
           {/* FREE */}
           <motion.div
             initial={{ opacity: 0, y: 24 }}
@@ -311,15 +353,20 @@ export function PricingClient() {
             transition={{ delay: 0.1 }}
             className="relative rounded-3xl border-[3px] border-[#073b4c]/10 bg-white p-7 flex flex-col"
           >
+            {accountType === 'FREE' && (
+              <div className="absolute -top-3 left-5 px-3 py-0.5 bg-[#073b4c]/10 rounded-full text-[#073b4c] text-[10px] font-black uppercase tracking-widest">
+                Current plan
+              </div>
+            )}
             <div className="flex items-center gap-2 mb-5">
-              <div className="size-8 rounded-xl bg-[#f0f4f8] border-2 border-[#073b4c]/10 flex items-center justify-center">
-                <BookOpen className="size-4 text-[#073b4c]/60" />
+              <div className="size-9 rounded-xl bg-[#f0f4f8] border-2 border-[#073b4c]/10 flex items-center justify-center">
+                <BookOpen className="size-4 text-[#073b4c]/50" />
               </div>
               <div>
-                <p className="text-xs font-black text-[#073b4c]/40 uppercase tracking-widest">
-                  Current
+                <p className="text-xs font-black text-[#073b4c]/30 uppercase tracking-widest">
+                  Free
                 </p>
-                <h2 className="text-lg font-black text-[#073b4c]">Free</h2>
+                <h2 className="text-lg font-black text-[#073b4c]">Starter</h2>
               </div>
             </div>
 
@@ -330,7 +377,8 @@ export function PricingClient() {
 
             <ul className="space-y-2.5 mb-8 flex-1">
               <li className="flex items-center gap-2 text-sm text-[#073b4c]/70">
-                <Check className="size-3.5 text-[#06D6A0] stroke-[3] shrink-0" />2 AI course credits
+                <Check className="size-3.5 text-[#06D6A0] stroke-[3] shrink-0" />
+                <strong>2 basic classrooms</strong> (lifetime)
               </li>
               <li className="flex items-center gap-2 text-sm text-[#073b4c]/70">
                 <Check className="size-3.5 text-[#06D6A0] stroke-[3] shrink-0" />
@@ -340,47 +388,68 @@ export function PricingClient() {
                 <Check className="size-3.5 text-[#06D6A0] stroke-[3] shrink-0" />
                 Leaderboard & analytics
               </li>
+              <li className="flex items-start gap-2 text-sm text-[#073b4c]/40">
+                <span className="mt-0.5 text-base font-bold leading-none">—</span>
+                No instant classrooms
+              </li>
             </ul>
 
-            <div className="h-11 rounded-2xl border-[3px] border-[#073b4c]/15 bg-[#f0f4f8] text-[#073b4c]/40 font-bold text-sm flex items-center justify-center">
-              Your current plan
+            <div className="h-11 rounded-2xl border-[3px] border-[#073b4c]/10 bg-[#f0f4f8] text-[#073b4c]/40 font-bold text-sm flex items-center justify-center">
+              {accountType === 'FREE' ? 'Your current plan' : 'Free forever'}
             </div>
           </motion.div>
 
-          {/* PLUS MONTHLY */}
+          {/* STANDARD */}
           <motion.div
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
             className="relative rounded-3xl border-[3px] border-[#118AB2] bg-white p-7 flex flex-col shadow-[6px_6px_0_#118AB2]"
           >
-            {isPlus && currentPeriod === 'monthly' && (
+            {isStandardActive && (
               <div className="absolute -top-3 left-5 px-3 py-0.5 bg-[#118AB2] rounded-full text-white text-[10px] font-black uppercase tracking-widest">
                 Active
               </div>
             )}
+            {billingCycle === 'yearly' && !isStandardActive && (
+              <div className="absolute -top-3 right-5 px-3 py-0.5 bg-[#118AB2]/15 border border-[#118AB2]/30 rounded-full text-[#118AB2] text-[10px] font-black uppercase tracking-widest">
+                Save $48/yr
+              </div>
+            )}
 
             <div className="flex items-center gap-2 mb-5">
-              <div className="size-8 rounded-xl bg-[#118AB2]/10 border-2 border-[#118AB2]/20 flex items-center justify-center">
+              <div className="size-9 rounded-xl bg-[#118AB2]/10 border-2 border-[#118AB2]/20 flex items-center justify-center">
                 <Zap className="size-4 text-[#118AB2]" />
               </div>
               <div>
                 <p className="text-xs font-black text-[#118AB2]/60 uppercase tracking-widest">
-                  Plus
+                  Standard
                 </p>
-                <h2 className="text-lg font-black text-[#073b4c]">Monthly</h2>
+                <h2 className="text-lg font-black text-[#073b4c]">
+                  {billingCycle === 'monthly' ? 'Monthly' : 'Yearly'}
+                </h2>
               </div>
             </div>
 
-            <div className="mb-6">
-              <span className="text-4xl font-black text-[#073b4c]">$5</span>
-              <span className="text-[#073b4c]/30 text-sm ml-1">/ month</span>
-            </div>
+            {billingCycle === 'monthly' ? (
+              <div className="mb-6">
+                <span className="text-4xl font-black text-[#073b4c]">$20</span>
+                <span className="text-[#073b4c]/30 text-sm ml-1">/ month</span>
+              </div>
+            ) : (
+              <div className="mb-1">
+                <span className="text-4xl font-black text-[#073b4c]">$16</span>
+                <span className="text-[#073b4c]/30 text-sm ml-1">/ month</span>
+                <p className="text-xs font-bold text-[#06D6A0] mt-0.5 mb-5">
+                  Billed $192/yr · save $48
+                </p>
+              </div>
+            )}
 
             <ul className="space-y-2.5 mb-8 flex-1">
               <li className="flex items-center gap-2 text-sm text-[#073b4c]/70">
                 <Check className="size-3.5 text-[#118AB2] stroke-[3] shrink-0" />
-                <strong>30 courses/month</strong>
+                <strong>30 basic classrooms / month</strong>
               </li>
               <li className="flex items-center gap-2 text-sm text-[#073b4c]/70">
                 <Check className="size-3.5 text-[#118AB2] stroke-[3] shrink-0" />
@@ -388,15 +457,19 @@ export function PricingClient() {
               </li>
               <li className="flex items-center gap-2 text-sm text-[#073b4c]/70">
                 <Check className="size-3.5 text-[#118AB2] stroke-[3] shrink-0" />
-                Everything in Free
+                Community access & priority gen
               </li>
               <li className="flex items-center gap-2 text-sm text-[#073b4c]/70">
-                <MessageCircle className="size-3.5 text-[#118AB2] shrink-0" />
-                Slate community access
+                <Check className="size-3.5 text-[#118AB2] stroke-[3] shrink-0" />
+                Everything in Free
+              </li>
+              <li className="flex items-start gap-2 text-sm text-[#073b4c]/40">
+                <span className="mt-0.5 text-base font-bold leading-none">—</span>
+                No instant classrooms
               </li>
             </ul>
 
-            {isPlus && currentPeriod === 'monthly' ? (
+            {isStandardActive ? (
               <button
                 onClick={handlePortal}
                 disabled={loading === 'portal'}
@@ -406,95 +479,173 @@ export function PricingClient() {
               </button>
             ) : (
               <button
-                onClick={() => handleCheckout('monthly')}
-                disabled={!!loading || isAdmin}
+                onClick={() => handleCheckout(standardCheckoutId as 'monthly' | 'yearly')}
+                disabled={!!loading || isAdmin || isUltra}
                 className="h-11 rounded-2xl border-[3px] border-[#118AB2] bg-[#118AB2] text-white font-bold text-sm flex items-center justify-center hover:bg-[#0e7aa0] hover:shadow-[4px_4px_0_#073b4c] transition-all cursor-pointer disabled:opacity-50 shadow-[3px_3px_0_#073b4c]"
               >
-                {loading === 'monthly' ? 'Redirecting…' : 'Get Monthly'}
+                {loading === standardCheckoutId
+                  ? 'Redirecting…'
+                  : isUltra
+                    ? 'Included in Ultra'
+                    : billingCycle === 'monthly'
+                      ? 'Get Standard'
+                      : 'Get Standard Yearly'}
               </button>
             )}
           </motion.div>
 
-          {/* PLUS YEARLY */}
+          {/* ULTRA */}
           <motion.div
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.25 }}
-            className="relative rounded-3xl border-[3px] border-[#06D6A0] bg-white p-7 flex flex-col shadow-[6px_6px_0_#06D6A0]"
+            transition={{ delay: 0.3 }}
+            id="ultra"
+            className="relative rounded-3xl border-[3px] border-[#ffd166] bg-gradient-to-br from-[#fffdf0] to-white p-7 flex flex-col shadow-[6px_6px_0_#ffd166]"
           >
-            <div className="absolute -top-3 right-5 px-3 py-0.5 bg-[#06D6A0] rounded-full text-[#073b4c] text-[10px] font-black uppercase tracking-widest">
-              {isPlus && currentPeriod === 'yearly' ? 'Active' : 'Best Value'}
+            <div className="absolute -top-3 right-5 px-3 py-0.5 bg-[#ffd166] border border-[#073b4c]/10 rounded-full text-[#073b4c] text-[10px] font-black uppercase tracking-widest flex items-center gap-1">
+              {isUltraActive ? (
+                'Active'
+              ) : (
+                <>
+                  <Bolt className="size-2.5" />
+                  Instant Classroom
+                </>
+              )}
             </div>
 
             <div className="flex items-center gap-2 mb-5">
-              <div className="size-8 rounded-xl bg-[#06D6A0]/10 border-2 border-[#06D6A0]/20 flex items-center justify-center">
-                <Zap className="size-4 text-[#06D6A0]" />
+              <div className="size-9 rounded-xl bg-[#ffd166]/20 border-2 border-[#ffd166]/40 flex items-center justify-center">
+                <Sparkles className="size-4 text-[#ffd166]" />
               </div>
               <div>
-                <p className="text-xs font-black text-[#06D6A0]/70 uppercase tracking-widest">
-                  Plus
+                <p className="text-xs font-black text-[#ffd166]/70 uppercase tracking-widest">
+                  Ultra
                 </p>
-                <h2 className="text-lg font-black text-[#073b4c]">Yearly</h2>
+                <h2 className="text-lg font-black text-[#073b4c]">
+                  {billingCycle === 'monthly' ? 'Monthly' : 'Yearly'}
+                </h2>
               </div>
             </div>
 
-            <div className="mb-1">
-              <span className="text-4xl font-black text-[#073b4c]">$50</span>
-              <span className="text-[#073b4c]/30 text-sm ml-1">/ year</span>
-            </div>
-            <p className="text-xs font-bold text-[#06D6A0] mb-5">Save $10 vs monthly</p>
+            {billingCycle === 'monthly' ? (
+              <div className="mb-6">
+                <span className="text-4xl font-black text-[#073b4c]">$200</span>
+                <span className="text-[#073b4c]/30 text-sm ml-1">/ month</span>
+              </div>
+            ) : (
+              <div className="mb-1">
+                <span className="text-4xl font-black text-[#073b4c]">$150</span>
+                <span className="text-[#073b4c]/30 text-sm ml-1">/ month</span>
+                <p className="text-xs font-bold text-[#06D6A0] mt-0.5 mb-5">
+                  Billed $1,800/yr · save $600
+                </p>
+              </div>
+            )}
 
             <ul className="space-y-2.5 mb-8 flex-1">
               <li className="flex items-center gap-2 text-sm text-[#073b4c]/70">
-                <Check className="size-3.5 text-[#06D6A0] stroke-[3] shrink-0" />
-                <strong>30 courses/month</strong>
+                <Bolt className="size-3.5 text-[#ffd166] shrink-0" />
+                <strong>30 instant classrooms / month</strong>
               </li>
               <li className="flex items-center gap-2 text-sm text-[#073b4c]/70">
-                <Check className="size-3.5 text-[#06D6A0] stroke-[3] shrink-0" />
-                Annual billing (save $10)
+                <Infinity className="size-3.5 text-[#ffd166] shrink-0" />
+                <strong>Unlimited basic classrooms</strong>
               </li>
               <li className="flex items-center gap-2 text-sm text-[#073b4c]/70">
-                <Check className="size-3.5 text-[#06D6A0] stroke-[3] shrink-0" />
-                Everything in Free
+                <Check className="size-3.5 text-[#ffd166] stroke-[3] shrink-0" />
+                Monthly instant credit reset
               </li>
               <li className="flex items-center gap-2 text-sm text-[#073b4c]/70">
-                <MessageCircle className="size-3.5 text-[#06D6A0] shrink-0" />
+                <Headphones className="size-3.5 text-[#ffd166] shrink-0" />
+                <strong>1-on-1 support</strong> from the team
+              </li>
+              <li className="flex items-center gap-2 text-sm text-[#073b4c]/70">
+                <MessageCircle className="size-3.5 text-[#ffd166] shrink-0" />
                 Slate community access
               </li>
             </ul>
 
-            {isPlus && currentPeriod === 'yearly' ? (
+            {isUltraActive ? (
               <button
                 onClick={handlePortal}
                 disabled={loading === 'portal'}
-                className="h-11 rounded-2xl border-[3px] border-[#06D6A0] text-[#06D6A0] font-bold text-sm flex items-center justify-center gap-2 hover:bg-[#06D6A0]/5 transition-colors cursor-pointer disabled:opacity-50"
+                className="h-11 rounded-2xl border-[3px] border-[#ffd166] text-[#073b4c] font-bold text-sm flex items-center justify-center gap-2 hover:bg-[#ffd166]/10 transition-colors cursor-pointer disabled:opacity-50"
               >
                 {loading === 'portal' ? 'Loading…' : 'Manage Subscription'}
               </button>
             ) : (
               <button
-                onClick={() => handleCheckout('yearly')}
+                onClick={() => handleCheckout(ultraCheckoutId as 'ultra_monthly' | 'ultra_yearly')}
                 disabled={!!loading || isAdmin}
-                className="h-11 rounded-2xl border-[3px] border-[#06D6A0] bg-[#06D6A0] text-[#073b4c] font-bold text-sm flex items-center justify-center hover:bg-[#04b889] hover:shadow-[4px_4px_0_#073b4c] transition-all cursor-pointer disabled:opacity-50 shadow-[3px_3px_0_#073b4c]"
+                className="h-11 rounded-2xl border-[3px] border-[#073b4c] bg-[#ffd166] text-[#073b4c] font-black text-sm flex items-center justify-center hover:bg-[#f5c842] hover:shadow-[4px_4px_0_#073b4c] transition-all cursor-pointer disabled:opacity-50 shadow-[3px_3px_0_#073b4c]"
               >
-                {loading === 'yearly' ? 'Redirecting…' : 'Get Yearly'}
+                {loading === ultraCheckoutId
+                  ? 'Redirecting…'
+                  : billingCycle === 'monthly'
+                    ? 'Get Ultra'
+                    : 'Get Ultra Yearly'}
               </button>
             )}
           </motion.div>
         </div>
 
+        {/* ── Classroom types explainer ── */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.4 }}
+          className="max-w-3xl mx-auto mb-12"
+        >
+          <h3 className="text-center text-xs font-black text-[#073b4c]/30 uppercase tracking-widest mb-5">
+            Two ways to learn
+          </h3>
+          <div className="flex flex-col md:flex-row gap-5">
+            <ClassroomTypeCard
+              icon={<Clock className="size-5 text-[#8338ec]" />}
+              title="Basic Classroom"
+              color="#8338ec"
+              borderColor="border-[#8338ec]/20"
+              shadowColor="shadow-[4px_4px_0_#8338ec]/15"
+              badge="All plans"
+              features={[
+                'Generated in the background in 3–5 min',
+                'Full slide deck with quizzes & leaderboard',
+                'Available on Free and Standard',
+                'Top up extra credits for $5 per 10 courses',
+              ]}
+            />
+            <ClassroomTypeCard
+              icon={<Bolt className="size-5 text-[#ffd166]" />}
+              title="Instant Classroom"
+              color="#f5c842"
+              borderColor="border-[#ffd166]/40"
+              shadowColor="shadow-[4px_4px_0_#ffd166]/30"
+              badge="Ultra only"
+              features={[
+                'Streams live — enter the classroom instantly',
+                'Real-time AI generation as you learn',
+                '30 instant classrooms per month',
+                'Resets on your billing date',
+              ]}
+            />
+          </div>
+        </motion.div>
+
+        {/* ── Credits info ── */}
+        <CreditsInfo />
+
         {/* ── Feature comparison table ── */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.45 }}
+          transition={{ delay: 0.55 }}
           className="max-w-3xl mx-auto mb-12"
         >
           <h3 className="text-center text-xs font-black text-[#073b4c]/30 uppercase tracking-widest mb-5">
-            What's included
+            Full comparison
           </h3>
           <div className="rounded-3xl border-[3px] border-[#073b4c]/10 bg-white overflow-hidden">
-            <div className="grid grid-cols-4 border-b-[3px] border-[#073b4c]/5 px-6 py-3">
+            <div className="grid grid-cols-4 border-b-[3px] border-[#073b4c]/5 px-5 py-3">
               <span className="text-xs font-black text-[#073b4c]/30 uppercase tracking-widest">
                 Feature
               </span>
@@ -502,34 +653,39 @@ export function PricingClient() {
                 Free
               </span>
               <span className="text-xs font-black text-[#118AB2] uppercase tracking-widest text-center">
-                Plus
+                Standard
               </span>
               <span className="text-xs font-black text-[#ffd166] uppercase tracking-widest text-center">
-                Lifetime
+                Ultra
               </span>
             </div>
             {FEATURES.map((f, i) => (
               <div
                 key={f.label}
-                className={`grid grid-cols-4 items-center px-6 py-3.5 ${i < FEATURES.length - 1 ? 'border-b border-[#073b4c]/5' : ''} ${f.label === '1-on-1 support' ? 'bg-[#fff9e6]/60' : ''}`}
+                className={`grid grid-cols-4 items-center px-5 py-3.5 ${
+                  i < FEATURES.length - 1 ? 'border-b border-[#073b4c]/5' : ''
+                } ${f.label === 'Instant classrooms / mo' ? 'bg-[#fffdf0]' : ''}`}
               >
                 <span className="text-sm text-[#073b4c]/70 font-medium flex items-center gap-1.5">
                   {f.label === '1-on-1 support' && (
                     <Headphones className="size-3.5 text-[#ffd166] shrink-0" />
                   )}
-                  {f.label === 'Slate community access' && (
+                  {f.label === 'Slate community' && (
                     <MessageCircle className="size-3.5 text-[#118AB2] shrink-0" />
+                  )}
+                  {f.label === 'Instant classrooms / mo' && (
+                    <Bolt className="size-3.5 text-[#ffd166] shrink-0" />
                   )}
                   {f.label}
                 </span>
                 <div className="flex justify-center">
-                  <FeatureCheck value={f.free} />
+                  <FeatureVal value={f.free} color="text-[#06D6A0]" />
                 </div>
                 <div className="flex justify-center">
-                  <FeatureCheck value={f.plus} />
+                  <FeatureVal value={f.standard} color="text-[#118AB2]" />
                 </div>
                 <div className="flex justify-center">
-                  <FeatureCheck value={f.lifetime} lifetime />
+                  <FeatureVal value={f.ultra} color="text-[#ffd166]" />
                 </div>
               </div>
             ))}
