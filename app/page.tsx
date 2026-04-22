@@ -81,6 +81,7 @@ const log = createLogger('Home');
 const WEB_SEARCH_STORAGE_KEY = 'webSearchEnabled';
 const LANGUAGE_STORAGE_KEY = 'generationLanguage';
 const RECENT_OPEN_STORAGE_KEY = 'recentClassroomsOpen';
+const CLASSROOM_JOB_STORAGE_KEY = 'classroomJob';
 
 interface FormState {
   pdfFile: File | null;
@@ -111,7 +112,25 @@ function HomePage() {
   const [form, setForm] = useState<FormState>(initialFormState);
   const [enterClassroomLoading, setEnterClassroomLoading] = useState(false);
   const [createClassroomLoading, setCreateClassroomLoading] = useState(false);
-  const [classroomJob, setClassroomJob] = useState<ClassroomJobState | null>(null);
+  const [classroomJob, setClassroomJobRaw] = useState<ClassroomJobState | null>(() => {
+    try {
+      const saved = localStorage.getItem(CLASSROOM_JOB_STORAGE_KEY);
+      return saved ? (JSON.parse(saved) as ClassroomJobState) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  const setClassroomJob = (updater: ClassroomJobState | null | ((prev: ClassroomJobState | null) => ClassroomJobState | null)) => {
+    setClassroomJobRaw((prev) => {
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      try {
+        if (next) localStorage.setItem(CLASSROOM_JOB_STORAGE_KEY, JSON.stringify(next));
+        else localStorage.removeItem(CLASSROOM_JOB_STORAGE_KEY);
+      } catch { /* ignore */ }
+      return next;
+    });
+  };
   const [showCreateModal, setShowCreateModal] = useState(false);
   const jobPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -605,7 +624,11 @@ function HomePage() {
           </button>
 
           {/* Classroom generation status chip */}
-          <ClassroomGenerationStatus job={classroomJob} onReopen={() => setShowCreateModal(true)} />
+          <ClassroomGenerationStatus
+            job={classroomJob}
+            onReopen={() => setShowCreateModal(true)}
+            onClear={() => setClassroomJob(null)}
+          />
 
           {/* Auth button — always visible */}
           <FeedbackButton variant="pill" showLabel />
