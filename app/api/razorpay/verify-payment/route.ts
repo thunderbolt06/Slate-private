@@ -80,14 +80,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, type: 'topup' });
     }
 
-    // Subscription plans
-    const isUltra = period === 'ultra_monthly' || period === 'ultra_yearly';
-    const accountType = isUltra ? 'ULTRA' : 'PLUS';
-
+    // Subscription plans — all non-topup periods map to PLUS
     await admin.from('user_plans').upsert(
       {
         user_id: user.id,
-        account_type: accountType,
+        account_type: 'PLUS',
         subscription_status: 'active',
         subscription_period: period,
       },
@@ -97,7 +94,7 @@ export async function POST(req: NextRequest) {
     getPostHogClient().capture({
       distinctId: user.id,
       event: 'razorpay_payment_verified',
-      properties: { plan_period: period, payment_id: razorpay_payment_id, account_type: accountType },
+      properties: { plan_period: period, payment_id: razorpay_payment_id, account_type: 'PLUS' },
     });
 
     return NextResponse.json({ success: true, type: 'subscription', account_type: accountType });

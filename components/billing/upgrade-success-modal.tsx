@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Zap, Check, Sparkles, BookOpen, MessageCircle, Headphones, RotateCcw } from 'lucide-react';
+import { X, Zap, Check, Sparkles, BookOpen, MessageCircle, RotateCcw } from 'lucide-react';
 import type { SubscriptionPeriod } from '@/lib/stripe/plans';
 
 interface UpgradeSuccessModalProps {
@@ -13,34 +13,17 @@ interface UpgradeSuccessModalProps {
 }
 
 const PLUS_FEATURES = [
-  { icon: <Zap className="size-4 text-[#118AB2]" />, label: '30 Standard Classrooms per month' },
+  { icon: <Zap className="size-4 text-[#118AB2]" />, label: '30 classrooms per month' },
+  { icon: <span className="text-sm">⚡</span>, label: 'Instant Classroom included' },
   { icon: <RotateCcw className="size-4 text-[#06D6A0]" />, label: 'Monthly credit reset' },
   { icon: <BookOpen className="size-4 text-[#118AB2]" />, label: 'Cloud storage for all courses' },
   { icon: <MessageCircle className="size-4 text-[#118AB2]" />, label: 'Slate community access' },
   { icon: <Check className="size-4 text-[#06D6A0] stroke-[3]" />, label: 'Priority AI generation' },
 ];
 
-const ULTRA_FEATURES = [
-  { icon: <span className="text-sm">⚡</span>, label: '30 instant classrooms per month' },
-  { icon: <span className="text-sm">∞</span>, label: 'Unlimited Standard Classrooms' },
-  { icon: <RotateCcw className="size-4 text-[#ffd166]" />, label: 'Monthly instant credit reset' },
-  { icon: <Headphones className="size-4 text-[#ffd166]" />, label: '1-on-1 support from the team' },
-  { icon: <MessageCircle className="size-4 text-[#ffd166]" />, label: 'Slate community access' },
-];
-
 export function UpgradeSuccessModal({ open, onClose, period }: UpgradeSuccessModalProps) {
   const overlayRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
-  const isUltra = period === 'ultra_monthly' || period === 'ultra_yearly';
-  const features = isUltra ? ULTRA_FEATURES : PLUS_FEATURES;
-
-  const accentColor = isUltra ? '#ffd166' : '#06D6A0';
-  const accentText = isUltra ? 'text-[#ffd166]' : 'text-[#06D6A0]';
-  const shadowColor = isUltra ? 'shadow-[6px_6px_0_#ffd166]' : 'shadow-[6px_6px_0_#06D6A0]';
-  const borderColor = isUltra ? 'border-[#ffd166]' : 'border-[#06D6A0]';
-  const btnBg = isUltra
-    ? 'bg-[#ffd166] border-[#073b4c] text-[#073b4c] hover:bg-[#f5c842]'
-    : 'bg-[#06D6A0] border-[#073b4c] text-[#073b4c] hover:bg-[#04b889]';
 
   useEffect(() => {
     if (!open) return;
@@ -71,17 +54,14 @@ export function UpgradeSuccessModal({ open, onClose, period }: UpgradeSuccessMod
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 24 }}
             transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-            className={`fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[201]
-              w-[92vw] max-w-[440px] rounded-3xl border-[3px] ${borderColor}
-              bg-white ${shadowColor} overflow-hidden`}
+            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[201]
+              w-[92vw] max-w-[440px] rounded-3xl border-[3px] border-[#06D6A0]
+              bg-white shadow-[6px_6px_0_#06D6A0] overflow-hidden"
             role="dialog"
             aria-modal="true"
           >
-            {/* Confetti-like top strip */}
-            <div
-              className="h-2 w-full"
-              style={{ background: `linear-gradient(90deg, ${accentColor}, #118AB2, ${accentColor})` }}
-            />
+            {/* Top accent strip */}
+            <div className="h-2 w-full bg-gradient-to-r from-[#06D6A0] via-[#118AB2] to-[#06D6A0]" />
 
             {/* Close button */}
             <button
@@ -96,33 +76,26 @@ export function UpgradeSuccessModal({ open, onClose, period }: UpgradeSuccessMod
             <div className="px-7 pt-6 pb-7">
               {/* Header */}
               <div className="flex items-center gap-3 mb-5">
-                <div
-                  className="size-12 rounded-2xl flex items-center justify-center border-[3px] border-[#073b4c]/10"
-                  style={{ backgroundColor: `${accentColor}30` }}
-                >
-                  {isUltra
-                    ? <span className="text-2xl">⚡</span>
-                    : <Sparkles className="size-6 text-[#06D6A0]" />}
+                <div className="size-12 rounded-2xl flex items-center justify-center border-[3px] border-[#073b4c]/10 bg-[#06D6A0]/20">
+                  <Sparkles className="size-6 text-[#06D6A0]" />
                 </div>
                 <div>
-                  <p className={`text-xs font-black uppercase tracking-widest ${accentText} mb-0.5`}>
-                    {isUltra ? 'Ultra Plan Active' : 'Standard Plan Active'}
+                  <p className="text-xs font-black uppercase tracking-widest text-[#06D6A0] mb-0.5">
+                    Standard Plan Active
                   </p>
                   <h2 className="text-xl font-black text-[#073b4c] leading-tight">
-                    {isUltra ? 'Instant classrooms unlocked! ⚡' : 'You\'re all set! 🚀'}
+                    You&apos;re all set! 🚀
                   </h2>
                 </div>
               </div>
 
               <p className="text-sm text-[#073b4c]/60 mb-5 leading-relaxed">
-                {isUltra
-                  ? `Your Ultra subscription is now active. Here's what you've unlocked:`
-                  : `Your ${period === 'yearly' ? 'yearly' : 'monthly'} Standard subscription is now active. Here's what you've unlocked:`}
+                Your {period === 'yearly' ? 'yearly' : 'monthly'} Standard subscription is now active. Here&apos;s what you&apos;ve unlocked:
               </p>
 
               {/* Features list */}
               <ul className="space-y-3 mb-7">
-                {features.map((f, i) => (
+                {PLUS_FEATURES.map((f, i) => (
                   <motion.li
                     key={i}
                     initial={{ opacity: 0, x: -12 }}
@@ -142,10 +115,11 @@ export function UpgradeSuccessModal({ open, onClose, period }: UpgradeSuccessMod
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5, duration: 0.25 }}
                 onClick={() => { onClose(); router.push('/'); }}
-                className={`w-full h-12 rounded-2xl border-[3px] font-black text-sm
-                  ${btnBg} shadow-[3px_3px_0_#073b4c] hover:shadow-[5px_5px_0_#073b4c]
+                className="w-full h-12 rounded-2xl border-[3px] border-[#073b4c] font-black text-sm
+                  bg-[#06D6A0] text-[#073b4c] hover:bg-[#04b889]
+                  shadow-[3px_3px_0_#073b4c] hover:shadow-[5px_5px_0_#073b4c]
                   hover:-translate-y-0.5 transition-all cursor-pointer active:shadow-[2px_2px_0_#073b4c]
-                  active:translate-y-0 flex items-center justify-center gap-2`}
+                  active:translate-y-0 flex items-center justify-center gap-2"
               >
                 <BookOpen className="size-4" />
                 Happy Learning!

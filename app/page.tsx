@@ -89,7 +89,6 @@ import { CoursesExhaustedModal } from '@/components/billing/courses-exhausted-mo
 import { setPendingIntroPayload } from '@/lib/classroom/pending-intro';
 import { NotificationBell } from '@/components/notifications/notification-bell';
 import { usePlanStore } from '@/lib/store/user-plan';
-import { PLAN_LIMITS } from '@/lib/stripe/plans';
 import { CreateClassroomModal } from '@/components/classroom/create-classroom-modal';
 import {
   ClassroomGenerationStatus,
@@ -290,6 +289,12 @@ function SidebarNotificationRow() {
       </AnimatePresence>
     </div>
   );
+interface ClassroomSplitButtonProps {
+  canGenerate: boolean;
+  createClassroomLoading: boolean;
+  enterClassroomLoading: boolean;
+  onBasicClassroom: () => void;
+  onInstantClassroom: () => void;
 }
 
 function Sidebar({
@@ -515,21 +520,11 @@ function Sidebar({
 // ── Classroom Split Button ─────────────────────────────────────────────────
 function ClassroomSplitButton({
   canGenerate,
-  canInstantClassroom,
   createClassroomLoading,
   enterClassroomLoading,
   onBasicClassroom,
   onInstantClassroom,
-  onUpgradeToUltra,
-}: {
-  canGenerate: boolean;
-  canInstantClassroom: boolean;
-  createClassroomLoading: boolean;
-  enterClassroomLoading: boolean;
-  onBasicClassroom: () => void;
-  onInstantClassroom: () => void;
-  onUpgradeToUltra: () => void;
-}) {
+}: ClassroomSplitButtonProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const isLoading = createClassroomLoading || enterClassroomLoading;
@@ -545,88 +540,73 @@ function ClassroomSplitButton({
     return () => document.removeEventListener('mousedown', handler);
   }, [dropdownOpen]);
 
-  if (canInstantClassroom) {
-    const active = canGenerate && !isLoading;
-    return (
-      <div ref={containerRef} className="relative shrink-0">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div className={cn(
-              'flex items-center h-10 rounded-full border-2 overflow-hidden transition-all duration-200',
-              active
-                ? 'border-[#073b4c] bg-[#ffd166] text-[#073b4c] shadow-[3px_3px_0_#073b4c] hover:-translate-y-px hover:shadow-[4px_4px_0_#073b4c]'
-                : 'border-[#073b4c]/20 bg-[#f0f4f8] text-[#073b4c]/30',
-            )}>
-              <button type="button" onClick={onInstantClassroom} disabled={!active}
-                className="h-full pl-5 pr-3 flex items-center gap-2 font-bold cursor-pointer disabled:cursor-not-allowed">
-                <span className="text-xs font-bold">⚡ Instant Classroom</span>
-                {enterClassroomLoading ? <Loader2 className="size-3.5 animate-spin" /> : <ArrowUp className="size-3.5" />}
-              </button>
-              <div className={cn('w-px h-5 shrink-0', active ? 'bg-[#073b4c]/20' : 'bg-[#073b4c]/10')} />
-              <button type="button" onClick={() => setDropdownOpen((v) => !v)} disabled={!active}
-                className="h-full w-9 flex items-center justify-center cursor-pointer disabled:cursor-not-allowed">
-                <ChevronDown className={cn('size-3.5 transition-transform', dropdownOpen && 'rotate-180')} />
-              </button>
-            </div>
-          </TooltipTrigger>
-          {!canGenerate && <TooltipContent side="top" sideOffset={8}><p className="text-xs">Write a prompt above to get started</p></TooltipContent>}
-        </Tooltip>
-        {dropdownOpen && (
-          <div className="absolute right-0 top-12 z-50 min-w-[200px] rounded-2xl border-2 border-[#073b4c]/10 bg-white shadow-[4px_4px_0_rgba(7,59,76,0.08)] overflow-hidden">
-            <button type="button" onClick={() => { setDropdownOpen(false); onBasicClassroom(); }}
-              disabled={!canGenerate || createClassroomLoading}
-              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[#f0f4f8] transition-colors cursor-pointer disabled:opacity-50">
-              <Clock className="size-3.5 text-[#8338ec] shrink-0" />
-              <div className="text-left">
-                <p className="font-semibold text-[#073b4c] text-xs">Basic Classroom</p>
-                <p className="text-[10px] text-[#073b4c]/40">Background · 3–5 min</p>
-              </div>
-            </button>
-          </div>
-        )}
-      </div>
-    );
-  }
-
+  const isLoading = createClassroomLoading || enterClassroomLoading;
   const active = canGenerate && !isLoading;
+
   return (
     <div ref={containerRef} className="relative shrink-0">
       <Tooltip>
         <TooltipTrigger asChild>
-          <div className={cn(
-            'flex items-center h-10 rounded-full border-2 overflow-hidden transition-all duration-200',
-            active
-              ? 'border-[#073b4c] bg-[#8338ec] text-[#fff0db] shadow-[3px_3px_0_#073b4c] hover:-translate-y-px hover:shadow-[4px_4px_0_#073b4c]'
-              : 'border-[#073b4c]/20 bg-[#f0f4f8] text-[#073b4c]/30',
-            isLoading && 'opacity-80',
-          )}>
-            <button type="button" onClick={onBasicClassroom} disabled={!active}
-              className="h-full pl-5 pr-3 flex items-center gap-2 font-bold cursor-pointer disabled:cursor-not-allowed">
-              <span className="text-xs font-bold">Basic Classroom</span>
-              {createClassroomLoading ? <Loader2 className="size-3.5 animate-spin" /> : <Clock className="size-3.5" />}
+          <div
+            className={cn(
+              'flex items-center h-10 rounded-full border-2 overflow-hidden transition-all duration-200',
+              active
+                ? 'border-[#073b4c] bg-[#8338ec] text-[#fff0db] shadow-[3px_3px_0_#073b4c] hover:-translate-y-px hover:shadow-[4px_4px_0_#073b4c]'
+                : 'border-[#073b4c]/20 bg-[#f0f4f8] text-[#073b4c]/30',
+              isLoading && 'opacity-80',
+            )}
+          >
+            {/* Primary action — Instant Classroom */}
+            <button
+              type="button"
+              onClick={onInstantClassroom}
+              disabled={!active}
+              aria-busy={enterClassroomLoading}
+              className="h-full pl-5 pr-3 flex items-center gap-2 font-bold cursor-pointer disabled:cursor-not-allowed"
+            >
+              <span className="text-xs font-bold">⚡ Instant Classroom</span>
+              {enterClassroomLoading ? (
+                <Loader2 className="size-3.5 animate-spin" aria-hidden />
+              ) : (
+                <ArrowUp className="size-3.5" aria-hidden />
+              )}
             </button>
+            {/* Divider */}
             <div className={cn('w-px h-5 shrink-0', active ? 'bg-white/20' : 'bg-[#073b4c]/10')} />
-            <button type="button" onClick={() => setDropdownOpen((v) => !v)} disabled={isLoading}
-              className="h-full w-9 flex items-center justify-center cursor-pointer disabled:cursor-not-allowed">
+            {/* Chevron */}
+            <button
+              type="button"
+              onClick={() => setDropdownOpen((v) => !v)}
+              disabled={isLoading}
+              className="h-full w-9 flex items-center justify-center cursor-pointer disabled:cursor-not-allowed"
+              aria-label="More classroom options"
+            >
               <ChevronDown className={cn('size-3.5 transition-transform', dropdownOpen && 'rotate-180')} />
             </button>
           </div>
         </TooltipTrigger>
         <TooltipContent side="top" sideOffset={8}>
-          {canGenerate ? <p className="text-xs">Generate in the background — ready in 3–5 min</p> : <p className="text-xs">Write a prompt above to get started</p>}
+          {canGenerate ? (
+            <p className="text-xs">Stream live — enter the classroom instantly</p>
+          ) : (
+            <p className="text-xs">Write a prompt above to get started</p>
+          )}
         </TooltipContent>
       </Tooltip>
+
+      {/* Dropdown — Standard Classroom */}
       {dropdownOpen && (
-        <div className="absolute right-0 top-12 z-50 min-w-[210px] rounded-2xl border-2 border-[#073b4c]/10 bg-white shadow-[4px_4px_0_rgba(7,59,76,0.08)] overflow-hidden">
-          <button type="button" onClick={() => { setDropdownOpen(false); onUpgradeToUltra(); }}
-            className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[#fffdf0] transition-colors cursor-pointer">
-            <span className="size-5 rounded-md bg-amber-100 flex items-center justify-center shrink-0 text-[11px]">⚡</span>
+        <div className="absolute right-0 top-12 z-50 min-w-[200px] rounded-2xl border-2 border-[#073b4c]/10 bg-white shadow-[4px_4px_0_rgba(7,59,76,0.08)] overflow-hidden">
+          <button
+            type="button"
+            onClick={() => { setDropdownOpen(false); onBasicClassroom(); }}
+            disabled={!canGenerate || createClassroomLoading}
+            className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[#f0f4f8] transition-colors cursor-pointer disabled:opacity-50"
+          >
+            <Clock className="size-3.5 text-[#8338ec] shrink-0" />
             <div className="text-left">
-              <p className="font-semibold text-[#073b4c] text-xs flex items-center gap-1.5">
-                Instant Classroom
-                <span className="px-1 py-0.5 rounded text-[8px] font-bold bg-[#ffd166] text-[#073b4c] uppercase tracking-wide">Ultra</span>
-              </p>
-              <p className="text-[10px] text-[#073b4c]/40">Streams live · upgrade to unlock</p>
+              <p className="font-semibold text-[#073b4c] text-xs">Standard Classroom</p>
+              <p className="text-[10px] text-[#073b4c]/40">Background · 3–5 min</p>
             </div>
           </button>
         </div>
@@ -634,6 +614,8 @@ function ClassroomSplitButton({
     </div>
   );
 }
+
+// ──────────────────────────────────────────────────────────────────────────────
 
 // ── New Course Tab ─────────────────────────────────────────────────────────
 function NewCourseTab({
