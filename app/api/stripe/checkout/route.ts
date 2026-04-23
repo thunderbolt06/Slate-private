@@ -25,10 +25,10 @@ export async function POST(req: NextRequest) {
     }
 
     const { period } = (await req.json()) as {
-      period: 'monthly' | 'yearly' | 'ultra_monthly' | 'ultra_yearly';
+      period: 'monthly' | 'yearly';
     };
 
-    if (!['monthly', 'yearly', 'ultra_monthly', 'ultra_yearly'].includes(period)) {
+    if (!['monthly', 'yearly'].includes(period)) {
       return NextResponse.json({ error: 'Invalid plan period' }, { status: 400 });
     }
 

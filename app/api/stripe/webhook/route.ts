@@ -91,7 +91,7 @@ export async function POST(req: NextRequest) {
           const sub = await stripe.subscriptions.retrieve(session.subscription as string);
           const resolvedPeriod =
             (sub.metadata?.period as SubscriptionPeriodWebhook | undefined) ?? period;
-          await upsertSubscription(admin, userId, sub, resolvedPeriod);
+          await upsertSubscription(admin, userId, sub, resolvedPeriod as SubscriptionPeriodWebhook);
         }
         break;
       }
@@ -160,14 +160,12 @@ export async function POST(req: NextRequest) {
           const itemPeriodEnd = sub.items.data[0]?.current_period_end ?? null;
           const periodEnd = itemPeriodEnd ? new Date(itemPeriodEnd * 1000).toISOString() : null;
           const isActive = ['active', 'trialing'].includes(sub.status);
-          const resolvedPeriod = sub.metadata?.period as SubscriptionPeriodWebhook | undefined;
-          const isUltra = resolvedPeriod === 'ultra_monthly' || resolvedPeriod === 'ultra_yearly';
 
           await admin
             .from('user_plans')
             .update({
               subscription_status: isActive ? 'active' : sub.status,
-              account_type: isActive ? (isUltra ? 'ULTRA' : 'PLUS') : 'FREE',
+              account_type: isActive ? 'PLUS' : 'FREE',
               current_period_end: periodEnd,
               courses_generated_month: 0,
               courses_month_reset_at: new Date().toISOString(),
@@ -208,7 +206,7 @@ export async function POST(req: NextRequest) {
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-type SubscriptionPeriodWebhook = 'monthly' | 'yearly' | 'ultra_monthly' | 'ultra_yearly';
+type SubscriptionPeriodWebhook = 'monthly' | 'yearly';
 
 async function upsertSubscription(
   admin: ReturnType<typeof createAdminClient>,
@@ -219,8 +217,7 @@ async function upsertSubscription(
   const firstItem = sub.items.data[0];
   const priceId = firstItem?.price?.id ?? null;
   const isActive = ['active', 'trialing'].includes(sub.status);
-  const isUltra = period === 'ultra_monthly' || period === 'ultra_yearly';
-  const accountType = isActive ? (isUltra ? 'ULTRA' : 'PLUS') : 'FREE';
+  const accountType = isActive ? 'PLUS' : 'FREE';
 
   // In Stripe v22 (API version dahlia), current_period_end lives on the
   // subscription item, not on the subscription object itself.
