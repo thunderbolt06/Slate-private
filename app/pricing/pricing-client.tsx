@@ -29,11 +29,13 @@ import type { RazorpayPlanId } from '@/lib/razorpay/client';
 type CheckoutPeriod = 'monthly' | 'yearly';
 
 // ── Razorpay script loader (only loaded for IN users) ───────────────────────
+type RazorpayCtor = new (opts: object) => {
+  open(): void;
+  on(e: string, h: (r: { error: { description: string } }) => void): void;
+};
 
-declare global {
-  interface Window {
-    Razorpay: new (opts: object) => { open(): void; on(e: string, h: (r: { error: { description: string } }) => void): void };
-  }
+function getErrorMessage(err: unknown) {
+  return err instanceof Error ? err.message : 'Something went wrong';
 }
 
 function loadRazorpayScript(): Promise<boolean> {
@@ -258,7 +260,8 @@ export function PricingClient() {
         const orderData = await orderRes.json();
         if (!orderRes.ok) throw new Error(orderData.error || 'Failed to create order');
 
-        const rzp = new window.Razorpay({
+        const Razorpay = (window as unknown as { Razorpay: RazorpayCtor }).Razorpay;
+        const rzp = new Razorpay({
           key: orderData.key_id,
           amount: orderData.amount,
           currency: orderData.currency,
@@ -279,8 +282,8 @@ export function PricingClient() {
               setSuccessModal({ open: true, period: period as SubscriptionPeriod });
               usePlanStore.getState().refetch();
               posthog.capture('razorpay_checkout_completed', { plan_period: period, payment_id: response.razorpay_payment_id });
-            } catch (err: any) {
-              toast.error(err.message || 'Payment verification failed');
+            } catch (err: unknown) {
+              toast.error(getErrorMessage(err) || 'Payment verification failed');
             } finally {
               setLoading(null);
             }
@@ -311,8 +314,8 @@ export function PricingClient() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Checkout failed');
       if (json.url) window.location.href = json.url;
-    } catch (err: any) {
-      toast.error(err.message || 'Something went wrong');
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err));
     } finally {
       if (provider !== 'razorpay') setLoading(null);
     }
@@ -326,8 +329,8 @@ export function PricingClient() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Portal failed');
       if (json.url) window.open(json.url, '_blank');
-    } catch (err: any) {
-      toast.error(err.message || 'Something went wrong');
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err));
     } finally {
       setLoading(null);
     }

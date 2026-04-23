@@ -99,8 +99,9 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({ success: true, type: 'subscription', account_type: accountType });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('[razorpay/verify-payment] error:', err);
-    return NextResponse.json({ error: err.message || 'Internal Server Error' }, { status: 500 });
+    const message = err instanceof Error ? err.message : 'Internal Server Error';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

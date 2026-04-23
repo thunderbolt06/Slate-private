@@ -1,16 +1,18 @@
 import Razorpay from 'razorpay';
 
-if (!process.env.RAZORPAY_KEY_ID) {
-  throw new Error('RAZORPAY_KEY_ID environment variable is not set');
-}
-if (!process.env.RAZORPAY_KEY_SECRET) {
-  throw new Error('RAZORPAY_KEY_SECRET environment variable is not set');
-}
+let _razorpay: Razorpay | null = null;
 
-export const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID,
-  key_secret: process.env.RAZORPAY_KEY_SECRET,
-});
+export function getRazorpayClient() {
+  const keyId = process.env.RAZORPAY_KEY_ID;
+  const keySecret = process.env.RAZORPAY_KEY_SECRET;
+  if (!keyId) throw new Error('RAZORPAY_KEY_ID environment variable is not set');
+  if (!keySecret) throw new Error('RAZORPAY_KEY_SECRET environment variable is not set');
+
+  if (!_razorpay) {
+    _razorpay = new Razorpay({ key_id: keyId, key_secret: keySecret });
+  }
+  return _razorpay;
+}
 
 /**
  * INR pricing in paise (1 INR = 100 paise). Approximate rate: $1 ≈ ₹85.
