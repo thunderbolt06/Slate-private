@@ -1,0 +1,57 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
+import { createClient } from '@/utils/supabase/server';
+import { razorpay, RAZORPAY_PLANS, type RazorpayPlanId } from '@/lib/razorpay/client';
+
+/**
+ * POST /api/razorpay/create-order
+ * Creates a Razorpay order for the given plan.
+ *
+ * Body: { period: RazorpayPlanId }
+ * Returns: { order_id, amount, currency, key_id }
+ */
+export async function POST(req: NextRequest) {
+  try {
+    const cookieStore = await cookies();
+    const supabase = createClient(cookieStore);
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { period } = (await req.json()) as { period: RazorpayPlanId };
+
+    const plan = RAZORPAY_PLANS[period];
+    if (!plan) {
+      return NextResponse.json({ error: 'Invalid plan period' }, { status: 400 });
+    }
+
+    if (plan.amount < 100) {
+      return NextResponse.json({ error: 'Amount must be at least 100 paise' }, { status: 400 });
+    }
+
+    const order = await razorpay.orders.create({
+      amount: plan.amount,
+      currency: plan.currency,
+      receipt: `slate_${user.id.slice(0, 8)}_${Date.now()}`,
+      notes: {
+        supabase_user_id: user.id,
+        plan_period: period,
+        user_email: user.email ?? '',
+      },
+    });
+
+    return NextResponse.json({
+      order_id: order.id,
+      amount: order.amount,
+      currency: order.currency,
+      key_id: process.env.RAZORPAY_KEY_ID,
+    });
+  } catch (err: any) {
+    console.error('[razorpay/create-order] error:', err);
+    return NextResponse.json({ error: err.message || 'Internal Server Error' }, { status: 500 });
+  }
+}
