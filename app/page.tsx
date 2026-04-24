@@ -973,8 +973,8 @@ function CourseGroupFolder({
           />
         ) : (
           <p
-            className="flex-1 text-[13px] font-bold text-[#073b4c] dark:text-[#f0f0f0] truncate cursor-pointer"
-            onDoubleClick={() => { setNameDraft(group.name); setEditing(true); }}
+            className="flex-1 text-[13px] font-bold text-[#073b4c] dark:text-[#f0f0f0] truncate cursor-text"
+            onClick={(e) => { e.stopPropagation(); setNameDraft(group.name); setEditing(true); }}
           >
             {group.name}
           </p>
@@ -1308,11 +1308,12 @@ function MyCourseCard({
   const statusColor = progressPercent === 0 ? '#073b4c' : progressPercent === 100 ? '#06d6a0' : '#8338ec';
 
   return (
-    <div className="group cursor-pointer flex flex-col" onClick={handleCardClick}>
+    <div className="group flex flex-col">
       {/* Thumbnail */}
       <div
         ref={thumbRef}
-        className="relative w-full aspect-[16/9] rounded-2xl bg-slate-100 dark:bg-[#1a1a1a]/80 overflow-hidden transition-all duration-200 group-hover:scale-[1.02] group-hover:shadow-[4px_4px_0_#073b4c] border-[2px] border-transparent group-hover:border-[#073b4c]"
+        onClick={handleCardClick}
+        className="relative w-full aspect-[16/9] rounded-2xl bg-slate-100 dark:bg-[#1a1a1a]/80 overflow-hidden transition-all duration-200 cursor-pointer hover:scale-[1.02] hover:shadow-[4px_4px_0_#073b4c] border-[2px] border-transparent hover:border-[#073b4c]"
       >
         <AnimatePresence>
           {syncing && (
@@ -1348,7 +1349,7 @@ function MyCourseCard({
             'absolute top-2 left-2 z-10 size-7 flex items-center justify-center rounded-full backdrop-blur-sm transition-all',
             isStarred
               ? 'bg-[#ffd166] text-[#073b4c] opacity-100 border border-[#073b4c]/20'
-              : 'bg-black/30 text-white opacity-0 group-hover:opacity-100 hover:bg-[#ffd166] hover:text-[#073b4c]',
+              : 'bg-black/30 text-white opacity-0 group-hover:opacity-100 group-hover:bg-[#ffd166] group-hover:text-[#073b4c]',
           )}
         >
           <Star className={cn('size-3.5', isStarred && 'fill-current')} />
@@ -1364,7 +1365,7 @@ function MyCourseCard({
                 <Trash2 className="size-3.5" />
               </Button>
               <Button size="icon" variant="ghost"
-                className="absolute top-2 right-11 size-7 opacity-0 group-hover:opacity-100 transition-opacity bg-black/30 hover:bg-black/50 text-white hover:text-white backdrop-blur-sm rounded-full"
+                className="absolute top-2 right-11 size-7 opacity-0 group-hover:opacity-100 transition-opacity bg-black/30 hover:bg-black/50 text-white backdrop-blur-sm rounded-full"
                 onClick={(e) => { e.stopPropagation(); setNameDraft(classroom.name); setEditing(true); }}>
                 <Pencil className="size-3.5" />
               </Button>
@@ -1399,7 +1400,10 @@ function MyCourseCard({
             className="w-full bg-transparent border-b-2 border-[#8338ec] text-[14px] font-bold text-[#073b4c] outline-none"
           />
         ) : (
-          <p className="font-bold text-[14px] text-[#073b4c] dark:text-[#f0f0f0] line-clamp-2 leading-snug">{classroom.name}</p>
+          <p
+            className="font-bold text-[14px] text-[#073b4c] dark:text-[#f0f0f0] line-clamp-2 leading-snug cursor-text hover:text-[#8338ec] transition-colors"
+            onClick={() => { setNameDraft(classroom.name); setEditing(true); }}
+          >{classroom.name}</p>
         )}
 
         <div className="flex items-center justify-between text-[11px] text-[#073b4c]/40 dark:text-[#737373] font-medium">
@@ -1570,14 +1574,14 @@ function CourseOutlinePage({
             </div>
           )}
 
-          {/* Scene placeholder — Browse Courses */}
-          {!isMyCourse && (!scenes || scenes.length === 0) && slideCount != null && (
+          {/* Scene count placeholder while browse scenes are loading */}
+          {(!scenes || scenes.length === 0) && slideCount != null && (
             <div>
               <h2 className="text-xs font-black text-[#073b4c]/40 dark:text-[#737373] uppercase tracking-widest mb-3">
                 Course Contents · {slideCount} slides
               </h2>
               <div className="h-24 flex items-center justify-center border-[3px] border-dashed border-[#073b4c]/10 dark:border-[#2a2a2a] rounded-2xl">
-                <p className="text-sm text-[#073b4c]/40 dark:text-[#737373] font-medium">Save the course to explore scene details</p>
+                <Loader2 className="size-5 text-[#073b4c]/30 animate-spin" />
               </div>
             </div>
           )}
@@ -2471,12 +2475,22 @@ function DashboardPage() {
     } else {
       setOutlineScenes([]);
       setOutlineBrowseThumbnail(undefined);
-      // Fetch first slide canvas from the course content API
+      // Fetch course content: use all scenes for the scene list + first slide for thumbnail
       fetch(`/api/courses/${outlineCourse.item.id}/content`)
         .then((r) => r.json())
         .then((data) => {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const firstSlide = (data.scenes ?? []).find((s: any) => s.content?.type === 'slide');
+          const allScenes = (data.scenes ?? []) as any[];
+          // Populate scene list
+          setOutlineScenes(
+            allScenes.map((s: any) => ({
+              id: s.id ?? s.scene_id ?? '',
+              title: s.title ?? s.name ?? 'Untitled',
+              type: s.type ?? s.content?.type ?? 'slide',
+            })),
+          );
+          // First slide canvas → thumbnail
+          const firstSlide = allScenes.find((s: any) => s.content?.type === 'slide');
           if (firstSlide?.content?.canvas) setOutlineBrowseThumbnail(firstSlide.content.canvas as Slide);
         })
         .catch(() => {});
@@ -2569,7 +2583,7 @@ function DashboardPage() {
                     language={outlineCourse.source === 'my' ? undefined : outlineCourse.item.language}
                     tags={outlineCourse.source === 'browse' ? outlineCourse.item.tags : undefined}
                     slideCount={outlineCourse.source === 'my' ? outlineCourse.item.sceneCount : outlineCourse.item.slideCount}
-                    scenes={outlineCourse.source === 'my' ? outlineScenes : undefined}
+                    scenes={outlineScenes}
                     thumbnail={outlineCourse.source === 'my' ? thumbnails[outlineCourse.item.id] : outlineBrowseThumbnail}
                     isMyCourse={outlineCourse.source === 'my'}
                     isSaved={outlineCourse.source === 'browse' && savedCoursesStore.isSaved(outlineCourse.item.id)}

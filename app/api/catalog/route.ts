@@ -87,7 +87,9 @@ export async function GET(req: NextRequest) {
       return apiError('INTERNAL_ERROR', 500, 'Failed to fetch catalog');
     }
 
-    let filteredCourses = (courses || []) as CourseRowLike[];
+    const rawCourses = (courses || []) as CourseRowLike[];
+    const rawCount = rawCourses.length;
+    let filteredCourses = rawCourses;
 
     // ── For public filter: restrict to public users ───────────────────────────
     if (filter !== 'my' && filteredCourses.length > 0) {
@@ -113,8 +115,11 @@ export async function GET(req: NextRequest) {
     // ── Post-filter for subject / topic / age ─────────────────────────────────
     if (subject || topic || age) {
       filteredCourses = filteredCourses.filter((course) => {
-        const matchesSubject = !subject || course.subject === subject;
-        const matchesTopic = !topic || course.topic === topic;
+        const tags = (course.course_tags || []) as CourseTagRowLike[];
+        const tagSubject = tags.find((t) => t.tag_type === 'subject')?.tag_value;
+        const tagTopic   = tags.find((t) => t.tag_type === 'topic')?.tag_value;
+        const matchesSubject = !subject || course.subject === subject || tagSubject === subject;
+        const matchesTopic = !topic || course.topic === topic || tagTopic === topic;
 
         let matchesAge = true;
         if (age) {
@@ -163,7 +168,7 @@ export async function GET(req: NextRequest) {
       total: count,
       offset,
       limit,
-      hasMore: result.length === limit,
+      hasMore: rawCount === limit,
     });
   } catch (error) {
     log.error('Catalog processing error:', error);
