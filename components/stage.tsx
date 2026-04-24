@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useStageStore } from '@/lib/store';
 import { PENDING_SCENE_ID } from '@/lib/store/stage';
+import { useCourseProgressStore } from '@/lib/store/course-progress';
 import { useCanvasStore } from '@/lib/store/canvas';
 import { useSettingsStore } from '@/lib/store/settings';
 import { useI18n } from '@/lib/hooks/use-i18n';
@@ -82,6 +83,14 @@ export function Stage({
       initializedRef.current = true;
     }
   }, [setSidebarCollapsed, setChatAreaCollapsed]);
+
+  // Track scene progress for the dashboard
+  useEffect(() => {
+    if (!currentSceneId || currentSceneId === PENDING_SCENE_ID) return;
+    const stageId = useStageStore.getState().stage?.id;
+    if (!stageId) return;
+    useCourseProgressStore.getState().markSceneVisited(stageId, currentSceneId, scenes.length);
+  }, [currentSceneId, scenes.length]);
 
   // PlaybackEngine state
   const [engineMode, setEngineMode] = useState<EngineMode>('idle');
