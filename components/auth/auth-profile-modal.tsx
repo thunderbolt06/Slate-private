@@ -195,27 +195,21 @@ export function AuthProfileModal({ open, onClose }: AuthProfileModalProps) {
   // Plan data comes from the global store — always up-to-date across the app
   const { plan, credits, isLoading: planLoading, refetch: refetchPlan } = usePlanStore();
 
-  // Load stats as soon as the user is known (modal mounts with logged-in layout),
-  // so opening the profile does not wait on this request.
-  useEffect(() => {
-    if (!user) return;
-    let cancelled = false;
-    fetch('/api/analytics/user-stats')
-      .then(res => res.json())
-      .then(json => {
-        if (!cancelled && json.success) setStats(json.stats);
-      })
-      .catch(err => console.error('Failed to fetch stats:', err));
-    return () => {
-      cancelled = true;
-    };
-  }, [user]);
-
   useEffect(() => {
     if (open && user) {
       refetchPlan();
     }
   }, [open, user, refetchPlan]);
+
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    fetch('/api/analytics/user-stats')
+      .then(res => res.json())
+      .then(data => { if (!cancelled) setStats(data); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [user]);
 
   // Close on click outside
   useEffect(() => {
@@ -237,12 +231,10 @@ export function AuthProfileModal({ open, onClose }: AuthProfileModalProps) {
   useEffect(() => {
     if (!open) return;
     const handler = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape') return;
-      if (certificatesOpen) {
-        setCertificatesOpen(false);
-        return;
+      if (e.key === 'Escape') {
+        if (certificatesOpen) setCertificatesOpen(false);
+        else closeProfile();
       }
-      closeProfile();
     };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
@@ -287,9 +279,9 @@ export function AuthProfileModal({ open, onClose }: AuthProfileModalProps) {
           {/* Panel */}
           <motion.div
             ref={panelRef}
-            initial={{ opacity: 0, y: -12, scale: 0.95 }}
+            initial={{ opacity: 0, y: 12, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -12, scale: 0.95 }}
+            exit={{ opacity: 0, y: 12, scale: 0.95 }}
             transition={{ duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
             className="fixed top-16 right-4 z-[100] flex min-h-0 w-[320px] max-h-[calc(100dvh-5rem)] flex-col overflow-hidden rounded-3xl border-[3px] border-[#073b4c] dark:border-[#333333] bg-white dark:bg-[#1a1a1a] shadow-[6px_6px_0_#073b4c] dark:shadow-[6px_6px_0_rgba(0,0,0,0.5)]"
           >

@@ -1,40 +1,66 @@
 'use client';
 
-import { useState, useEffect, useRef, Suspense } from 'react';
+import { useState, useEffect, useRef, Suspense, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'motion/react';
 import {
-  ArrowUp,
-  Check,
-  ChevronDown,
+  Plus,
+  BookOpen,
+  Compass,
+  Trophy,
+  MessageSquarePlus,
+  Bell,
+  User,
+  Settings,
+  Loader2,
+  Trash2,
+  Pencil,
   Clock,
+  Check,
   Copy,
   ImagePlus,
-  Loader2,
-  Pencil,
-  Trash2,
-  Settings,
-  Sun,
-  Moon,
-  Monitor,
-  BotOff,
+  ArrowUp,
+  ChevronDown,
   ChevronUp,
-  BookOpen,
-  Trophy,
+  BotOff,
+  Cloud,
+  LogIn,
+  LogOut,
+  Search,
+  Filter,
+  Globe,
+  Users,
+  ArrowRight,
+  ArrowLeft,
+  Sparkles,
+  Flame,
+  Medal,
+  Star,
+  RefreshCw,
+  MapPin,
+  ChevronRight,
+  Menu,
+  X,
+  BarChart2,
+  Award,
+  TrendingUp,
+  ExternalLink,
+  HelpCircle,
+  FolderOpen,
+  Folder,
+  Minus,
 } from 'lucide-react';
 import { useI18n } from '@/lib/hooks/use-i18n';
 import { useAuth } from '@/lib/hooks/use-auth';
-import { LanguageSwitcher } from '@/components/language-switcher';
 import { createLogger } from '@/lib/logger';
 import { Button } from '@/components/ui/button';
 import { Textarea as UITextarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { SettingsDialog } from '@/components/settings';
 import { GenerationToolbar } from '@/components/generation/generation-toolbar';
 import { AgentBar } from '@/components/agent/agent-bar';
-import { AuthButton } from '@/components/auth/auth-button';
-import { FeedbackButton } from '@/components/feedback/feedback-button';
-import { useTheme } from '@/lib/hooks/use-theme';
+import { FeedbackModal } from '@/components/feedback/feedback-modal';
 import { nanoid } from 'nanoid';
 import { storePdfBlob } from '@/lib/utils/image-storage';
 import type { UserRequirements } from '@/lib/types/generation';
@@ -47,11 +73,6 @@ import {
   renameStage,
   getFirstSlideByStages,
 } from '@/lib/utils/stage-storage';
-
-export interface StageListItem extends LocalStageListItem {
-  is_cloud?: boolean;
-  supabase_id?: string;
-}
 import { ThumbnailSlide } from '@/components/slide-renderer/components/ThumbnailSlide';
 import posthog from 'posthog-js';
 import type { Slide } from '@/lib/types/slides';
@@ -60,7 +81,6 @@ import { toast } from 'sonner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useDraftCache } from '@/lib/hooks/use-draft-cache';
 import { SpeechButton } from '@/components/audio/speech-button';
-import { Cloud } from 'lucide-react';
 import {
   fetchUserCoursesFromSupabase,
   downloadCourseFromSupabase,
@@ -69,18 +89,33 @@ import { CoursesExhaustedModal } from '@/components/billing/courses-exhausted-mo
 import { setPendingIntroPayload } from '@/lib/classroom/pending-intro';
 import { NotificationBell } from '@/components/notifications/notification-bell';
 import { usePlanStore } from '@/lib/store/user-plan';
+import { PLAN_LIMITS } from '@/lib/stripe/plans';
 import { CreateClassroomModal } from '@/components/classroom/create-classroom-modal';
 import {
   ClassroomGenerationStatus,
   type ClassroomJobState,
 } from '@/components/classroom/classroom-generation-status';
+import { useCourseProgressStore } from '@/lib/store/course-progress';
+import { useStarredCoursesStore } from '@/lib/store/starred-courses';
+import { useSavedCoursesStore } from '@/lib/store/saved-courses';
+import { useCourseGroupsStore, type CourseGroup } from '@/lib/store/course-groups';
+import { AuthProfileModal } from '@/components/auth/auth-profile-modal';
+import { HelpModal } from '@/components/help/help-modal';
+import { COUNTRY_NAMES } from '@/lib/analytics/geo';
+import { db } from '@/lib/utils/database';
 
 const log = createLogger('Home');
 
 const WEB_SEARCH_STORAGE_KEY = 'webSearchEnabled';
 const LANGUAGE_STORAGE_KEY = 'generationLanguage';
-const RECENT_OPEN_STORAGE_KEY = 'recentClassroomsOpen';
 const CLASSROOM_JOB_STORAGE_KEY = 'classroomJob';
+
+export interface StageListItem extends LocalStageListItem {
+  is_cloud?: boolean;
+  supabase_id?: string;
+}
+
+type Tab = 'new-course' | 'my-courses' | 'browse' | 'achievements';
 
 interface FormState {
   pdfFile: File | null;
@@ -96,25 +131,410 @@ const initialFormState: FormState = {
   webSearch: true,
 };
 
-// ── Classroom split button ─────────────────────────────────────────────────
+// ── Course (Browse Courses) ────────────────────────────────────────────────
+interface Course {
+  id: string;
+  title: string;
+  headline?: string;
+  description: string;
+  slideCount: number;
+  language: string;
+  createdAt: string;
+  tags: { subject?: string; age_range?: string; topic?: string; sub_topic?: string };
+}
+
+const SUBJECTS = ['All', 'Mathematics', 'Science', 'History', 'Language Arts', 'Technology', 'Art', 'Music', 'Business'];
+const AGE_RANGES = ['All', '5-10', '11-14', '15-18', '18+'];
+const PAGE_SIZE = 12;
+
+// ── Leaderboard ────────────────────────────────────────────────────────────
+interface LeaderboardEntry {
+  user_id: string;
+  display_name: string;
+  avatar_url: string;
+  total_score: number;
+  quizzes_completed: number;
+  country_code: string;
+  rank: number;
+}
+
+// ── Sidebar ────────────────────────────────────────────────────────────────
+// Inline sidebar notification row — matches sidebar item style, opens the same panel
+function SidebarNotificationRow() {
+  const { user } = useAuth();
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [notifications, setNotifications] = useState<{ id: string; type: string; title: string; body: string | null; action_url: string | null; is_read: boolean; created_at: string }[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const fetch$ = useCallback(async () => {
+    if (!user) return;
+    try {
+      const res = await fetch('/api/notifications?unread_only=false&limit=20', { cache: 'no-store' });
+      if (!res.ok) return;
+      const json = await res.json();
+      if (json.success) { setNotifications(json.notifications); setUnreadCount(json.unreadCount); }
+    } catch { /* ignore */ }
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    fetch$();
+    const id = setInterval(fetch$, 30_000);
+    return () => clearInterval(id);
+  }, [user, fetch$]);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  const timeAgo = (dateStr: string) => {
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'just now';
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    return `${Math.floor(hrs / 24)}d ago`;
+  };
+
+  const handleOpen = () => {
+    setOpen((v) => !v);
+    if (!open && unreadCount > 0) {
+      setUnreadCount(0);
+      fetch('/api/notifications', { method: 'PATCH' }).catch(() => {});
+      setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+    }
+  };
+
+  if (!user) return null;
+
+  return (
+    <div ref={containerRef} className="relative">
+      <button
+        onClick={handleOpen}
+        className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl font-bold text-sm text-[#073b4c]/60 hover:bg-[#f0f4f8] hover:text-[#073b4c] transition-all"
+      >
+        <div className="relative shrink-0">
+          <Bell className="size-4.5" />
+          {unreadCount > 0 && (
+            <span className="absolute -top-1.5 -right-1.5 min-w-[14px] h-3.5 px-0.5 rounded-full bg-[#ef476f] text-white text-[8px] font-black flex items-center justify-center leading-none">
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </span>
+          )}
+        </div>
+        <span>Notifications</span>
+        {unreadCount > 0 && (
+          <span className="ml-auto shrink-0 size-5 rounded-full bg-[#ef476f] text-white text-[10px] font-black flex items-center justify-center">
+            {unreadCount > 9 ? '9+' : unreadCount}
+          </span>
+        )}
+      </button>
+
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, x: 8, scale: 0.97 }}
+            animate={{ opacity: 1, x: 0, scale: 1 }}
+            exit={{ opacity: 0, x: 8, scale: 0.97 }}
+            transition={{ duration: 0.15, ease: [0.25, 0.1, 0.25, 1] }}
+            className="absolute left-full bottom-0 ml-3 w-80 bg-white dark:bg-[#1a1a1a] border-[3px] border-[#073b4c] dark:border-[#333333] rounded-2xl shadow-[6px_6px_0_#073b4c] dark:shadow-[6px_6px_0_rgba(0,0,0,0.5)] z-[300] overflow-hidden"
+          >
+            <div className="px-4 py-3 border-b-2 border-[#073b4c]/10 dark:border-[#2a2a2a] flex items-center justify-between">
+              <span className="text-sm font-black text-[#073b4c] dark:text-[#f0f0f0] uppercase tracking-wide">Notifications</span>
+              {notifications.some((n) => !n.is_read) && (
+                <button className="text-[11px] font-bold text-[#ef476f] hover:underline"
+                  onClick={() => {
+                    fetch('/api/notifications', { method: 'PATCH' }).catch(() => {});
+                    setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+                    setUnreadCount(0);
+                  }}>
+                  Mark all read
+                </button>
+              )}
+            </div>
+            <div className="max-h-[360px] overflow-y-auto">
+              {notifications.length === 0 ? (
+                <div className="py-10 text-center">
+                  <Bell className="size-8 text-[#073b4c]/20 dark:text-[#525252] mx-auto mb-2" />
+                  <p className="text-sm font-medium text-[#073b4c]/40 dark:text-[#737373]">No notifications yet</p>
+                </div>
+              ) : notifications.map((n) => (
+                <button key={n.id} type="button"
+                  onClick={() => {
+                    setOpen(false);
+                    if (!n.is_read) fetch(`/api/notifications/${n.id}`, { method: 'PATCH' }).catch(() => {});
+                    if (n.action_url) router.push(n.action_url);
+                  }}
+                  className={cn(
+                    'w-full text-left px-4 py-3 flex gap-3 transition-colors border-b border-[#073b4c]/5 dark:border-[#2a2a2a] last:border-0',
+                    n.is_read ? 'hover:bg-slate-50 dark:hover:bg-[#222222]' : 'bg-[#ef476f]/5 dark:bg-[#ef476f]/10 hover:bg-[#ef476f]/8 dark:hover:bg-[#ef476f]/15',
+                  )}>
+                  <div className={cn('shrink-0 mt-1.5 size-2 rounded-full', n.is_read ? 'bg-transparent' : 'bg-[#ef476f]')} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-[#073b4c] dark:text-[#f0f0f0] leading-tight">{n.title}</p>
+                    {n.body && <p className="text-xs text-[#073b4c]/50 dark:text-[#a3a3a3] mt-0.5 line-clamp-2">{n.body}</p>}
+                    <p className="text-[10px] text-[#073b4c]/30 dark:text-[#525252] mt-1">{timeAgo(n.created_at)}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
 
 interface ClassroomSplitButtonProps {
   canGenerate: boolean;
+  canInstantClassroom: boolean;
   createClassroomLoading: boolean;
   enterClassroomLoading: boolean;
   onBasicClassroom: () => void;
   onInstantClassroom: () => void;
+  onUpgradeToUltra: () => void;
 }
 
+function Sidebar({
+  activeTab,
+  setActiveTab,
+  classroomJob,
+  onReopenJob,
+  onClearJob,
+  isAdmin,
+  mobileOpen,
+  onMobileClose,
+}: {
+  activeTab: Tab;
+  setActiveTab: (t: Tab) => void;
+  classroomJob: ClassroomJobState | null;
+  onReopenJob: () => void;
+  onClearJob: () => void;
+  isAdmin: boolean;
+  mobileOpen: boolean;
+  onMobileClose: () => void;
+}) {
+  const { user, loading: authLoading } = useAuth();
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
+  const avatar = useUserProfileStore((s) => s.avatar);
+  const nickname = useUserProfileStore((s) => s.nickname);
+  const router = useRouter();
+
+  const avatarUrl = user?.user_metadata?.avatar_url || user?.user_metadata?.picture;
+  const fullName = user?.user_metadata?.full_name || user?.user_metadata?.name || '';
+  const initials = fullName
+    ? fullName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
+    : (user?.email || '??').slice(0, 2).toUpperCase();
+
+  const displayName = nickname || fullName || user?.email?.split('@')[0] || '';
+
+  const navItems: { id: Tab; icon: React.ReactNode; label: string; color: string }[] = [
+    { id: 'new-course', icon: <Plus className="size-5" />, label: 'New Course', color: '#8338ec' },
+    { id: 'my-courses', icon: <BookOpen className="size-5" />, label: 'My Courses', color: '#118ab2' },
+    { id: 'browse', icon: <Compass className="size-5" />, label: 'Browse Courses', color: '#06d6a0' },
+    { id: 'achievements', icon: <Award className="size-5" />, label: 'Achievements', color: '#ffd166' },
+  ];
+
+  const handleNav = (tab: Tab) => {
+    setActiveTab(tab);
+    onMobileClose();
+  };
+
+  return (
+    <>
+      {/* Mobile overlay */}
+      <AnimatePresence>
+        {mobileOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-40 bg-black/40 lg:hidden"
+            onClick={onMobileClose}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Sidebar panel */}
+      <aside
+        className={cn(
+          'fixed top-0 left-0 h-full z-50 w-64 bg-white dark:bg-[#0d0d0d] border-r-[3px] border-[#073b4c] dark:border-[#2a2a2a] flex flex-col',
+          'lg:relative lg:translate-x-0 lg:z-10',
+          'transition-transform duration-300',
+          mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
+        )}
+      >
+        {/* Logo */}
+        <div className="px-5 pt-5 pb-4 border-b-[3px] border-[#073b4c] dark:border-[#2a2a2a]">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="size-8 rounded-xl bg-[#073b4c] flex items-center justify-center shrink-0">
+                <BookOpen className="size-4 text-[#ffd166]" />
+              </div>
+              <span className="text-xl font-black text-[#073b4c] dark:text-[#f0f0f0] tracking-[-0.02em]">SLATE UP</span>
+            </div>
+            <button
+              onClick={onMobileClose}
+              className="lg:hidden size-7 rounded-full hover:bg-[#f0f4f8] dark:hover:bg-[#222222] flex items-center justify-center transition-colors"
+            >
+              <X className="size-4 text-[#073b4c] dark:text-[#a3a3a3]" />
+            </button>
+          </div>
+
+          {classroomJob && (
+            <div className="mt-3">
+              <ClassroomGenerationStatus job={classroomJob} onReopen={onReopenJob} onClear={onClearJob} />
+            </div>
+          )}
+        </div>
+
+        {/* Nav items */}
+        <nav className="flex-1 px-3 py-4 flex flex-col gap-0.5 overflow-y-auto">
+          {navItems.map((item) => {
+            const active = activeTab === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => handleNav(item.id)}
+                className={cn(
+                  'w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all text-left',
+                  active
+                    ? 'bg-[#073b4c] dark:bg-[#2a2a2a] text-white dark:text-[#f0f0f0] shadow-[3px_3px_0_rgba(7,59,76,0.15)] dark:shadow-[3px_3px_0_rgba(0,0,0,0.5)]'
+                    : 'text-[#073b4c]/55 hover:bg-[#f0f4f8] hover:text-[#073b4c] dark:text-[#a3a3a3] dark:hover:bg-[#222222] dark:hover:text-[#f0f0f0]',
+                )}
+              >
+                <span className="shrink-0" style={active ? { color: 'white' } : { color: item.color }}>
+                  {item.icon}
+                </span>
+                {item.label}
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* ── Bottom utility section ── */}
+        <div className="border-t-[3px] border-[#073b4c] dark:border-[#2a2a2a]">
+          {/* Utility actions */}
+          <div className="px-3 pt-2 pb-2 flex flex-col gap-0.5">
+            {/* Settings — admin only */}
+            {isAdmin && (
+              <button
+                onClick={() => setSettingsOpen(true)}
+                className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl font-bold text-sm text-[#073b4c]/55 hover:bg-[#f0f4f8] hover:text-[#073b4c] dark:text-[#a3a3a3] dark:hover:bg-[#222222] dark:hover:text-[#f0f0f0] transition-all"
+              >
+                <Settings className="size-4.5 shrink-0" />
+                Settings
+              </button>
+            )}
+
+            {/* Give Feedback */}
+            <button
+              onClick={() => setFeedbackOpen(true)}
+              className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl font-bold text-sm text-[#073b4c]/55 hover:bg-[#f0f4f8] hover:text-[#073b4c] dark:text-[#a3a3a3] dark:hover:bg-[#222222] dark:hover:text-[#f0f0f0] transition-all"
+            >
+              <MessageSquarePlus className="size-4.5 shrink-0" />
+              Give Feedback
+            </button>
+
+            {/* Get Help */}
+            <button
+              onClick={() => setHelpOpen(true)}
+              className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl font-bold text-sm text-[#073b4c]/55 hover:bg-[#f0f4f8] hover:text-[#073b4c] dark:text-[#a3a3a3] dark:hover:bg-[#222222] dark:hover:text-[#f0f0f0] transition-all"
+            >
+              <HelpCircle className="size-4.5 shrink-0" />
+              Get Help
+            </button>
+
+            {/* Notifications — custom sidebar row */}
+            <SidebarNotificationRow />
+          </div>
+
+          {/* Profile card — always visible at bottom */}
+          <div className="px-3 pb-4 pt-1">
+            {authLoading ? (
+              <div className="flex items-center gap-3 px-4 py-3 rounded-xl border-2 border-[#073b4c]/10 dark:border-[#2a2a2a]">
+                <div className="size-9 rounded-full bg-[#f0f4f8] dark:bg-[#2a2a2a] animate-pulse shrink-0" />
+                <div className="flex-1 space-y-1.5">
+                  <div className="h-3 w-24 bg-[#f0f4f8] dark:bg-[#2a2a2a] rounded-full animate-pulse" />
+                  <div className="h-2.5 w-32 bg-[#f0f4f8] dark:bg-[#2a2a2a] rounded-full animate-pulse" />
+                </div>
+              </div>
+            ) : user ? (
+              <button
+                onClick={() => setProfileOpen(true)}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border-2 border-[#073b4c]/10 hover:border-[#073b4c]/30 hover:bg-[#f8f9fa] dark:border-[#2a2a2a] dark:hover:border-[#4a4a4a] dark:hover:bg-[#222222] transition-all group"
+              >
+                {/* Avatar */}
+                <div className="size-9 rounded-full border-2 border-[#073b4c]/20 group-hover:border-[#073b4c]/50 dark:border-[#333333] overflow-hidden shrink-0 transition-all">
+                  {avatarUrl ? (
+                    <img src={avatarUrl} alt="" className="size-full object-cover" />
+                  ) : (
+                    <div className="size-full bg-gradient-to-br from-[#118AB2] to-[#06D6A0] flex items-center justify-center">
+                      <span className="text-[11px] font-black text-white">{initials}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Name + email */}
+                <div className="flex-1 min-w-0 text-left">
+                  <p className="text-[13px] font-bold text-[#073b4c] dark:text-[#f0f0f0] truncate leading-tight">
+                    {displayName || 'My Profile'}
+                  </p>
+                  <p className="text-[11px] text-[#073b4c]/40 dark:text-[#737373] truncate leading-tight mt-0.5">
+                    {user.email}
+                  </p>
+                </div>
+
+                {/* Chevron */}
+                <ChevronRight className="size-3.5 text-[#073b4c]/25 group-hover:text-[#073b4c]/50 dark:text-[#525252] dark:group-hover:text-slate-400 shrink-0 transition-colors" />
+              </button>
+            ) : (
+              <button
+                onClick={() => router.push('/auth/login')}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border-2 border-[#073b4c]/15 hover:border-[#073b4c] hover:bg-[#073b4c] hover:text-white transition-all group font-bold text-sm text-[#073b4c]/60"
+              >
+                <div className="size-9 rounded-full border-2 border-[#073b4c]/20 group-hover:border-white/30 bg-[#f0f4f8] group-hover:bg-white/10 flex items-center justify-center shrink-0 transition-all">
+                  <User className="size-4 text-[#073b4c]/40 group-hover:text-white transition-colors" />
+                </div>
+                <span className="flex-1 text-left">Sign In</span>
+                <LogIn className="size-4 shrink-0 opacity-40 group-hover:opacity-80 transition-opacity" />
+              </button>
+            )}
+          </div>
+        </div>
+      </aside>
+
+      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
+      <AuthProfileModal open={profileOpen} onClose={() => setProfileOpen(false)} />
+      <FeedbackModal open={feedbackOpen} onOpenChange={setFeedbackOpen} />
+      <HelpModal open={helpOpen} onClose={() => setHelpOpen(false)} />
+    </>
+  );
+}
+
+// ── Classroom Split Button ─────────────────────────────────────────────────
 function ClassroomSplitButton({
   canGenerate,
+  canInstantClassroom,
   createClassroomLoading,
   enterClassroomLoading,
   onBasicClassroom,
   onInstantClassroom,
+  onUpgradeToUltra,
 }: ClassroomSplitButtonProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const isLoading = createClassroomLoading || enterClassroomLoading;
 
   useEffect(() => {
     if (!dropdownOpen) return;
@@ -127,8 +547,79 @@ function ClassroomSplitButton({
     return () => document.removeEventListener('mousedown', handler);
   }, [dropdownOpen]);
 
-  const isLoading = createClassroomLoading || enterClassroomLoading;
   const active = canGenerate && !isLoading;
+
+  if (!canInstantClassroom) {
+    return (
+      <div ref={containerRef} className="relative shrink-0">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div
+              className={cn(
+                'flex items-center h-10 rounded-full border-2 overflow-hidden transition-all duration-200',
+                active
+                  ? 'border-[#073b4c] dark:border-[#333333] bg-[#8338ec] text-[#fff0db] shadow-[3px_3px_0_#073b4c] dark:shadow-[3px_3px_0_rgba(0,0,0,0.5)] hover:-translate-y-px hover:shadow-[4px_4px_0_#073b4c]'
+                  : 'border-[#073b4c]/20 dark:border-[#2a2a2a] bg-[#f0f4f8] dark:bg-[#1a1a1a] text-[#073b4c]/30 dark:text-[#525252]',
+                isLoading && 'opacity-80',
+              )}
+            >
+              <button
+                type="button"
+                onClick={onBasicClassroom}
+                disabled={!active}
+                className="h-full pl-5 pr-3 flex items-center gap-2 font-bold cursor-pointer disabled:cursor-not-allowed"
+              >
+                <span className="text-xs font-bold">Basic Classroom</span>
+                {createClassroomLoading ? (
+                  <Loader2 className="size-3.5 animate-spin" aria-hidden />
+                ) : (
+                  <Clock className="size-3.5" aria-hidden />
+                )}
+              </button>
+              <div className={cn('w-px h-5 shrink-0', active ? 'bg-white/20' : 'bg-[#073b4c]/10')} />
+              <button
+                type="button"
+                onClick={() => setDropdownOpen((v) => !v)}
+                disabled={isLoading}
+                className="h-full w-9 flex items-center justify-center cursor-pointer disabled:cursor-not-allowed"
+                aria-label="More classroom options"
+              >
+                <ChevronDown className={cn('size-3.5 transition-transform', dropdownOpen && 'rotate-180')} aria-hidden />
+              </button>
+            </div>
+          </TooltipTrigger>
+          <TooltipContent side="top" sideOffset={8}>
+            {canGenerate ? (
+              <p className="text-xs">Generate in the background — ready in 3–5 min</p>
+            ) : (
+              <p className="text-xs">Write a prompt above to get started</p>
+            )}
+          </TooltipContent>
+        </Tooltip>
+        {dropdownOpen && (
+          <div className="absolute right-0 top-12 z-50 min-w-[210px] rounded-2xl border-2 border-[#073b4c]/10 dark:border-[#2a2a2a] bg-white dark:bg-[#1a1a1a] shadow-[4px_4px_0_rgba(7,59,76,0.08)] dark:shadow-[4px_4px_0_rgba(0,0,0,0.5)] overflow-hidden">
+            <button
+              type="button"
+              onClick={() => {
+                setDropdownOpen(false);
+                onUpgradeToUltra();
+              }}
+              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[#fffdf0] dark:hover:bg-[#222222] transition-colors cursor-pointer"
+            >
+              <span className="size-5 rounded-md bg-amber-100 flex items-center justify-center shrink-0 text-[11px]">⚡</span>
+              <div className="text-left">
+                <p className="font-semibold text-[#073b4c] dark:text-[#f0f0f0] text-xs flex items-center gap-1.5">
+                  Instant Classroom
+                  <span className="px-1 py-0.5 rounded text-[8px] font-bold bg-[#ffd166] text-[#073b4c] uppercase tracking-wide">Ultra</span>
+                </p>
+                <p className="text-[10px] text-[#073b4c]/40 dark:text-[#737373]">Streams live · upgrade to unlock</p>
+              </div>
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div ref={containerRef} className="relative shrink-0">
@@ -138,8 +629,8 @@ function ClassroomSplitButton({
             className={cn(
               'flex items-center h-10 rounded-full border-2 overflow-hidden transition-all duration-200',
               active
-                ? 'border-[#073b4c] bg-[#8338ec] text-[#fff0db] shadow-[3px_3px_0_#073b4c] hover:-translate-y-px hover:shadow-[4px_4px_0_#073b4c]'
-                : 'border-[#073b4c]/20 bg-[#f0f4f8] text-[#073b4c]/30',
+                ? 'border-[#073b4c] dark:border-[#333333] bg-[#ffd166] text-[#073b4c] shadow-[3px_3px_0_#073b4c] dark:shadow-[3px_3px_0_rgba(0,0,0,0.5)] hover:-translate-y-px hover:shadow-[4px_4px_0_#073b4c]'
+                : 'border-[#073b4c]/20 dark:border-[#2a2a2a] bg-[#f0f4f8] dark:bg-[#1a1a1a] text-[#073b4c]/30 dark:text-[#525252]',
               isLoading && 'opacity-80',
             )}
           >
@@ -202,500 +693,45 @@ function ClassroomSplitButton({
   );
 }
 
-// ──────────────────────────────────────────────────────────────────────────────
-
-function HomePage() {
+// ── New Course Tab ─────────────────────────────────────────────────────────
+function NewCourseTab({
+  form,
+  updateForm,
+  handleGenerate,
+  handleCreateClassroom,
+  enterClassroomLoading,
+  createClassroomLoading,
+  canGenerate,
+  canInstantClassroom,
+  error,
+  settingsOpen,
+  setSettingsOpen,
+}: {
+  form: FormState;
+  updateForm: <K extends keyof FormState>(k: K, v: FormState[K]) => void;
+  handleGenerate: () => void;
+  handleCreateClassroom: () => void;
+  enterClassroomLoading: boolean;
+  createClassroomLoading: boolean;
+  canGenerate: boolean;
+  canInstantClassroom: boolean;
+  error: string | null;
+  settingsOpen: boolean;
+  setSettingsOpen: (v: boolean) => void;
+}) {
   const { t } = useI18n();
-  const { theme, setTheme } = useTheme();
-  const { user, loading: authLoading } = useAuth();
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const isAdmin = searchParams.get('admin') === 'true';
-
-  // Auto-trigger generation after login redirect
-  const pendingGeneration = searchParams.get('pending_generation');
-  const pendingHandled = useRef(false);
-
-  const [form, setForm] = useState<FormState>(initialFormState);
-  const [enterClassroomLoading, setEnterClassroomLoading] = useState(false);
-  const [createClassroomLoading, setCreateClassroomLoading] = useState(false);
-  const [classroomJob, setClassroomJobRaw] = useState<ClassroomJobState | null>(() => {
-    try {
-      const saved = localStorage.getItem(CLASSROOM_JOB_STORAGE_KEY);
-      return saved ? (JSON.parse(saved) as ClassroomJobState) : null;
-    } catch {
-      return null;
-    }
-  });
-
-  const setClassroomJob = (updater: ClassroomJobState | null | ((prev: ClassroomJobState | null) => ClassroomJobState | null)) => {
-    setClassroomJobRaw((prev) => {
-      const next = typeof updater === 'function' ? updater(prev) : updater;
-      try {
-        if (next) localStorage.setItem(CLASSROOM_JOB_STORAGE_KEY, JSON.stringify(next));
-        else localStorage.removeItem(CLASSROOM_JOB_STORAGE_KEY);
-      } catch { /* ignore */ }
-      return next;
-    });
-  };
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const jobPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const plan = usePlanStore((s) => s.plan);
-  const [settingsSection, setSettingsSection] = useState<
-    import('@/lib/types/settings').SettingsSection | undefined
-  >(undefined);
-
-  // Draft cache for requirement text
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { cachedValue: cachedRequirement, updateCache: updateRequirementCache } =
     useDraftCache<string>({ key: 'requirementDraft' });
+  const [prevCached, setPrevCached] = useState(cachedRequirement);
+  const router = useRouter();
 
-  // Model setup state
-  const currentModelId = useSettingsStore((s) => s.modelId);
-  const [recentOpen, setRecentOpen] = useState(true);
-
-  // Hydrate client-only state after mount (avoids SSR mismatch)
-  /* eslint-disable react-hooks/set-state-in-effect -- Hydration from localStorage must happen in effect */
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(RECENT_OPEN_STORAGE_KEY);
-      if (saved !== null) setRecentOpen(saved !== 'false');
-    } catch {
-      /* localStorage unavailable */
-    }
-    try {
-      const savedWebSearch = localStorage.getItem(WEB_SEARCH_STORAGE_KEY);
-      const savedLanguage = localStorage.getItem(LANGUAGE_STORAGE_KEY);
-      const updates: Partial<FormState> = {};
-      if (savedWebSearch !== null) updates.webSearch = savedWebSearch === 'true';
-      if (savedLanguage === 'zh-CN' || savedLanguage === 'en-US') {
-        updates.language = savedLanguage;
-      } else {
-        const detected = navigator.language?.startsWith('zh') ? 'zh-CN' : 'en-US';
-        updates.language = detected;
-      }
-      // Restore pending prompt saved before login redirect
-      const pendingPrompt = localStorage.getItem('pendingPrompt');
-      if (pendingPrompt) {
-        updates.requirement = pendingPrompt;
-        localStorage.removeItem('pendingPrompt');
-      }
-      if (Object.keys(updates).length > 0) {
-        setForm((prev) => ({ ...prev, ...updates }));
-      }
-    } catch {
-      /* localStorage unavailable */
-    }
-  }, []);
-  /* eslint-enable react-hooks/set-state-in-effect */
-
-  // Restore requirement draft from cache (derived state pattern — no effect needed)
-  const [prevCachedRequirement, setPrevCachedRequirement] = useState(cachedRequirement);
-  if (cachedRequirement !== prevCachedRequirement) {
-    setPrevCachedRequirement(cachedRequirement);
-    if (cachedRequirement) {
-      setForm((prev) => ({ ...prev, requirement: cachedRequirement }));
+  if (cachedRequirement !== prevCached) {
+    setPrevCached(cachedRequirement);
+    if (cachedRequirement && !form.requirement) {
+      updateForm('requirement', cachedRequirement);
     }
   }
-
-  const [themeOpen, setThemeOpen] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [classrooms, setClassrooms] = useState<StageListItem[]>([]);
-  const [showExhaustedModal, setShowExhaustedModal] = useState(false);
-  const [exhaustedReason, setExhaustedReason] = useState<string | undefined>(undefined);
-  const [thumbnails, setThumbnails] = useState<Record<string, Slide>>({});
-  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
-  const toolbarRef = useRef<HTMLDivElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  // Close dropdowns when clicking outside
-  useEffect(() => {
-    if (!themeOpen) return;
-    const handleClickOutside = (e: MouseEvent) => {
-      if (toolbarRef.current && !toolbarRef.current.contains(e.target as Node)) {
-        setThemeOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [themeOpen]);
-
-  const loadClassrooms = async () => {
-    try {
-      // 1. Load local courses from IndexedDB
-      const localList = await listStages();
-      const localMap = new Map(localList.map((c) => [c.id, c]));
-
-      // 2. If logged in, load from Supabase and merge
-      const mergedList: StageListItem[] = [...localList];
-      if (user) {
-        const supabaseList = await fetchUserCoursesFromSupabase(user.id);
-        for (const sCourse of supabaseList) {
-          if (!localMap.has(sCourse.stage_id)) {
-            // Course exists in cloud but not locally
-            mergedList.push({
-              id: sCourse.stage_id,
-              name: sCourse.name,
-              description: '', // Metdata is minimal
-              sceneCount: sCourse.slide_count,
-              createdAt: new Date(sCourse.created_at).getTime(),
-              updatedAt: new Date(sCourse.updated_at).getTime(),
-              is_cloud: true,
-              supabase_id: sCourse.id,
-            });
-          }
-        }
-      }
-
-      // Sort by updatedAt reverse
-      mergedList.sort((a, b) => b.updatedAt - a.updatedAt);
-      setClassrooms(mergedList);
-
-      // Load thumbnails for local courses
-      const localIds = mergedList.filter((c) => !c.is_cloud).map((c) => c.id);
-      if (localIds.length > 0) {
-        const slides = await getFirstSlideByStages(localIds);
-        setThumbnails(slides);
-      }
-    } catch (err) {
-      log.error('Failed to load classrooms:', err);
-    }
-  };
-
-  useEffect(() => {
-    if (!authLoading) {
-      loadClassrooms();
-      if (user) usePlanStore.getState().refetch();
-    }
-  }, [user, authLoading]);
-
-  // Poll for classroom job completion when a background job is running
-  useEffect(() => {
-    if (!classroomJob || classroomJob.phase !== 'background') {
-      if (jobPollRef.current) {
-        clearInterval(jobPollRef.current);
-        jobPollRef.current = null;
-      }
-      return;
-    }
-    const poll = async () => {
-      try {
-        const res = await fetch('/api/notifications?unread_only=false&limit=20', {
-          cache: 'no-store',
-        });
-        if (!res.ok) return;
-        const json = await res.json();
-        const match = (json.notifications ?? []).find(
-          (n: { type: string; metadata?: { job_id?: string }; action_url?: string }) =>
-            n.type === 'classroom_ready' && n.metadata?.job_id === classroomJob.jobId,
-        );
-        if (match) {
-          setClassroomJob((prev) =>
-            prev ? { ...prev, phase: 'done', classroomUrl: match.action_url ?? '' } : prev,
-          );
-          if (jobPollRef.current) {
-            clearInterval(jobPollRef.current);
-            jobPollRef.current = null;
-          }
-        }
-      } catch {
-        /* ignore */
-      }
-    };
-    poll(); // immediate first check
-    jobPollRef.current = setInterval(poll, 10_000);
-    return () => {
-      if (jobPollRef.current) clearInterval(jobPollRef.current);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [classroomJob?.phase, classroomJob?.jobId]);
-
-  useEffect(() => {
-    // Clear stale media store to prevent cross-course thumbnail contamination.
-    // The store may hold tasks from a previously visited classroom whose elementIds
-    // (gen_img_1, etc.) collide with other courses' placeholders.
-    useMediaGenerationStore.getState().revokeObjectUrls();
-    useMediaGenerationStore.setState({ tasks: {} });
-
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- Store hydration on mount
-    loadClassrooms();
-  }, []);
-
-  const handleDelete = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setPendingDeleteId(id);
-  };
-
-  const confirmDelete = async (id: string) => {
-    setPendingDeleteId(null);
-    try {
-      await deleteStageData(id);
-      await loadClassrooms();
-    } catch (err) {
-      log.error('Failed to delete classroom:', err);
-      toast.error('Failed to delete classroom');
-    }
-  };
-
-  const handleRename = async (id: string, newName: string) => {
-    try {
-      await renameStage(id, newName);
-      setClassrooms((prev) => prev.map((c) => (c.id === id ? { ...c, name: newName } : c)));
-    } catch (err) {
-      log.error('Failed to rename classroom:', err);
-      toast.error(t('classroom.renameFailed'));
-    }
-  };
-
-  const updateForm = <K extends keyof FormState>(field: K, value: FormState[K]) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
-    try {
-      if (field === 'webSearch') localStorage.setItem(WEB_SEARCH_STORAGE_KEY, String(value));
-      if (field === 'language') localStorage.setItem(LANGUAGE_STORAGE_KEY, String(value));
-      if (field === 'requirement') updateRequirementCache(value as string);
-    } catch {
-      /* ignore */
-    }
-  };
-
-  const showSetupToast = (icon: React.ReactNode, title: string, desc: string) => {
-    toast.custom(
-      (id) => (
-        <div
-          className="w-[356px] rounded-xl border border-amber-200/60 dark:border-amber-800/40 bg-gradient-to-r from-amber-50 via-white to-amber-50 dark:from-amber-950/60 dark:via-slate-900 dark:to-amber-950/60 shadow-lg shadow-amber-500/8 dark:shadow-amber-900/20 p-4 flex items-start gap-3 cursor-pointer"
-          onClick={() => {
-            toast.dismiss(id);
-            setSettingsOpen(true);
-          }}
-        >
-          <div className="shrink-0 mt-0.5 size-9 rounded-lg bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center ring-1 ring-amber-200/50 dark:ring-amber-800/30">
-            {icon}
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-amber-900 dark:text-amber-200 leading-tight">
-              {title}
-            </p>
-            <p className="text-xs text-amber-700/80 dark:text-amber-400/70 mt-0.5 leading-relaxed">
-              {desc}
-            </p>
-          </div>
-          <div className="shrink-0 mt-1 text-[10px] font-medium text-amber-500 dark:text-amber-500/70 tracking-wide">
-            <Settings className="size-3.5 animate-[spin_3s_linear_infinite]" />
-          </div>
-        </div>
-      ),
-      { duration: 4000 },
-    );
-  };
-
-  // Handle pending generation after login redirect
-  useEffect(() => {
-    if (
-      pendingGeneration === 'true' &&
-      !pendingHandled.current &&
-      !authLoading &&
-      user &&
-      form.requirement.trim()
-    ) {
-      pendingHandled.current = true;
-      // Small delay to ensure hydration completes
-      const timer = setTimeout(() => handleGenerate(), 500);
-      return () => clearTimeout(timer);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pendingGeneration, authLoading, user, form.requirement]);
-
-  const handleGenerate = async () => {
-    if (enterClassroomLoading) return;
-
-    // Check authentication first
-    if (!authLoading && !user) {
-      setEnterClassroomLoading(true);
-      // Save the current prompt so we can resume after login
-      try {
-        localStorage.setItem('pendingPrompt', form.requirement);
-      } catch {
-        /* ignore */
-      }
-      router.push(`/auth/login?redirect=${encodeURIComponent('/?pending_generation=true')}`);
-      return;
-    }
-
-    // Validate setup before proceeding
-    if (!currentModelId) {
-      showSetupToast(
-        <BotOff className="size-4.5 text-amber-600 dark:text-amber-400" />,
-        t('settings.modelNotConfigured'),
-        t('settings.setupNeeded'),
-      );
-      setSettingsOpen(true);
-      return;
-    }
-
-    if (!form.requirement.trim()) {
-      setError(t('upload.requirementRequired'));
-      return;
-    }
-
-    setEnterClassroomLoading(true);
-
-    // Pre-flight credit check (only for authenticated users)
-    if (user) {
-      try {
-        const planRes = await fetch('/api/user/plan', { cache: 'no-store' });
-        if (planRes.ok) {
-          const planJson = await planRes.json();
-          if (planJson.success && planJson.credits) {
-            const remaining = planJson.credits.remaining;
-            if (remaining !== 'unlimited' && remaining <= 0) {
-              const reason =
-                planJson.plan?.account_type === 'FREE'
-                  ? 'free_limit_reached'
-                  : 'monthly_limit_reached';
-              setExhaustedReason(reason);
-              setShowExhaustedModal(true);
-              setEnterClassroomLoading(false);
-              return;
-            }
-          }
-        }
-      } catch {
-        // Non-fatal: proceed with generation even if credit check fails
-      }
-    }
-
-    setError(null);
-    posthog.capture('classroom_generation_started', {
-      has_pdf: !!form.pdfFile,
-      web_search: !!form.webSearch,
-      language: form.language,
-    });
-
-    try {
-      const isPortrait = window.matchMedia('(orientation: portrait)').matches;
-      const userProfile = useUserProfileStore.getState();
-
-      const requirements: UserRequirements = {
-        requirement: form.requirement,
-        language: form.language,
-        userNickname: userProfile.nickname || undefined,
-        userBio: userProfile.bio || undefined,
-        webSearch: form.webSearch || undefined,
-        aspectRatio: isPortrait ? 'portrait' : 'landscape',
-      };
-
-      let pdfStorageKey: string | undefined;
-      let pdfFileName: string | undefined;
-      let pdfProviderId: string | undefined;
-      let pdfProviderConfig: { apiKey?: string; baseUrl?: string } | undefined;
-
-      if (form.pdfFile) {
-        pdfStorageKey = await storePdfBlob(form.pdfFile);
-        pdfFileName = form.pdfFile.name;
-
-        const settings = useSettingsStore.getState();
-        pdfProviderId = settings.pdfProviderId;
-        const providerCfg = settings.pdfProvidersConfig?.[settings.pdfProviderId];
-        if (providerCfg) {
-          pdfProviderConfig = {
-            apiKey: providerCfg.apiKey,
-            baseUrl: providerCfg.baseUrl,
-          };
-        }
-      }
-
-      const sessionState = {
-        sessionId: nanoid(),
-        requirements,
-        pdfText: '',
-        pdfImages: [],
-        imageStorageIds: [],
-        pdfStorageKey,
-        pdfFileName,
-        pdfProviderId,
-        pdfProviderConfig,
-        sceneOutlines: null,
-        currentStep: 'generating' as const,
-      };
-      sessionStorage.setItem('generationSession', JSON.stringify(sessionState));
-
-      router.push('/generation-preview');
-    } catch (err) {
-      log.error('Error preparing generation:', err);
-      setError(err instanceof Error ? err.message : t('upload.generateFailed'));
-      setEnterClassroomLoading(false);
-    }
-  };
-
-  const handleCreateClassroom = async () => {
-    if (createClassroomLoading) return;
-
-    if (!authLoading && !user) {
-      try {
-        localStorage.setItem('pendingPrompt', form.requirement);
-      } catch {
-        /* ignore */
-      }
-      router.push(`/auth/login?redirect=${encodeURIComponent('/?pending_generation=true')}`);
-      return;
-    }
-
-    if (!form.requirement.trim()) {
-      setError(t('upload.requirementRequired'));
-      return;
-    }
-
-    setCreateClassroomLoading(true);
-    setError(null);
-
-    try {
-      const res = await fetch('/api/create-classroom', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          requirement: form.requirement,
-          language: form.language,
-          enableWebSearch: form.webSearch,
-          enableImageGeneration: true,
-          enableVideoGeneration: false,
-          enableTTS: true,
-        }),
-      });
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.message || 'Failed to queue classroom');
-      }
-
-      const json = await res.json();
-      const jobId = json.jobId as string;
-
-      setClassroomJob({ jobId, requirement: form.requirement, phase: 'background' });
-      setShowCreateModal(true);
-    } catch (err) {
-      log.error('Create classroom error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to queue classroom generation');
-    } finally {
-      setCreateClassroomLoading(false);
-    }
-  };
-
-  const formatDate = (timestamp: number) => {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diffTime = Math.abs(now.getTime() - date.getTime());
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-
-    if (diffDays === 0) return t('classroom.today');
-    if (diffDays === 1) return t('classroom.yesterday');
-    if (diffDays < 7) return `${diffDays} ${t('classroom.daysAgo')}`;
-    return date.toLocaleDateString();
-  };
-
-  const canGenerate = !!form.requirement.trim();
-
-  const navPillClassName =
-    'flex items-center gap-2 h-9 px-2 md:px-4 rounded-full border-2 border-[#073b4c] bg-white text-[#073b4c] font-bold text-xs hover:translate-y-[-1px] shadow-[3px_3px_0_#073b4c] hover:shadow-[4px_4px_0_#073b4c] transition-all cursor-pointer active:translate-y-0 active:shadow-[1px_1px_0_#073b4c]';
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
@@ -705,667 +741,280 @@ function HomePage() {
   };
 
   return (
-    <div className="h-[100dvh] w-full bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 flex flex-col items-center overflow-hidden">
-      <div className="flex-1 w-full overflow-y-auto px-4 pt-16 md:p-8 md:pt-16 flex flex-col items-center">
-        {/* ═══ Top-right bar: Auth button (always visible) + Admin pill ═══ */}
-        <div className="fixed top-4 right-4 z-50 flex items-center gap-2 flex-wrap justify-end">
-          {/* Hall of Fame & Catalog — same pill UI as Feedback */}
-          <button
-            type="button"
-            onClick={() => router.push('/leaderboard')}
-            className={navPillClassName}
-          >
-            <Trophy className="size-3.5" />
-            <span className="hidden md:inline">Hall of Fame</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => router.push('/catalog')}
-            className={navPillClassName}
-          >
-            <BookOpen className="size-3.5" />
-            <span className="hidden md:inline">Catalog</span>
-          </button>
+    <div className="max-w-3xl mx-auto w-full">
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-3xl md:text-4xl font-black text-[#073b4c] dark:text-[#f0f0f0] tracking-tight mb-2">
+          Create New Course
+        </h1>
+        <p className="text-[#073b4c]/60 dark:text-[#a3a3a3] font-medium">
+          Describe what you want to learn and Slate AI will build an interactive classroom for you.
+        </p>
+      </div>
 
-          {/* Classroom generation status chip */}
-          <ClassroomGenerationStatus
-            job={classroomJob}
-            onReopen={() => setShowCreateModal(true)}
-            onClear={() => setClassroomJob(null)}
-          />
+      {/* Agent bar */}
+      <div className="mb-4 flex justify-end">
+        <AgentBar />
+      </div>
 
-          {/* Auth button — always visible */}
-          <FeedbackButton variant="pill" showLabel />
-          <NotificationBell />
-          <AuthButton />
-
-          {/* Admin controls */}
-          {isAdmin && (
-            <div
-              ref={toolbarRef}
-              className="flex items-center gap-1 bg-white/60 dark:bg-gray-800/60 backdrop-blur-md px-2 py-1.5 rounded-full border border-gray-100/50 dark:border-gray-700/50 shadow-sm"
-            >
-              {/* Language Selector */}
-              <LanguageSwitcher onOpen={() => setThemeOpen(false)} />
-
-              <div className="w-[1px] h-4 bg-gray-200 dark:bg-gray-700" />
-
-              {/* Theme Selector */}
-              <div className="relative">
-                <button
-                  onClick={() => {
-                    setThemeOpen(!themeOpen);
-                  }}
-                  className="p-2 rounded-full text-gray-400 dark:text-gray-500 hover:bg-white dark:hover:bg-gray-700 hover:text-gray-800 dark:hover:text-gray-200 hover:shadow-sm transition-all"
-                >
-                  {theme === 'light' && <Sun className="w-4 h-4" />}
-                  {theme === 'dark' && <Moon className="w-4 h-4" />}
-                  {theme === 'system' && <Monitor className="w-4 h-4" />}
-                </button>
-                {themeOpen && (
-                  <div className="absolute top-full mt-2 right-0 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg overflow-hidden z-50 min-w-[140px]">
-                    <button
-                      onClick={() => {
-                        setTheme('light');
-                        setThemeOpen(false);
-                      }}
-                      className={cn(
-                        'w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center gap-2',
-                        theme === 'light' &&
-                          'bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400',
-                      )}
-                    >
-                      <Sun className="w-4 h-4" />
-                      {t('settings.themeOptions.light')}
-                    </button>
-                    <button
-                      onClick={() => {
-                        setTheme('dark');
-                        setThemeOpen(false);
-                      }}
-                      className={cn(
-                        'w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center gap-2',
-                        theme === 'dark' &&
-                          'bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400',
-                      )}
-                    >
-                      <Moon className="w-4 h-4" />
-                      {t('settings.themeOptions.dark')}
-                    </button>
-                    <button
-                      onClick={() => {
-                        setTheme('system');
-                        setThemeOpen(false);
-                      }}
-                      className={cn(
-                        'w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center gap-2',
-                        theme === 'system' &&
-                          'bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400',
-                      )}
-                    >
-                      <Monitor className="w-4 h-4" />
-                      {t('settings.themeOptions.system')}
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              <div className="w-[1px] h-4 bg-gray-200 dark:bg-gray-700" />
-
-              {/* Settings Button */}
-              <div className="relative">
-                <button
-                  onClick={() => setSettingsOpen(true)}
-                  className="p-2 rounded-full text-gray-400 dark:text-gray-500 hover:bg-white dark:hover:bg-gray-700 hover:text-gray-800 dark:hover:text-gray-200 hover:shadow-sm transition-all group"
-                >
-                  <Settings className="w-4 h-4 group-hover:rotate-90 transition-transform duration-500" />
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-        <SettingsDialog
-          open={settingsOpen}
-          onOpenChange={(open) => {
-            setSettingsOpen(open);
-            if (!open) setSettingsSection(undefined);
+      {/* Input card */}
+      <div className="w-full rounded-3xl border-[3px] border-[#073b4c] dark:border-[#333333] bg-white dark:bg-[#1a1a1a] shadow-[8px_8px_0_#073b4c] dark:shadow-[8px_8px_0_rgba(0,0,0,0.5)] transition-all hover:shadow-[10px_10px_0_#073b4c] dark:hover:shadow-[10px_10px_0_rgba(0,0,0,0.5)] focus-within:shadow-[10px_10px_0_#073b4c] dark:focus-within:shadow-[10px_10px_0_rgba(0,0,0,0.5)] flex flex-col pb-2">
+        <textarea
+          ref={textareaRef}
+          placeholder={t('upload.requirementPlaceholder')}
+          className="w-full resize-none border-0 bg-transparent px-5 pt-5 pb-2 text-base font-medium leading-relaxed placeholder:text-[#073b4c]/40 dark:placeholder:text-slate-500 focus:outline-none min-h-[180px] max-h-[400px] text-[#073b4c] dark:text-[#f0f0f0]"
+          value={form.requirement}
+          onChange={(e) => {
+            updateForm('requirement', e.target.value);
+            updateRequirementCache(e.target.value);
           }}
-          initialSection={settingsSection}
+          onKeyDown={handleKeyDown}
+          rows={5}
         />
-
-        {/* Floating shapes */}
-        <div className="absolute inset-0 pointer-events-none overflow-hidden h-full w-full">
-          <div
-            className="floating-shape absolute top-[8%] left-[4%] w-16 h-16 md:w-24 md:h-24 bg-[#FFD166] rounded-full border-4 border-[#073B4C] opacity-50"
-            style={{ animationDelay: '0s' }}
+        <div className="px-4 pb-3 flex items-center gap-2">
+          <div className="flex-1 min-w-0">
+            <GenerationToolbar
+              language={form.language}
+              onLanguageChange={(lang) => updateForm('language', lang)}
+              webSearch={form.webSearch}
+              onWebSearchChange={(v) => updateForm('webSearch', v)}
+              onSettingsOpen={() => setSettingsOpen(true)}
+              pdfFile={form.pdfFile}
+              onPdfFileChange={(f) => updateForm('pdfFile', f)}
+              onPdfError={() => {}}
+            />
+          </div>
+          <SpeechButton
+            size="md"
+            onTranscription={(text) => {
+              const next = form.requirement + (form.requirement ? ' ' : '') + text;
+              updateForm('requirement', next);
+              updateRequirementCache(next);
+            }}
           />
-          <div
-            className="floating-shape-reverse absolute top-[15%] right-[8%] w-14 h-14 md:w-20 md:h-20 bg-[#EF476F] rounded-2xl border-4 border-[#073B4C] opacity-50"
-            style={{ animationDelay: '1s' }}
-          />
-          <div
-            className="floating-shape absolute bottom-[12%] left-[12%] w-20 h-20 md:w-28 md:h-28 bg-[#118AB2] rounded-full border-4 border-[#073B4C] opacity-30"
-            style={{ animationDelay: '2s' }}
-          />
-          <div
-            className="floating-shape-reverse absolute bottom-[20%] right-[6%] w-12 h-12 md:w-16 md:h-16 bg-[#06D6A0] rounded-3xl border-4 border-[#073B4C] opacity-40"
-            style={{ animationDelay: '0.5s' }}
-          />
-          <div
-            className="floating-shape absolute top-[45%] left-[50%] w-10 h-10 bg-[#8338EC] rounded-full border-4 border-[#073B4C] opacity-25"
-            style={{ animationDelay: '1.5s' }}
-          />
-          <div
-            className="floating-shape-reverse absolute top-[60%] left-[25%] w-8 h-8 bg-[#FF6B35] rounded-lg border-3 border-[#073B4C] opacity-30"
-            style={{ animationDelay: '3s' }}
+          <ClassroomSplitButton
+            canGenerate={canGenerate}
+            canInstantClassroom={canInstantClassroom}
+            createClassroomLoading={createClassroomLoading}
+            enterClassroomLoading={enterClassroomLoading}
+            onBasicClassroom={handleCreateClassroom}
+            onInstantClassroom={handleGenerate}
+            onUpgradeToUltra={() => router.push('/pricing#ultra')}
           />
         </div>
+      </div>
 
-        {/* ═══ Hero section: title + input (centered, wider) ═══ */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease: 'easeOut' }}
-          className={cn(
-            'relative z-20 w-full max-w-[800px] flex flex-col items-center',
-            classrooms.length === 0 ? 'justify-center min-h-[calc(100dvh-8rem)]' : 'mt-4 md:mt-[10vh]',
-          )}
-        >
-          {/* ── Logo ── */}
+      <AnimatePresence>
+        {error && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{
-              delay: 0.1,
-              type: 'spring',
-              stiffness: 200,
-              damping: 20,
-            }}
-            className="flex items-center gap-3 mb-6"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="mt-3 w-full p-3 bg-destructive/10 border border-destructive/20 rounded-lg"
           >
-            <h1 className="text-5xl md:text-8xl font-black text-[#073b4c] tracking-[-0.025em]">
-              SLATE UP
-            </h1>
-            {/* <span className="px-3 py-1 bg-[#ef476f] text-white text-xs md:text-sm font-bold rounded-full border-2 border-[#073b4c] shadow-[2px_2px_0_#073b4c] uppercase tracking-widest mt-2 md:mt-4">BETA</span> */}
-          </motion.div>
-
-          {/* ── Tagline ── */}
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.25 }}
-            className="text-base md:text-lg text-[#073b4c]/80 font-semibold mb-4 text-center px-4"
-          >
-            AI-powered interactive classroom. Learn anything, with anyone, anytime.
-          </motion.p>
-
-          {/* ── Unified input area ── */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.97 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.35 }}
-            className="w-full"
-          >
-            <div className="w-full rounded-3xl border-[3px] border-[#073b4c] bg-white shadow-[8px_8px_0_#073b4c] transition-all hover:translate-y-[1px] hover:shadow-[7px_7px_0_#073b4c] focus-within:translate-y-[-2px] focus-within:shadow-[10px_10px_0_#073b4c] flex flex-col pt-1 pb-2">
-              {/* ── Greeting + Profile + Agents ── */}
-              <div className="relative z-20 flex items-start justify-between">
-                <GreetingBar />
-                <div className="pr-3 pt-3.5 shrink-0">
-                  <AgentBar />
-                </div>
-              </div>
-
-              {/* Textarea */}
-              <textarea
-                ref={textareaRef}
-                placeholder={t('upload.requirementPlaceholder')}
-                className="w-full resize-none border-0 bg-transparent px-4 pt-1 pb-2 text-base md:text-sm font-medium leading-relaxed placeholder:text-[#073b4c]/60 focus:outline-none min-h-[140px] max-h-[300px] text-[#073b4c]"
-                value={form.requirement}
-                onChange={(e) => updateForm('requirement', e.target.value)}
-                onKeyDown={handleKeyDown}
-                rows={4}
-              />
-
-              {/* Toolbar row */}
-              <div className="px-3 pb-3 flex items-center gap-2">
-                <div className="flex-1 min-w-0">
-                  <GenerationToolbar
-                    language={form.language}
-                    onLanguageChange={(lang) => updateForm('language', lang)}
-                    webSearch={form.webSearch}
-                    onWebSearchChange={(v) => updateForm('webSearch', v)}
-                    onSettingsOpen={(section) => {
-                      setSettingsSection(section);
-                      setSettingsOpen(true);
-                    }}
-                    pdfFile={form.pdfFile}
-                    onPdfFileChange={(f) => updateForm('pdfFile', f)}
-                    onPdfError={setError}
-                  />
-                </div>
-
-                <SpeechButton
-                  size="md"
-                  onTranscription={(text) => {
-                    setForm((prev) => {
-                      const next = prev.requirement + (prev.requirement ? ' ' : '') + text;
-                      updateRequirementCache(next);
-                      return { ...prev, requirement: next };
-                    });
-                  }}
-                />
-
-                <ClassroomSplitButton
-                  canGenerate={canGenerate}
-                  createClassroomLoading={createClassroomLoading}
-                  enterClassroomLoading={enterClassroomLoading}
-                  onBasicClassroom={handleCreateClassroom}
-                  onInstantClassroom={handleGenerate}
-                />
-              </div>
-            </div>
-          </motion.div>
-
-          {/* ── Error ── */}
-          <AnimatePresence>
-            {error && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className="mt-3 w-full p-3 bg-destructive/10 border border-destructive/20 rounded-lg"
-              >
-                <p className="text-sm text-destructive">{error}</p>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </motion.div>
-
-        {/* ═══ Recent classrooms — collapsible ═══ */}
-        {classrooms.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5 }}
-            className="relative z-10 mt-10 w-full max-w-6xl flex flex-col items-center"
-          >
-            {/* Trigger — divider-line with centered text */}
-            <button
-              onClick={() => {
-                const next = !recentOpen;
-                setRecentOpen(next);
-                try {
-                  localStorage.setItem(RECENT_OPEN_STORAGE_KEY, String(next));
-                } catch {
-                  /* ignore */
-                }
-              }}
-              className="group w-full flex items-center gap-4 py-2 cursor-pointer"
-            >
-              <div className="flex-1 h-px bg-border/40 group-hover:bg-border/70 transition-colors" />
-              <span className="shrink-0 flex items-center gap-2 text-[13px] text-muted-foreground/60 group-hover:text-foreground/70 transition-colors select-none">
-                <Clock className="size-3.5" />
-                {t('classroom.recentClassrooms')}
-                <span className="text-[11px] tabular-nums opacity-60">{classrooms.length}</span>
-                <motion.div
-                  animate={{ rotate: recentOpen ? 180 : 0 }}
-                  transition={{ duration: 0.3, ease: 'easeInOut' }}
-                >
-                  <ChevronDown className="size-3.5" />
-                </motion.div>
-              </span>
-              <div className="flex-1 h-px bg-border/40 group-hover:bg-border/70 transition-colors" />
-            </button>
-
-            {/* Expandable content */}
-            <AnimatePresence>
-              {recentOpen && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
-                  className="w-full overflow-hidden"
-                >
-                  <div className="pt-8 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-5 gap-y-8">
-                    {classrooms.map((classroom, i) => (
-                      <motion.div
-                        key={classroom.id}
-                        initial={{ opacity: 0, y: 16 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{
-                          delay: i * 0.04,
-                          duration: 0.35,
-                          ease: 'easeOut',
-                        }}
-                      >
-                        <ClassroomCard
-                          classroom={classroom}
-                          slide={thumbnails[classroom.id]}
-                          formatDate={formatDate}
-                          onDelete={handleDelete}
-                          onRename={handleRename}
-                          confirmingDelete={pendingDeleteId === classroom.id}
-                          onConfirmDelete={() => confirmDelete(classroom.id)}
-                          onCancelDelete={() => setPendingDeleteId(null)}
-                          onClick={() => {
-                            setPendingIntroPayload({
-                              stageId: classroom.id,
-                              name: classroom.name,
-                              description: classroom.description,
-                              language: form.language,
-                            });
-                            router.push(`/classroom/${classroom.id}`);
-                          }}
-                        />
-                      </motion.div>
-                    ))}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+            <p className="text-sm text-destructive">{error}</p>
           </motion.div>
         )}
-      </div>
-      {/* Footer — flows with content, at the very end */}
-      <div className="w-full shrink-0 pt-6 pb-4 text-center text-xs text-muted-foreground/100 bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-t border-border/10">
-        Slate Up your Learning
-      </div>
+      </AnimatePresence>
 
-      {/* Courses exhausted modal — shown when user has 0 credits */}
-      <CoursesExhaustedModal
-        open={showExhaustedModal}
-        reason={exhaustedReason}
-        onClose={() => setShowExhaustedModal(false)}
-      />
-
-      {/* Create Classroom generation modal */}
-      <CreateClassroomModal
-        open={showCreateModal}
-        requirement={classroomJob?.requirement ?? ''}
-        onClose={() => setShowCreateModal(false)}
-      />
+      {/* Quick prompt suggestions */}
+      <div className="mt-8">
+        <p className="text-xs font-bold text-[#073b4c]/40 dark:text-[#525252] uppercase tracking-widest mb-3">
+          Popular Topics
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {[
+            'Introduction to Machine Learning',
+            'World War II History',
+            'Basic Calculus for Beginners',
+            'Python for Data Science',
+            'Climate Change & Environment',
+            'Human Anatomy Basics',
+          ].map((prompt) => (
+            <button
+              key={prompt}
+              onClick={() => {
+                updateForm('requirement', prompt);
+                updateRequirementCache(prompt);
+                textareaRef.current?.focus();
+              }}
+              className="px-3 py-1.5 text-xs font-bold rounded-full border-2 border-[#073b4c]/15 dark:border-[#2a2a2a] text-[#073b4c]/60 dark:text-[#a3a3a3] hover:border-[#073b4c]/40 dark:hover:border-[#4a4a4a] hover:text-[#073b4c] dark:hover:text-[#e5e5e5] hover:bg-[#f0f4f8] dark:hover:bg-[#222222] transition-all"
+            >
+              {prompt}
+            </button>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
 
-// ─── Greeting Bar — avatar + "Hi, Name", click to edit in-place ────
-const MAX_AVATAR_SIZE = 5 * 1024 * 1024;
+// ── Course Group Components ─────────────────────────────────────────────────
 
-function isCustomAvatar(src: string) {
-  return src.startsWith('data:');
-}
-
-function GreetingBar() {
-  const { t } = useI18n();
-  const avatar = useUserProfileStore((s) => s.avatar);
-  const nickname = useUserProfileStore((s) => s.nickname);
-  const bio = useUserProfileStore((s) => s.bio);
-  const setAvatar = useUserProfileStore((s) => s.setAvatar);
-  const setNickname = useUserProfileStore((s) => s.setNickname);
-  const setBio = useUserProfileStore((s) => s.setBio);
-
-  const [open, setOpen] = useState(false);
-  const [editingName, setEditingName] = useState(false);
+function CourseGroupFolder({
+  group,
+  classrooms,
+  thumbnails,
+  onSelectCourse,
+  onRenameGroup,
+  onRemoveCourse,
+  onDeleteGroup,
+  onDragOverGroup,
+  onDropOnGroup,
+  isDragOver,
+}: {
+  group: CourseGroup;
+  classrooms: StageListItem[];
+  thumbnails: Record<string, Slide>;
+  onSelectCourse: (c: StageListItem) => void;
+  onRenameGroup: (id: string, name: string) => void;
+  onRemoveCourse: (groupId: string, courseId: string) => void;
+  onDeleteGroup: (id: string) => void;
+  onDragOverGroup: (e: React.DragEvent) => void;
+  onDropOnGroup: (e: React.DragEvent, groupId: string) => void;
+  isDragOver: boolean;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const [editing, setEditing] = useState(false);
   const [nameDraft, setNameDraft] = useState('');
-  const [avatarPickerOpen, setAvatarPickerOpen] = useState(false);
-  const nameInputRef = useRef<HTMLInputElement>(null);
-  const avatarInputRef = useRef<HTMLInputElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const nameRef = useRef<HTMLInputElement>(null);
+  const thumbRef = useRef<HTMLDivElement>(null);
+  const [thumbWidth, setThumbWidth] = useState(0);
 
-  const displayName = nickname || t('profile.defaultNickname');
-
-  // Click-outside to collapse
   useEffect(() => {
-    if (!open) return;
-    const handler = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false);
-        setEditingName(false);
-        setAvatarPickerOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [open]);
+    const el = thumbRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => setThumbWidth(Math.round(entry.contentRect.width)));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
-  const startEditName = () => {
-    setNameDraft(nickname);
-    setEditingName(true);
-    setTimeout(() => nameInputRef.current?.focus(), 50);
-  };
+  useEffect(() => {
+    if (editing) nameRef.current?.focus();
+  }, [editing]);
 
-  const commitName = () => {
-    setNickname(nameDraft.trim());
-    setEditingName(false);
-  };
+  const courses = group.courseIds
+    .map((id) => classrooms.find((c) => c.id === id))
+    .filter(Boolean) as StageListItem[];
 
-  const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > MAX_AVATAR_SIZE) {
-      toast.error(t('profile.fileTooLarge'));
-      return;
-    }
-    if (!file.type.startsWith('image/')) {
-      toast.error(t('profile.invalidFileType'));
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => {
-      const img = new window.Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        canvas.width = 128;
-        canvas.height = 128;
-        const ctx = canvas.getContext('2d')!;
-        const scale = Math.max(128 / img.width, 128 / img.height);
-        const w = img.width * scale;
-        const h = img.height * scale;
-        ctx.drawImage(img, (128 - w) / 2, (128 - h) / 2, w, h);
-        setAvatar(canvas.toDataURL('image/jpeg', 0.85));
-      };
-      img.src = reader.result as string;
-    };
-    reader.readAsDataURL(file);
-    e.target.value = '';
+  const previewIds = group.courseIds.slice(0, 4);
+
+  const commitRename = () => {
+    if (nameDraft.trim()) onRenameGroup(group.id, nameDraft.trim());
+    setEditing(false);
   };
 
   return (
-    <div ref={containerRef} className="relative pl-4 pr-2 pt-3.5 pb-1 w-auto">
-      <input
-        ref={avatarInputRef}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={handleAvatarUpload}
-      />
-
-      {/* ── Collapsed pill (always in flow) ── */}
-      {!open && (
-        <div
-          className="flex items-center gap-2.5 cursor-pointer transition-all duration-200 group rounded-full px-2.5 py-1.5 border border-border/50 text-muted-foreground/70 hover:text-foreground hover:bg-muted/60 active:scale-[0.97]"
-          onClick={() => setOpen(true)}
-        >
-          <div className="shrink-0 relative">
-            <div className="size-8 rounded-full overflow-hidden ring-[1.5px] ring-border/30 group-hover:ring-violet-400/60 dark:group-hover:ring-violet-400/40 transition-all duration-300">
-              <img src={avatar} alt="" className="size-full object-cover" />
-            </div>
-            <div className="absolute -bottom-0.5 -right-0.5 size-3.5 rounded-full bg-white dark:bg-slate-800 border border-border/40 flex items-center justify-center opacity-60 group-hover:opacity-100 transition-opacity">
-              <Pencil className="size-[7px] text-muted-foreground/70" />
-            </div>
-          </div>
-          <div className="flex-1 min-w-0">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span className="leading-none select-none flex items-center gap-1">
-                  <span className="text-[13px] font-semibold text-foreground/85 group-hover:text-foreground transition-colors">
-                    {t('home.greetingWithName', { name: displayName })}
-                  </span>
-                  <ChevronDown className="size-3 text-muted-foreground/30 group-hover:text-muted-foreground/60 transition-colors shrink-0" />
-                </span>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" sideOffset={4}>
-                {t('profile.editTooltip')}
-              </TooltipContent>
-            </Tooltip>
-          </div>
-        </div>
+    <div
+      className={cn(
+        'flex flex-col rounded-2xl border-[3px] transition-all duration-200 overflow-hidden',
+        isDragOver
+          ? 'border-[#8338ec] shadow-[0_0_0_4px_rgba(131,56,236,0.2)] scale-[1.02]'
+          : 'border-[#073b4c]/20 dark:border-[#333333] hover:border-[#073b4c]/50 dark:hover:border-[#4a4a4a]',
       )}
-
-      {/* ── Expanded panel (absolute, floating) ── */}
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            initial={{ opacity: 0, y: -4, scale: 0.97 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -4, scale: 0.97 }}
-            transition={{ duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
-            className="absolute left-4 top-3.5 z-50 w-64"
-          >
-            <div className="rounded-2xl bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm ring-1 ring-black/[0.04] dark:ring-white/[0.06] shadow-[0_1px_8px_-2px_rgba(0,0,0,0.06)] dark:shadow-[0_1px_8px_-2px_rgba(0,0,0,0.3)] px-2.5 py-2">
-              {/* ── Row: avatar + name ── */}
-              <div
-                className="flex items-center gap-2.5 cursor-pointer transition-all duration-200"
-                onClick={() => {
-                  setOpen(false);
-                  setEditingName(false);
-                  setAvatarPickerOpen(false);
-                }}
-              >
-                {/* Avatar */}
-                <div
-                  className="shrink-0 relative cursor-pointer"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setAvatarPickerOpen(!avatarPickerOpen);
-                  }}
-                >
-                  <div className="size-8 rounded-full overflow-hidden ring-[1.5px] ring-violet-300/70 dark:ring-violet-500/40 transition-all duration-300">
-                    <img src={avatar} alt="" className="size-full object-cover" />
+      onDragOver={onDragOverGroup}
+      onDrop={(e) => onDropOnGroup(e, group.id)}
+    >
+      {/* Folder thumbnail grid */}
+      <div
+        ref={thumbRef}
+        className="relative w-full aspect-[16/9] bg-gradient-to-br from-violet-50 to-purple-100 dark:from-slate-700 dark:to-slate-600 cursor-pointer"
+        onClick={() => setExpanded((v) => !v)}
+      >
+        {/* 2×2 thumbnail grid */}
+        <div className="absolute inset-1.5 grid grid-cols-2 grid-rows-2 gap-1 rounded-xl overflow-hidden">
+          {previewIds.map((id, i) => {
+            const slide = thumbnails[id];
+            return (
+              <div key={id} className="bg-slate-200 dark:bg-slate-600 rounded-lg overflow-hidden">
+                {slide && thumbWidth > 0 ? (
+                  <ThumbnailSlide
+                    slide={slide}
+                    size={thumbWidth / 2}
+                    viewportSize={slide.viewportSize ?? 1000}
+                    viewportRatio={slide.viewportRatio ?? 0.5625}
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <BookOpen className="size-3 text-slate-400 dark:text-[#737373]" />
                   </div>
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    className="absolute -bottom-0.5 -right-0.5 size-3.5 rounded-full bg-white dark:bg-slate-800 border border-border/60 flex items-center justify-center"
+                )}
+              </div>
+            );
+          })}
+          {/* Empty slots if fewer than 4 */}
+          {previewIds.length < 4 && Array.from({ length: 4 - previewIds.length }).map((_, i) => (
+            <div key={`empty-${i}`} className="bg-slate-100 dark:bg-[#2a2a2a] rounded-lg" />
+          ))}
+        </div>
+
+        {/* Expand icon */}
+        <div className="absolute top-2 right-2 size-6 rounded-full bg-black/20 backdrop-blur-sm flex items-center justify-center">
+          {expanded ? <FolderOpen className="size-3 text-white" /> : <Folder className="size-3 text-white" />}
+        </div>
+
+        {/* Course count */}
+        <div className="absolute bottom-2 left-2 px-2 py-0.5 rounded-full bg-black/20 backdrop-blur-sm">
+          <span className="text-[9px] font-black text-white uppercase tracking-wide">{group.courseIds.length} courses</span>
+        </div>
+      </div>
+
+      {/* Folder name */}
+      <div className="px-3 py-2.5 flex items-center gap-2">
+        {editing ? (
+          <input
+            ref={nameRef}
+            value={nameDraft}
+            onChange={(e) => setNameDraft(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') commitRename(); if (e.key === 'Escape') setEditing(false); }}
+            onBlur={commitRename}
+            maxLength={60}
+            className="flex-1 bg-transparent border-b-2 border-[#8338ec] text-[13px] font-bold text-[#073b4c] dark:text-[#f0f0f0] outline-none"
+          />
+        ) : (
+          <p
+            className="flex-1 text-[13px] font-bold text-[#073b4c] dark:text-[#f0f0f0] truncate cursor-pointer"
+            onDoubleClick={() => { setNameDraft(group.name); setEditing(true); }}
+          >
+            {group.name}
+          </p>
+        )}
+        <button
+          onClick={() => onDeleteGroup(group.id)}
+          className="shrink-0 size-5 rounded-full bg-[#f0f4f8] dark:bg-[#2a2a2a] flex items-center justify-center hover:bg-[#ef476f] hover:text-white transition-colors text-[#073b4c]/30 dark:text-[#737373]"
+        >
+          <X className="size-3" />
+        </button>
+      </div>
+
+      {/* Expanded courses list */}
+      <AnimatePresence>
+        {expanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden border-t-2 border-[#073b4c]/8 dark:border-[#2a2a2a]"
+          >
+            <div className="p-2 space-y-1">
+              {courses.map((course) => (
+                <div key={course.id} className="flex items-center gap-2 px-2 py-1.5 rounded-xl hover:bg-[#f0f4f8] dark:hover:bg-[#2a2a2a] transition-colors group">
+                  <button
+                    className="flex-1 text-left text-xs font-semibold text-[#073b4c] dark:text-[#e5e5e5] truncate"
+                    onClick={() => onSelectCourse(course)}
                   >
-                    <ChevronDown
-                      className={cn(
-                        'size-2 text-muted-foreground/70 transition-transform duration-200',
-                        avatarPickerOpen && 'rotate-180',
-                      )}
-                    />
-                  </motion.div>
+                    {course.name}
+                  </button>
+                  <button
+                    onClick={() => onRemoveCourse(group.id, course.id)}
+                    className="shrink-0 size-5 rounded-full opacity-0 group-hover:opacity-100 bg-[#ef476f]/10 hover:bg-[#ef476f] text-[#ef476f] hover:text-white flex items-center justify-center transition-all"
+                    title="Remove from group"
+                  >
+                    <Minus className="size-2.5" />
+                  </button>
                 </div>
-
-                {/* Text */}
-                <div className="flex-1 min-w-0">
-                  {editingName ? (
-                    <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-                      <input
-                        ref={nameInputRef}
-                        value={nameDraft}
-                        onChange={(e) => setNameDraft(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') commitName();
-                          if (e.key === 'Escape') {
-                            setEditingName(false);
-                          }
-                        }}
-                        onBlur={commitName}
-                        maxLength={20}
-                        placeholder={t('profile.defaultNickname')}
-                        className="flex-1 min-w-0 h-6 bg-transparent border-b border-border/80 text-[13px] font-semibold text-foreground outline-none placeholder:text-muted-foreground/40"
-                      />
-                      <button
-                        onClick={commitName}
-                        className="shrink-0 size-5 rounded flex items-center justify-center text-violet-500 hover:bg-violet-100 dark:hover:bg-violet-900/30"
-                      >
-                        <Check className="size-3" />
-                      </button>
-                    </div>
-                  ) : (
-                    <span
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        startEditName();
-                      }}
-                      className="group/name inline-flex items-center gap-1 cursor-pointer"
-                    >
-                      <span className="text-[13px] font-semibold text-foreground/85 group-hover/name:text-foreground transition-colors">
-                        {displayName}
-                      </span>
-                      <Pencil className="size-2.5 text-muted-foreground/30 opacity-0 group-hover/name:opacity-100 transition-opacity" />
-                    </span>
-                  )}
-                </div>
-
-                {/* Collapse arrow */}
-                <motion.div
-                  initial={{ opacity: 0, y: -2 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="shrink-0 size-6 rounded-full flex items-center justify-center hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors"
-                >
-                  <ChevronUp className="size-3.5 text-muted-foreground/50" />
-                </motion.div>
-              </div>
-
-              {/* ── Expandable content ── */}
-              <div className="pt-2" onClick={(e) => e.stopPropagation()}>
-                {/* Avatar picker */}
-                <AnimatePresence>
-                  {avatarPickerOpen && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.15, ease: 'easeInOut' }}
-                      className="overflow-hidden"
-                    >
-                      <div className="p-1 pb-2.5 flex items-center gap-1.5 flex-wrap">
-                        {AVATAR_OPTIONS.map((url) => (
-                          <button
-                            key={url}
-                            onClick={() => setAvatar(url)}
-                            className={cn(
-                              'size-7 rounded-full overflow-hidden bg-gray-50 dark:bg-gray-800 cursor-pointer transition-all duration-150',
-                              'hover:scale-110 active:scale-95',
-                              avatar === url
-                                ? 'ring-2 ring-violet-400 dark:ring-violet-500 ring-offset-0'
-                                : 'hover:ring-1 hover:ring-muted-foreground/30',
-                            )}
-                          >
-                            <img src={url} alt="" className="size-full" />
-                          </button>
-                        ))}
-                        <label
-                          className={cn(
-                            'size-7 rounded-full flex items-center justify-center cursor-pointer transition-all duration-150 border border-dashed',
-                            'hover:scale-110 active:scale-95',
-                            isCustomAvatar(avatar)
-                              ? 'ring-2 ring-violet-400 dark:ring-violet-500 ring-offset-0 border-violet-300 dark:border-violet-600 bg-violet-50 dark:bg-violet-900/30'
-                              : 'border-muted-foreground/30 text-muted-foreground/50 hover:border-muted-foreground/50',
-                          )}
-                          onClick={() => avatarInputRef.current?.click()}
-                          title={t('profile.uploadAvatar')}
-                        >
-                          <ImagePlus className="size-3" />
-                        </label>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                {/* Bio */}
-                <UITextarea
-                  value={bio}
-                  onChange={(e) => setBio(e.target.value)}
-                  placeholder={t('profile.bioPlaceholder')}
-                  maxLength={200}
-                  rows={2}
-                  className="resize-none border-border/40 bg-transparent min-h-[72px] !text-[13px] !leading-relaxed placeholder:!text-[11px] placeholder:!leading-relaxed focus-visible:ring-1 focus-visible:ring-border/60"
-                />
-              </div>
+              ))}
             </div>
           </motion.div>
         )}
@@ -1374,26 +1023,253 @@ function GreetingBar() {
   );
 }
 
-// ─── Classroom Card — clean, minimal style ──────────────────────
-function ClassroomCard({
+// ── My Courses Tab ─────────────────────────────────────────────────────────
+function MyCoursesTab({
+  classrooms,
+  thumbnails,
+  onSelectCourse,
+  onDeleteCourse,
+  onRenameCourse,
+  pendingDeleteId,
+  onConfirmDelete,
+  onCancelDelete,
+  loading,
+}: {
+  classrooms: StageListItem[];
+  thumbnails: Record<string, Slide>;
+  onSelectCourse: (c: StageListItem) => void;
+  onDeleteCourse: (id: string, e: React.MouseEvent) => void;
+  onRenameCourse: (id: string, name: string) => void;
+  pendingDeleteId: string | null;
+  onConfirmDelete: (id: string) => void;
+  onCancelDelete: () => void;
+  loading: boolean;
+}) {
+  const getProgressPercent = useCourseProgressStore((s) => s.getProgressPercent);
+  const getVisitedCount = useCourseProgressStore((s) => s.getVisitedCount);
+  const { starredIds, toggle: toggleStar } = useStarredCoursesStore();
+  const { groups, createGroup, addToGroup, removeFromGroup, renameGroup, deleteGroup, getGroupedCourseIds } = useCourseGroupsStore();
+
+  // DnD state
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null); // course id or group id
+
+  const formatDate = (timestamp: number) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffDays = Math.floor(Math.abs(now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString();
+  };
+
+  const groupedIds = new Set(getGroupedCourseIds());
+
+  // Standalone courses (not in any group)
+  const standalone = classrooms.filter((c) => !groupedIds.has(c.id));
+
+  // Sort standalone: starred non-completed → unstarred non-completed → completed
+  const sorted = [...standalone].sort((a, b) => {
+    const aPct = getProgressPercent(a.id, a.sceneCount);
+    const bPct = getProgressPercent(b.id, b.sceneCount);
+    const aCompleted = aPct === 100;
+    const bCompleted = bPct === 100;
+    if (aCompleted !== bCompleted) return aCompleted ? 1 : -1;
+    const aStarred = starredIds.includes(a.id);
+    const bStarred = starredIds.includes(b.id);
+    if (aStarred !== bStarred) return aStarred ? -1 : 1;
+    return b.updatedAt - a.updatedAt;
+  });
+
+  const groupList = Object.values(groups).sort((a, b) => a.createdAt - b.createdAt);
+
+  // DnD handlers
+  const handleDragStart = (e: React.DragEvent, courseId: string) => {
+    setDraggingId(courseId);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', courseId);
+  };
+
+  const handleDragEnd = () => {
+    setDraggingId(null);
+    setDragOverId(null);
+  };
+
+  const handleDropOnCourse = (e: React.DragEvent, targetCourseId: string) => {
+    e.preventDefault();
+    const sourceId = e.dataTransfer.getData('text/plain') || draggingId;
+    if (!sourceId || sourceId === targetCourseId) { setDragOverId(null); return; }
+    // Check if source is already in a group
+    const sourceGroupEntry = Object.values(groups).find((g) => g.courseIds.includes(sourceId));
+    if (sourceGroupEntry) {
+      // Move from its group to a new group with target (or add target to source group)
+      addToGroup(sourceGroupEntry.id, targetCourseId);
+    } else {
+      // Check if target is in a group — add source to that group
+      const targetGroupEntry = Object.values(groups).find((g) => g.courseIds.includes(targetCourseId));
+      if (targetGroupEntry) {
+        addToGroup(targetGroupEntry.id, sourceId);
+      } else {
+        // Neither is grouped — create a new group
+        createGroup(sourceId, targetCourseId);
+      }
+    }
+    setDraggingId(null);
+    setDragOverId(null);
+  };
+
+  const handleDropOnGroup = (e: React.DragEvent, groupId: string) => {
+    e.preventDefault();
+    const sourceId = e.dataTransfer.getData('text/plain') || draggingId;
+    if (!sourceId) { setDragOverId(null); return; }
+    // Remove from old group if needed
+    const oldGroup = Object.values(groups).find((g) => g.courseIds.includes(sourceId));
+    if (oldGroup && oldGroup.id !== groupId) removeFromGroup(oldGroup.id, sourceId);
+    addToGroup(groupId, sourceId);
+    setDraggingId(null);
+    setDragOverId(null);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 gap-4">
+        <Loader2 className="size-10 text-[#118ab2] animate-spin" />
+        <p className="font-bold text-[#073b4c]/40">Loading your courses…</p>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-3xl font-black text-[#073b4c] dark:text-[#f0f0f0] tracking-tight">My Courses</h1>
+          <p className="text-[#073b4c]/50 dark:text-[#a3a3a3] font-medium mt-1">
+            {classrooms.length} course{classrooms.length !== 1 ? 's' : ''}
+            {classrooms.length > 0 && <span className="ml-2 text-[11px] font-medium text-[#073b4c]/30 dark:text-[#525252]">· drag one onto another to group</span>}
+          </p>
+        </div>
+      </div>
+
+      {classrooms.length === 0 ? (
+        <div className="h-80 flex flex-col items-center justify-center border-[3px] border-dashed border-[#073b4c]/15 dark:border-[#2a2a2a] rounded-3xl">
+          <div className="size-20 bg-slate-100 dark:bg-[#1a1a1a] rounded-full flex items-center justify-center mb-4">
+            <BookOpen className="size-10 text-[#073b4c]/20 dark:text-[#525252]" />
+          </div>
+          <h3 className="text-xl font-black text-[#073b4c] dark:text-[#f0f0f0] mb-2">No courses yet</h3>
+          <p className="text-[#073b4c]/50 dark:text-[#a3a3a3] font-medium text-sm">Create your first course with AI</p>
+        </div>
+      ) : (
+        <>
+          {/* Groups section */}
+          {groupList.length > 0 && (
+            <div className="mb-8">
+              <h2 className="text-xs font-black text-[#073b4c]/40 dark:text-[#737373] uppercase tracking-widest mb-4">
+                Groups · {groupList.length}
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {groupList.map((group) => (
+                  <CourseGroupFolder
+                    key={group.id}
+                    group={group}
+                    classrooms={classrooms}
+                    thumbnails={thumbnails}
+                    onSelectCourse={onSelectCourse}
+                    onRenameGroup={renameGroup}
+                    onRemoveCourse={removeFromGroup}
+                    onDeleteGroup={deleteGroup}
+                    isDragOver={dragOverId === group.id}
+                    onDragOverGroup={(e) => { e.preventDefault(); setDragOverId(group.id); }}
+                    onDropOnGroup={handleDropOnGroup}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Individual courses */}
+          {sorted.length > 0 && (
+            <>
+              {groupList.length > 0 && (
+                <h2 className="text-xs font-black text-[#073b4c]/40 dark:text-[#737373] uppercase tracking-widest mb-4">
+                  Courses · {sorted.length}
+                </h2>
+              )}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {sorted.map((classroom) => {
+                  const pct = getProgressPercent(classroom.id, classroom.sceneCount);
+                  const visited = getVisitedCount(classroom.id);
+                  return (
+                    <div
+                      key={classroom.id}
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, classroom.id)}
+                      onDragEnd={handleDragEnd}
+                      onDragOver={(e) => { e.preventDefault(); setDragOverId(classroom.id); }}
+                      onDragLeave={() => setDragOverId(null)}
+                      onDrop={(e) => handleDropOnCourse(e, classroom.id)}
+                      className={cn(
+                        'rounded-2xl transition-all duration-150',
+                        draggingId === classroom.id && 'opacity-40 scale-95',
+                        dragOverId === classroom.id && draggingId !== classroom.id && 'ring-4 ring-[#8338ec]/50 scale-[1.02]',
+                      )}
+                    >
+                      <MyCourseCard
+                        classroom={classroom}
+                        slide={thumbnails[classroom.id]}
+                        progressPercent={pct}
+                        visitedScenes={visited}
+                        formatDate={formatDate}
+                        onDelete={onDeleteCourse}
+                        onRename={onRenameCourse}
+                        confirmingDelete={pendingDeleteId === classroom.id}
+                        onConfirmDelete={() => onConfirmDelete(classroom.id)}
+                        onCancelDelete={onCancelDelete}
+                        isStarred={starredIds.includes(classroom.id)}
+                        onToggleStar={(e) => { e.stopPropagation(); toggleStar(classroom.id); }}
+                        onClick={() => onSelectCourse(classroom)}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+function MyCourseCard({
   classroom,
   slide,
+  progressPercent,
+  visitedScenes,
   formatDate,
   onDelete,
   onRename,
   confirmingDelete,
   onConfirmDelete,
   onCancelDelete,
+  isStarred,
+  onToggleStar,
   onClick,
 }: {
   classroom: StageListItem;
   slide?: Slide;
+  progressPercent: number;
+  visitedScenes: number;
   formatDate: (ts: number) => string;
   onDelete: (id: string, e: React.MouseEvent) => void;
-  onRename: (id: string, newName: string) => void;
+  onRename: (id: string, name: string) => void;
   confirmingDelete: boolean;
   onConfirmDelete: () => void;
   onCancelDelete: () => void;
+  isStarred: boolean;
+  onToggleStar: (e: React.MouseEvent) => void;
   onClick: () => void;
 }) {
   const { t } = useI18n();
@@ -1406,15 +1282,11 @@ function ClassroomCard({
 
   const handleCardClick = async () => {
     if (confirmingDelete || syncing) return;
-
     if (classroom.is_cloud && classroom.supabase_id) {
       setSyncing(true);
       const success = await downloadCourseFromSupabase(classroom.supabase_id);
       setSyncing(false);
-      if (!success) {
-        toast.error('Failed to sync course from cloud');
-        return;
-      }
+      if (!success) { toast.error('Failed to sync course from cloud'); return; }
     }
     onClick();
   };
@@ -1422,9 +1294,7 @@ function ClassroomCard({
   useEffect(() => {
     const el = thumbRef.current;
     if (!el) return;
-    const ro = new ResizeObserver(([entry]) => {
-      setThumbWidth(Math.round(entry.contentRect.width));
-    });
+    const ro = new ResizeObserver(([entry]) => setThumbWidth(Math.round(entry.contentRect.width)));
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
@@ -1433,196 +1303,1348 @@ function ClassroomCard({
     if (editing) nameInputRef.current?.focus();
   }, [editing]);
 
-  const startRename = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setNameDraft(classroom.name);
-    setEditing(true);
-  };
-
   const commitRename = () => {
     if (!editing) return;
     const trimmed = nameDraft.trim();
-    if (trimmed && trimmed !== classroom.name) {
-      onRename(classroom.id, trimmed);
-    }
+    if (trimmed && trimmed !== classroom.name) onRename(classroom.id, trimmed);
     setEditing(false);
   };
 
+  const statusLabel = progressPercent === 0 ? 'Not Started' : progressPercent === 100 ? 'Completed' : 'In Progress';
+  const statusColor = progressPercent === 0 ? '#073b4c' : progressPercent === 100 ? '#06d6a0' : '#8338ec';
+
   return (
-    <div className="group cursor-pointer" onClick={handleCardClick}>
-      {/* Thumbnail — large radius, no border, subtle bg */}
+    <div className="group cursor-pointer flex flex-col" onClick={handleCardClick}>
+      {/* Thumbnail */}
       <div
         ref={thumbRef}
-        className="relative w-full aspect-[16/9] rounded-2xl bg-slate-100 dark:bg-slate-800/80 overflow-hidden transition-transform duration-200 group-hover:scale-[1.02]"
+        className="relative w-full aspect-[16/9] rounded-2xl bg-slate-100 dark:bg-[#1a1a1a]/80 overflow-hidden transition-all duration-200 group-hover:scale-[1.02] group-hover:shadow-[4px_4px_0_#073b4c] border-[2px] border-transparent group-hover:border-[#073b4c]"
       >
-        {/* Syncing Overlay */}
         <AnimatePresence>
           {syncing && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 bg-black/40 backdrop-blur-md"
-            >
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 bg-black/40 backdrop-blur-md">
               <div className="size-6 border-2 border-white/80 border-t-transparent rounded-full animate-spin" />
-              <span className="text-[11px] font-bold text-white tracking-wider uppercase">
-                Syncing
-              </span>
+              <span className="text-[11px] font-bold text-white tracking-wider uppercase">Syncing</span>
             </motion.div>
           )}
         </AnimatePresence>
 
         {slide && thumbWidth > 0 ? (
-          <ThumbnailSlide
-            slide={slide}
-            size={thumbWidth}
-            viewportSize={slide.viewportSize ?? 1000}
-            viewportRatio={slide.viewportRatio ?? 0.5625}
-          />
-        ) : !slide ? (
+          <ThumbnailSlide slide={slide} size={thumbWidth} viewportSize={slide.viewportSize ?? 1000} viewportRatio={slide.viewportRatio ?? 0.5625} />
+        ) : (
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="size-12 rounded-2xl bg-gradient-to-br from-violet-100 to-blue-100 dark:from-violet-900/30 dark:to-blue-900/30 flex items-center justify-center">
+            <div className="size-12 rounded-2xl bg-gradient-to-br from-violet-100 to-blue-100 flex items-center justify-center">
               <span className="text-xl opacity-50">📄</span>
             </div>
           </div>
-        ) : null}
+        )}
 
-        {/* Cloud Indicator - top-left */}
         {classroom.is_cloud && (
           <div className="absolute top-2 left-2 z-10 px-1.5 py-0.5 rounded-full bg-black/30 backdrop-blur-sm border border-white/10 flex items-center gap-1">
             <Cloud className="size-3 text-white/90" />
-            <span className="text-[9px] font-bold text-white/90 uppercase tracking-tighter">
-              Cloud
-            </span>
+            <span className="text-[9px] font-bold text-white/90 uppercase tracking-tighter">Cloud</span>
           </div>
         )}
 
-        {/* Delete — top-right, only on hover */}
+        {/* Star button (always visible when starred, hover otherwise) */}
+        <button
+          onClick={onToggleStar}
+          className={cn(
+            'absolute top-2 left-2 z-10 size-7 flex items-center justify-center rounded-full backdrop-blur-sm transition-all',
+            isStarred
+              ? 'bg-[#ffd166] text-[#073b4c] opacity-100 border border-[#073b4c]/20'
+              : 'bg-black/30 text-white opacity-0 group-hover:opacity-100 hover:bg-[#ffd166] hover:text-[#073b4c]',
+          )}
+        >
+          <Star className={cn('size-3.5', isStarred && 'fill-current')} />
+        </button>
+
+        {/* Action buttons */}
         <AnimatePresence>
           {!confirmingDelete && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.15 }}
-            >
-              <Button
-                size="icon"
-                variant="ghost"
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <Button size="icon" variant="ghost"
                 className="absolute top-2 right-2 size-7 opacity-0 group-hover:opacity-100 transition-opacity bg-black/30 hover:bg-destructive/80 text-white hover:text-white backdrop-blur-sm rounded-full"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDelete(classroom.id, e);
-                }}
-              >
+                onClick={(e) => { e.stopPropagation(); onDelete(classroom.id, e); }}>
                 <Trash2 className="size-3.5" />
               </Button>
-              <Button
-                size="icon"
-                variant="ghost"
+              <Button size="icon" variant="ghost"
                 className="absolute top-2 right-11 size-7 opacity-0 group-hover:opacity-100 transition-opacity bg-black/30 hover:bg-black/50 text-white hover:text-white backdrop-blur-sm rounded-full"
-                onClick={startRename}
-              >
+                onClick={(e) => { e.stopPropagation(); setNameDraft(classroom.name); setEditing(true); }}>
                 <Pencil className="size-3.5" />
               </Button>
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* Inline delete confirmation overlay */}
         <AnimatePresence>
           {confirmingDelete && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.15 }}
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-black/50 backdrop-blur-[6px]"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <span className="text-[13px] font-medium text-white/90">
-                {t('classroom.deleteConfirmTitle')}?
-              </span>
+              onClick={(e) => e.stopPropagation()}>
+              <span className="text-[13px] font-medium text-white/90">Delete this course?</span>
               <div className="flex gap-2">
-                <button
-                  className="px-3.5 py-1 rounded-lg text-[12px] font-medium bg-white/15 text-white/80 hover:bg-white/25 backdrop-blur-sm transition-colors"
-                  onClick={onCancelDelete}
-                >
-                  {t('common.cancel')}
-                </button>
-                <button
-                  className="px-3.5 py-1 rounded-lg text-[12px] font-medium bg-red-500/90 text-white hover:bg-red-500 transition-colors"
-                  onClick={onConfirmDelete}
-                >
-                  {t('classroom.delete')}
-                </button>
+                <button className="px-3.5 py-1 rounded-lg text-[12px] font-medium bg-white/15 text-white/80 hover:bg-white/25 transition-colors" onClick={onCancelDelete}>Cancel</button>
+                <button className="px-3.5 py-1 rounded-lg text-[12px] font-medium bg-red-500/90 text-white hover:bg-red-500 transition-colors" onClick={onConfirmDelete}>Delete</button>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
       </div>
 
-      {/* Info — outside the thumbnail */}
-      <div className="mt-2.5 px-1 flex items-center gap-2">
-        <span className="shrink-0 inline-flex items-center rounded-full bg-violet-100 dark:bg-violet-900/30 px-2 py-0.5 text-[11px] font-medium text-violet-600 dark:text-violet-400">
-          {classroom.sceneCount} {t('classroom.slides')} · {formatDate(classroom.updatedAt)}
-        </span>
+      {/* Info */}
+      <div className="mt-3 flex-1 flex flex-col gap-2 px-0.5">
         {editing ? (
-          <div className="flex-1 min-w-0" onClick={(e) => e.stopPropagation()}>
-            <input
-              ref={nameInputRef}
-              value={nameDraft}
-              onChange={(e) => setNameDraft(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') commitRename();
-                if (e.key === 'Escape') setEditing(false);
+          <input ref={nameInputRef} value={nameDraft}
+            onChange={(e) => setNameDraft(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') commitRename(); if (e.key === 'Escape') setEditing(false); }}
+            onBlur={commitRename}
+            onClick={(e) => e.stopPropagation()}
+            maxLength={100}
+            className="w-full bg-transparent border-b-2 border-[#8338ec] text-[14px] font-bold text-[#073b4c] outline-none"
+          />
+        ) : (
+          <p className="font-bold text-[14px] text-[#073b4c] dark:text-[#f0f0f0] line-clamp-2 leading-snug">{classroom.name}</p>
+        )}
+
+        <div className="flex items-center justify-between text-[11px] text-[#073b4c]/40 dark:text-[#737373] font-medium">
+          <span>{classroom.sceneCount} slides</span>
+          <span>{formatDate(classroom.updatedAt)}</span>
+        </div>
+
+        {/* Progress bar */}
+        <div className="space-y-1">
+          <div className="flex items-center justify-between text-[11px] font-bold">
+            <span style={{ color: statusColor }}>{statusLabel}</span>
+            <span className="text-[#073b4c]/40 dark:text-[#737373]">{visitedScenes}/{classroom.sceneCount} scenes</span>
+          </div>
+          <div className="h-2 w-full rounded-full bg-[#073b4c]/8 dark:bg-[#2a2a2a] overflow-hidden">
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{ width: `${progressPercent}%` }}
+              transition={{ duration: 0.6, ease: 'easeOut' }}
+              className="h-full rounded-full"
+              style={{
+                background: progressPercent === 100
+                  ? '#06d6a0'
+                  : progressPercent > 0
+                  ? 'linear-gradient(90deg, #8338ec, #118ab2)'
+                  : '#073b4c20',
               }}
-              onBlur={commitRename}
-              maxLength={100}
-              placeholder={t('classroom.renamePlaceholder')}
-              className="w-full bg-transparent border-b border-violet-400/60 text-[15px] font-medium text-foreground/90 outline-none placeholder:text-muted-foreground/40"
             />
           </div>
-        ) : (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <p
-                className="font-medium text-[15px] truncate text-foreground/90 min-w-0 cursor-text"
-                onDoubleClick={startRename}
-              >
-                {classroom.name}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Course Outline Page ─────────────────────────────────────────────────────
+interface SceneInfo { id: string; title: string; type: string }
+
+function CourseOutlinePage({
+  title, description, headline, language, tags, slideCount,
+  scenes, thumbnail, isMyCourse, isSaved, savingCourse,
+  onBack, onEnterClassroom, onSaveCourse,
+}: {
+  title: string;
+  description?: string;
+  headline?: string;
+  language?: string;
+  tags?: { subject?: string; age_range?: string; topic?: string };
+  slideCount?: number;
+  scenes?: SceneInfo[];
+  thumbnail?: Slide;
+  isMyCourse: boolean;
+  isSaved?: boolean;
+  savingCourse?: boolean;
+  onBack: () => void;
+  onEnterClassroom: () => void;
+  onSaveCourse?: () => void;
+}) {
+  const thumbRef = useRef<HTMLDivElement>(null);
+  const [thumbWidth, setThumbWidth] = useState(0);
+
+  useEffect(() => {
+    const el = thumbRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => setThumbWidth(Math.round(entry.contentRect.width)));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const showEnterBtn = isMyCourse || isSaved;
+
+  const actionBtn = (fullWidth = false) =>
+    showEnterBtn ? (
+      <button
+        onClick={onEnterClassroom}
+        className={cn(
+          'flex items-center gap-2 px-6 py-3 bg-[#073b4c] text-white font-black rounded-2xl border-[3px] border-[#073b4c] shadow-[4px_4px_0_rgba(7,59,76,0.25)] hover:shadow-[6px_6px_0_rgba(7,59,76,0.25)] hover:-translate-y-0.5 transition-all text-sm',
+          fullWidth && 'w-full justify-center',
+        )}
+      >
+        <BookOpen className="size-4" />
+        Enter Classroom
+      </button>
+    ) : (
+      <button
+        onClick={onSaveCourse}
+        disabled={savingCourse}
+        className={cn(
+          'flex items-center gap-2 px-6 py-3 bg-[#ef476f] text-white font-black rounded-2xl border-[3px] border-[#073b4c] shadow-[4px_4px_0_rgba(7,59,76,0.25)] hover:shadow-[6px_6px_0_rgba(7,59,76,0.25)] hover:-translate-y-0.5 transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:translate-y-0 disabled:shadow-[4px_4px_0_rgba(7,59,76,0.25)]',
+          fullWidth && 'w-full justify-center',
+        )}
+      >
+        {savingCourse ? <Loader2 className="size-4 animate-spin" /> : <BookOpen className="size-4" />}
+        {savingCourse ? 'Saving…' : 'Save Course'}
+      </button>
+    );
+
+  const sceneIcon = (type: string) =>
+    type === 'video' ? '🎬' : type === 'quiz' ? '❓' : '📄';
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.2, ease: 'easeOut' }}
+    >
+      {/* Top bar */}
+      <div className="flex items-center justify-between mb-8">
+        <button
+          onClick={onBack}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl border-2 border-[#073b4c]/20 dark:border-[#333333] text-[#073b4c]/60 dark:text-[#a3a3a3] hover:border-[#073b4c] dark:hover:border-[#4a4a4a] hover:text-[#073b4c] dark:hover:text-[#e5e5e5] font-bold text-sm transition-all"
+        >
+          <ArrowLeft className="size-4" />
+          Back
+        </button>
+        {actionBtn(false)}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Left: info + scene list */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Title + tags */}
+          <div>
+            <h1 className="text-3xl font-black text-[#073b4c] dark:text-[#f0f0f0] tracking-tight leading-tight mb-4">{title}</h1>
+            <div className="flex flex-wrap gap-2 mb-4">
+              {tags?.subject && (
+                <span className="px-3 py-1 bg-[#ffd166] text-[#073b4c] text-xs font-black uppercase tracking-wide rounded-lg border-2 border-[#073b4c]">
+                  {tags.subject}
+                </span>
+              )}
+              {tags?.age_range && (
+                <span className="px-3 py-1 bg-[#118ab2] text-white text-xs font-black uppercase tracking-wide rounded-lg border-2 border-[#073b4c]">
+                  Ages {tags.age_range}
+                </span>
+              )}
+              {language && (
+                <span className="px-3 py-1 bg-[#f0f4f8] dark:bg-[#2a2a2a] text-[#073b4c] dark:text-[#e5e5e5] text-xs font-bold rounded-lg border-2 border-[#073b4c]/20 dark:border-[#333333]">
+                  {language === 'zh-CN' ? '中文' : language === 'en-US' ? 'English' : language}
+                </span>
+              )}
+              {slideCount != null && (
+                <span className="px-3 py-1 bg-[#f0f4f8] dark:bg-[#2a2a2a] text-[#073b4c] dark:text-[#e5e5e5] text-xs font-bold rounded-lg border-2 border-[#073b4c]/20 dark:border-[#333333]">
+                  {slideCount} slides
+                </span>
+              )}
+            </div>
+            {(description || headline) && (
+              <p className="text-[#073b4c]/70 dark:text-[#a3a3a3] font-medium leading-relaxed text-[14px]">
+                {description || headline}
               </p>
-            </TooltipTrigger>
-            <TooltipContent
-              side="bottom"
-              sideOffset={4}
-              className="!max-w-[min(90vw,32rem)] break-words whitespace-normal"
+            )}
+          </div>
+
+          {/* Scene list — My Courses */}
+          {scenes && scenes.length > 0 && (
+            <div>
+              <h2 className="text-xs font-black text-[#073b4c]/40 dark:text-[#737373] uppercase tracking-widest mb-3">
+                Course Contents · {scenes.length} scenes
+              </h2>
+              <div className="space-y-1.5">
+                {scenes.map((scene, i) => (
+                  <div key={scene.id} className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-[#f0f4f8] dark:bg-[#1a1a1a] border-2 border-transparent hover:border-[#073b4c]/10 dark:hover:border-[#3a3a3a] transition-colors">
+                    <span className="shrink-0 text-[11px] font-black text-[#073b4c]/30 dark:text-[#525252] w-5 text-right tabular-nums">{i + 1}</span>
+                    <span className="text-sm shrink-0">{sceneIcon(scene.type)}</span>
+                    <span className="font-semibold text-sm text-[#073b4c] dark:text-[#e5e5e5] truncate">{scene.title}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Scene placeholder — Browse Courses */}
+          {!isMyCourse && (!scenes || scenes.length === 0) && slideCount != null && (
+            <div>
+              <h2 className="text-xs font-black text-[#073b4c]/40 dark:text-[#737373] uppercase tracking-widest mb-3">
+                Course Contents · {slideCount} slides
+              </h2>
+              <div className="h-24 flex items-center justify-center border-[3px] border-dashed border-[#073b4c]/10 dark:border-[#2a2a2a] rounded-2xl">
+                <p className="text-sm text-[#073b4c]/40 dark:text-[#737373] font-medium">Save the course to explore scene details</p>
+              </div>
+            </div>
+          )}
+
+          {/* Bottom CTA */}
+          <div className="pt-2">{actionBtn(true)}</div>
+        </div>
+
+        {/* Right: thumbnail */}
+        <div className="lg:col-span-1">
+          <div
+            ref={thumbRef}
+            className="w-full aspect-[16/9] rounded-2xl border-[3px] border-[#073b4c] dark:border-[#333333] overflow-hidden bg-slate-100 dark:bg-[#1a1a1a] shadow-[6px_6px_0_#073b4c] dark:shadow-[6px_6px_0_rgba(0,0,0,0.5)]"
+          >
+            {thumbnail && thumbWidth > 0 ? (
+              <ThumbnailSlide
+                slide={thumbnail}
+                size={thumbWidth}
+                viewportSize={thumbnail.viewportSize ?? 1000}
+                viewportRatio={thumbnail.viewportRatio ?? 0.5625}
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <BookOpen className="size-12 text-[#073b4c]/10" />
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+// ── Browse Courses Tab ──────────────────────────────────────────────────────
+function BrowseCoursesTab({ onSelectCourse }: { onSelectCourse: (course: Course) => void }) {
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const [offset, setOffset] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedSubject, setSelectedSubject] = useState('All');
+  const [selectedAge, setSelectedAge] = useState('All');
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
+  const buildParams = useCallback((extra: Record<string, string | number> = {}) => {
+    const params = new URLSearchParams();
+    params.set('filter', 'public');
+    params.set('limit', String(PAGE_SIZE));
+    if (searchQuery) params.set('q', searchQuery);
+    if (selectedSubject !== 'All') params.set('subject', selectedSubject);
+    if (selectedAge !== 'All') {
+      const [min] = selectedAge.replace('+', '-99').split('-');
+      params.set('age', min);
+    }
+    Object.entries(extra).forEach(([k, v]) => params.set(k, String(v)));
+    return params;
+  }, [searchQuery, selectedSubject, selectedAge]);
+
+  const fetchCatalog = useCallback(async (reset = true, q?: string) => {
+    if (reset) setLoading(true); else setLoadingMore(true);
+    const currentOffset = reset ? 0 : offset;
+    try {
+      const params = buildParams({ offset: currentOffset });
+      if (q !== undefined) params.set('q', q);
+      const res = await fetch(`/api/catalog?${params.toString()}`);
+      const json = await res.json();
+      if (json.success) {
+        if (reset) { setCourses(json.courses); setOffset(json.courses.length); }
+        else { setCourses((prev) => [...prev, ...json.courses]); setOffset((prev) => prev + json.courses.length); }
+        setHasMore(json.hasMore ?? false);
+      }
+    } catch { /* ignore */ } finally {
+      if (reset) setLoading(false); else setLoadingMore(false);
+    }
+  }, [buildParams, offset]);
+
+  useEffect(() => {
+    setOffset(0); setCourses([]); fetchCatalog(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedSubject, selectedAge]);
+
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+    const observer = new IntersectionObserver(
+      (entries) => { if (entries[0].isIntersecting && hasMore && !loadingMore && !loading) fetchCatalog(false); },
+      { rootMargin: '200px' },
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMore, loadingMore, loading, fetchCatalog]);
+
+  return (
+    <div>
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-3xl font-black text-[#073b4c] dark:text-[#f0f0f0] tracking-tight flex items-center gap-3">
+            Browse Courses
+            <Sparkles className="size-6 text-[#ef476f]" />
+          </h1>
+          <p className="text-[#073b4c]/50 dark:text-[#a3a3a3] font-medium mt-1">Discover courses from the community</p>
+        </div>
+      </div>
+
+      {/* Search */}
+      <form onSubmit={(e) => { e.preventDefault(); setOffset(0); setCourses([]); fetchCatalog(true, searchQuery); }}
+        className="mb-6">
+        <div className="relative flex items-center max-w-2xl">
+          <Search className="absolute left-4 size-5 text-[#073b4c]/40" />
+          <Input
+            type="text"
+            placeholder="Search courses by topic, title, or keywords..."
+            className="h-12 pl-12 pr-28 text-base font-medium border-[3px] border-[#073b4c] rounded-2xl shadow-[5px_5px_0_#073b4c] focus-visible:ring-0 focus-visible:shadow-[7px_7px_0_#073b4c] transition-all"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          <Button type="submit"
+            className="absolute right-2 h-8 px-4 bg-[#ef476f] hover:bg-[#ef476f]/90 text-white font-bold rounded-xl border-2 border-[#073b4c] shadow-[2px_2px_0_#073b4c] active:shadow-none active:translate-x-px active:translate-y-px transition-all text-xs">
+            Search
+          </Button>
+        </div>
+      </form>
+
+      <div className="flex gap-8">
+        {/* Filters */}
+        <aside className="hidden lg:block w-52 shrink-0 space-y-6">
+          <div>
+            <h3 className="text-xs font-black text-[#073b4c]/40 dark:text-[#737373] uppercase tracking-widest mb-3 flex items-center gap-2">
+              <Filter className="size-3.5" /> Subjects
+            </h3>
+            <div className="flex flex-col gap-1">
+              {SUBJECTS.map((sub) => (
+                <button key={sub} onClick={() => setSelectedSubject(sub)}
+                  className={cn('px-3 py-2 text-left text-sm font-bold rounded-xl border-2 transition-all',
+                    selectedSubject === sub
+                      ? 'bg-[#ffd166] text-[#073b4c] border-[#073b4c] shadow-[3px_3px_0_#073b4c]'
+                      : 'bg-transparent text-[#073b4c]/50 dark:text-[#737373] border-transparent hover:border-[#073b4c]/15 dark:hover:border-[#3a3a3a] hover:bg-[#f0f4f8] dark:hover:bg-[#222222] dark:hover:text-[#d4d4d4]',
+                  )}>
+                  {sub}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <h3 className="text-xs font-black text-[#073b4c]/40 dark:text-[#737373] uppercase tracking-widest mb-3 flex items-center gap-2">
+              <Users className="size-3.5" /> Age Range
+            </h3>
+            <div className="grid grid-cols-2 gap-1.5">
+              {AGE_RANGES.map((age) => (
+                <button key={age} onClick={() => setSelectedAge(age)}
+                  className={cn('px-2 py-2 text-center text-xs font-bold rounded-xl border-2 transition-all',
+                    selectedAge === age
+                      ? 'bg-[#118ab2] text-white border-[#073b4c] shadow-[3px_3px_0_#073b4c]'
+                      : 'bg-transparent text-[#073b4c]/50 dark:text-[#737373] border-transparent hover:border-[#073b4c]/15 dark:hover:border-[#3a3a3a] hover:bg-[#f0f4f8] dark:hover:bg-[#222222] dark:hover:text-[#d4d4d4]',
+                  )}>
+                  {age}
+                </button>
+              ))}
+            </div>
+          </div>
+        </aside>
+
+        {/* Course grid */}
+        <div className="flex-1">
+          {loading ? (
+            <div className="h-64 flex flex-col items-center justify-center gap-4">
+              <Loader2 className="size-10 text-[#118ab2] animate-spin" />
+              <p className="font-bold text-[#073b4c]/40 dark:text-[#737373]">Scanning library…</p>
+            </div>
+          ) : courses.length > 0 ? (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+                {courses.map((course, i) => (
+                  <BrowseCourseCard key={course.id} course={course} index={i}
+                    onClick={() => onSelectCourse(course)} />
+                ))}
+              </div>
+              <div ref={sentinelRef} className="h-1" />
+              {loadingMore && <div className="flex justify-center py-8"><Loader2 className="size-8 text-[#118ab2] animate-spin" /></div>}
+              {!hasMore && courses.length > 0 && <p className="text-center text-sm text-[#073b4c]/30 dark:text-[#525252] font-medium py-8">All courses loaded</p>}
+            </>
+          ) : (
+            <div className="h-80 flex flex-col items-center justify-center border-[3px] border-dashed border-[#073b4c]/15 dark:border-[#2a2a2a] rounded-3xl">
+              <div className="size-20 bg-slate-100 dark:bg-[#1a1a1a] rounded-full flex items-center justify-center mb-4">
+                <BookOpen className="size-10 text-[#073b4c]/20 dark:text-[#525252]" />
+              </div>
+              <h3 className="text-xl font-black text-[#073b4c] dark:text-[#f0f0f0] mb-2">No courses found</h3>
+              <p className="text-[#073b4c]/50 dark:text-[#a3a3a3] font-medium text-sm">Try adjusting your filters</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function BrowseCourseCard({ course, index, onClick }: { course: Course; index: number; onClick: () => void }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: Math.min(index * 0.04, 0.25) }}
+      whileHover={{ y: -4 }}
+      onClick={onClick}
+      className="group cursor-pointer flex flex-col bg-white dark:bg-[#1a1a1a] border-[3px] border-[#073b4c] dark:border-[#333333] rounded-2xl overflow-hidden shadow-[5px_5px_0_#073b4c] dark:shadow-[5px_5px_0_rgba(0,0,0,0.5)] hover:shadow-[8px_8px_0_#073b4c] dark:hover:shadow-[8px_8px_0_rgba(0,0,0,0.5)] transition-all"
+    >
+      <div className="h-32 bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-700 dark:to-slate-800 border-b-[3px] border-[#073b4c] dark:border-[#333333] flex items-center justify-center relative overflow-hidden">
+        <BookOpen className="size-10 text-[#073b4c]/10 group-hover:scale-110 group-hover:text-[#073b4c]/20 transition-all duration-500" />
+        <div className="absolute bottom-2 left-3 flex flex-wrap gap-1.5">
+          {course.tags.subject && (
+            <span className="px-2 py-0.5 bg-[#ffd166] text-[#073b4c] text-[9px] font-black uppercase tracking-wide rounded-lg border border-[#073b4c]">
+              {course.tags.subject}
+            </span>
+          )}
+          {course.tags.age_range && (
+            <span className="px-2 py-0.5 bg-[#118ab2] text-white text-[9px] font-black uppercase tracking-wide rounded-lg border border-[#073b4c]">
+              Ages {course.tags.age_range}
+            </span>
+          )}
+        </div>
+      </div>
+      <div className="p-4 flex-1 flex flex-col">
+        <h3 className="text-[15px] font-black text-[#073b4c] dark:text-[#f0f0f0] mb-2 line-clamp-2 leading-tight group-hover:text-[#ef476f] transition-colors">
+          {course.title}
+        </h3>
+        <p className="text-[#073b4c]/60 dark:text-[#a3a3a3] text-xs font-medium line-clamp-2 mb-4 flex-1">
+          {course.headline || course.description}
+        </p>
+        <div className="pt-3 border-t-2 border-[#073b4c]/8 dark:border-[#2a2a2a] flex items-center justify-between">
+          <span className="text-[11px] font-black text-[#073b4c]/30 dark:text-[#737373] uppercase tracking-widest">
+            {course.slideCount} Slides
+          </span>
+          <div className="size-7 bg-[#073b4c] dark:bg-slate-600 rounded-full flex items-center justify-center text-white group-hover:bg-[#ef476f] transition-colors">
+            <ArrowRight className="size-3.5" />
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+// ── Achievements Tab ────────────────────────────────────────────────────────
+interface UserStats {
+  totalScore?: number;
+  globalRank?: number;
+  currentStreak?: number;
+  highestStreak?: number;
+  totalWatchTime?: number;
+  coursesCompleted?: number;
+  certificates?: { id: string; courseId: string; courseName: string; createdAt: string }[];
+}
+
+function AchievementsTab() {
+  const { user } = useAuth();
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [stats, setStats] = useState<UserStats | null>(null);
+  const [lbTab, setLbTab] = useState<'global' | 'local'>('global');
+  const [lbLoading, setLbLoading] = useState(true);
+  const [lbRefreshing, setLbRefreshing] = useState(false);
+  const [lbData, setLbData] = useState<LeaderboardEntry[]>([]);
+  const [totalStudents, setTotalStudents] = useState(0);
+  const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
+  const [detectedCountry, setDetectedCountry] = useState<string | null>(null);
+  const [searchCountry, setSearchCountry] = useState('');
+  const [lbRefreshTick, setLbRefreshTick] = useState(0);
+  const [certsOpen, setCertsOpen] = useState(false);
+
+  useEffect(() => {
+    if (!user) { setStatsLoading(false); return; }
+    setStatsLoading(true);
+    fetch('/api/analytics/user-stats')
+      .then((r) => r.json())
+      .then((json) => { if (json.success) setStats(json.stats); })
+      .catch(() => {})
+      .finally(() => setStatsLoading(false));
+  }, [user]);
+
+  useEffect(() => {
+    let active = true;
+    const fetchLb = async (isManual = false) => {
+      if (isManual) setLbRefreshing(true); else setLbLoading(true);
+      try {
+        let url = `/api/leaderboard?type=${lbTab}`;
+        if (lbTab === 'local' && selectedCountry) url += `&country=${selectedCountry}`;
+        const res = await fetch(url);
+        const json = await res.json();
+        if (!active) return;
+        if (json.success) {
+          setLbData(json.leaderboard);
+          if (json.meta?.totalCount) setTotalStudents(json.meta.totalCount);
+          if (json.meta?.countryCode && !detectedCountry) setDetectedCountry(json.meta.countryCode);
+        }
+      } catch { /* ignore */ } finally {
+        if (active) { setLbLoading(false); setLbRefreshing(false); }
+      }
+    };
+    fetchLb(lbRefreshTick > 0);
+    const interval = setInterval(() => fetchLb(), 30_000);
+    return () => { active = false; clearInterval(interval); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lbTab, selectedCountry, lbRefreshTick]);
+
+  const currentUserEntry = user ? lbData.find((e) => e.user_id === user.id) : null;
+  const allCountries = Object.entries(COUNTRY_NAMES).sort(([, a], [, b]) => a.localeCompare(b));
+  const filteredCountries = searchCountry
+    ? allCountries.filter(([code, name]) =>
+        name.toLowerCase().includes(searchCountry.toLowerCase()) ||
+        code.toLowerCase().includes(searchCountry.toLowerCase()),
+      )
+    : allCountries;
+
+  const watchMins = Math.floor((stats?.totalWatchTime ?? 0) / 60);
+  const watchDisplay = watchMins >= 60 ? `${Math.floor(watchMins / 60)}h ${watchMins % 60}m` : `${watchMins}m`;
+
+  return (
+    <div className="space-y-8">
+      {/* Header */}
+      <div>
+        <h1 className="text-3xl font-black text-[#073b4c] dark:text-[#f0f0f0] tracking-tight flex items-center gap-3">
+          Achievements
+          <Award className="size-7 text-[#ffd166]" />
+        </h1>
+        <p className="text-[#073b4c]/50 dark:text-[#a3a3a3] font-medium mt-1">Your learning milestones and leaderboard ranking</p>
+      </div>
+
+      {/* ── Personal stats ── */}
+      <section>
+        <p className="text-[11px] font-black text-[#073b4c]/35 dark:text-[#525252] uppercase tracking-widest mb-4">Your Stats</p>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {([
+            {
+              icon: <Flame className="size-6" />,
+              label: 'Current Streak',
+              value: statsLoading ? null : `${stats?.currentStreak ?? 0}`,
+              unit: 'days',
+              sub: `Best: ${stats?.highestStreak ?? 0} days`,
+              color: '#ff9f1c',
+              bgClass: 'from-orange-50 to-amber-50',
+            },
+            {
+              icon: <Clock className="size-6" />,
+              label: 'Watch Time',
+              value: statsLoading ? null : watchDisplay,
+              unit: '',
+              sub: 'Total study time',
+              color: '#118ab2',
+              bgClass: 'from-sky-50 to-blue-50',
+            },
+            {
+              icon: <BookOpen className="size-6" />,
+              label: 'Courses Completed',
+              value: statsLoading ? null : `${stats?.coursesCompleted ?? 0}`,
+              unit: '',
+              sub: `${totalStudents.toLocaleString()} total learners`,
+              color: '#06d6a0',
+              bgClass: 'from-emerald-50 to-teal-50',
+            },
+            {
+              icon: <Award className="size-6" />,
+              label: 'Certificates',
+              value: statsLoading ? null : `${stats?.certificates?.length ?? 0}`,
+              unit: '',
+              sub: 'Tap to view',
+              color: '#8338ec',
+              bgClass: 'from-violet-50 to-purple-50',
+              onClick: () => setCertsOpen((v) => !v),
+            },
+          ] satisfies Array<{ icon: React.ReactNode; label: string; value: string | null; unit: string; sub: string; color: string; bgClass: string; onClick?: () => void }>).map((card) => (
+            <motion.div
+              key={card.label}
+              whileHover={card.onClick ? { y: -3 } : {}}
+              onClick={card.onClick}
+              className={cn(
+                'relative rounded-2xl border-[3px] border-[#073b4c] dark:border-[#333333] bg-gradient-to-br dark:bg-none dark:bg-[#1a1a1a] p-5 flex flex-col gap-3',
+                card.bgClass,
+                card.onClick
+                  ? 'cursor-pointer shadow-[4px_4px_0_#8338ec] hover:shadow-[6px_6px_0_#8338ec] transition-all'
+                  : 'shadow-[4px_4px_0_#073b4c]',
+              )}
             >
-              <div className="flex items-center gap-1.5">
-                <span className="break-all">{classroom.name}</span>
-                <button
-                  className="shrink-0 p-0.5 rounded hover:bg-foreground/10 transition-colors"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    navigator.clipboard.writeText(classroom.name);
-                    toast.success(t('classroom.nameCopied'));
-                  }}
-                >
-                  <Copy className="size-3 opacity-60" />
+              <div className="size-11 rounded-xl flex items-center justify-center" style={{ background: `${card.color}18`, color: card.color }}>
+                {card.icon}
+              </div>
+              <div>
+                {card.value === null ? (
+                  <div className="h-8 w-14 bg-white/60 rounded-lg animate-pulse mb-1" />
+                ) : (
+                  <p className="text-3xl font-black text-[#073b4c] dark:text-[#f0f0f0] leading-none">
+                    {card.value}
+                    {card.unit && <span className="text-base font-bold text-[#073b4c]/50 dark:text-[#737373] ml-1">{card.unit}</span>}
+                  </p>
+                )}
+                <p className="text-xs font-black text-[#073b4c]/60 dark:text-[#a3a3a3] uppercase tracking-wide mt-1">{card.label}</p>
+                <p className="text-[10px] text-[#073b4c]/35 dark:text-[#525252] font-medium mt-0.5">{card.sub}</p>
+              </div>
+              {card.onClick && <ChevronRight className="absolute top-4 right-4 size-4 text-[#8338ec]/40" />}
+            </motion.div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── Certificates panel ── */}
+      <AnimatePresence>
+        {certsOpen && (
+          <motion.section
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="rounded-2xl border-[3px] border-[#8338ec] bg-white dark:bg-[#1a1a1a] shadow-[5px_5px_0_#8338ec] overflow-hidden">
+              <div className="flex items-center justify-between px-5 py-3.5 border-b-2 border-[#8338ec]/15 bg-violet-50/60 dark:bg-[#8338ec]/10">
+                <h3 className="font-black text-[#073b4c] flex items-center gap-2 text-sm">
+                  <Award className="size-4.5 text-[#8338ec]" /> Your Certificates
+                </h3>
+                <button onClick={() => setCertsOpen(false)}
+                  className="size-7 rounded-full border-2 border-[#073b4c]/15 flex items-center justify-center hover:bg-white transition-colors">
+                  <X className="size-3.5 text-[#073b4c]/50" />
                 </button>
               </div>
-            </TooltipContent>
-          </Tooltip>
+              <div className="p-5">
+                {!stats?.certificates?.length ? (
+                  <div className="flex flex-col items-center py-10 gap-3">
+                    <div className="size-14 rounded-2xl bg-violet-50 border-2 border-violet-100 flex items-center justify-center">
+                      <Award className="size-7 text-[#8338ec]/30" />
+                    </div>
+                    <p className="text-sm font-bold text-[#073b4c]/40 text-center max-w-xs">
+                      Complete a course to earn your first certificate.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {stats.certificates.map((c) => (
+                      <a key={c.id} href={`/c/${c.id}`}
+                        className="flex items-start gap-3 rounded-xl border-2 border-[#073b4c]/10 bg-[#f8fafc] px-4 py-3.5 hover:border-[#8338ec]/40 hover:bg-violet-50/60 transition-all group">
+                        <div className="size-9 rounded-xl bg-violet-100 flex items-center justify-center shrink-0">
+                          <Award className="size-4.5 text-[#8338ec]" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-bold text-[#073b4c] group-hover:text-[#8338ec] line-clamp-2 transition-colors">{c.courseName}</p>
+                          <p className="text-[10px] font-bold text-[#073b4c]/35 uppercase tracking-wide mt-1">
+                            {c.createdAt ? new Date(c.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ''}
+                          </p>
+                        </div>
+                        <ExternalLink className="size-3.5 text-[#073b4c]/20 group-hover:text-[#8338ec] shrink-0 mt-0.5 transition-colors" />
+                      </a>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </motion.section>
         )}
+      </AnimatePresence>
+
+      {/* ── Your rank ── */}
+      {currentUserEntry && (
+        <div className="p-5 rounded-2xl border-[3px] border-[#ffd166] bg-gradient-to-r from-[#fffbea] to-[#fffef5] dark:from-[#8338ec]/10 dark:to-[#8338ec]/5 dark:bg-none shadow-[4px_4px_0_#ffd166] dark:shadow-[4px_4px_0_rgba(131,56,236,0.3)] flex items-center gap-5">
+          <div className="size-14 rounded-2xl border-[3px] border-[#073b4c] bg-[#ffd166] flex items-center justify-center shrink-0">
+            <Medal className="size-7 text-[#073b4c]" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] font-black text-[#073b4c]/40 dark:text-[#737373] uppercase tracking-widest">Your Global Rank</p>
+            <p className="text-4xl font-black text-[#073b4c] dark:text-[#f0f0f0] leading-tight">#{currentUserEntry.rank}</p>
+          </div>
+          <div className="text-right shrink-0">
+            <p className="text-[10px] font-black text-[#073b4c]/40 dark:text-[#737373] uppercase tracking-widest">Quiz Score</p>
+            <p className="text-2xl font-black text-[#073b4c] dark:text-[#f0f0f0]">{currentUserEntry.total_score.toLocaleString()}</p>
+            <p className="text-[10px] font-bold text-[#073b4c]/30 dark:text-[#525252]">{currentUserEntry.quizzes_completed} quizzes</p>
+          </div>
+        </div>
+      )}
+
+      {/* ── Leaderboard ── */}
+      <section>
+        <p className="text-[11px] font-black text-[#073b4c]/35 dark:text-[#525252] uppercase tracking-widest mb-4">Leaderboard</p>
+        <div className="rounded-2xl border-[3px] border-[#073b4c] dark:border-[#333333] bg-white dark:bg-[#1a1a1a] shadow-[5px_5px_0_#073b4c] dark:shadow-[5px_5px_0_rgba(0,0,0,0.5)] overflow-hidden">
+          <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b-[3px] border-[#073b4c] dark:border-[#2a2a2a]">
+            <div className="flex gap-2">
+              {(['global', 'local'] as const).map((t) => (
+                <button key={t} onClick={() => setLbTab(t)}
+                  className={cn('px-4 py-2 rounded-xl font-bold text-sm border-2 transition-all',
+                    lbTab === t ? 'bg-[#073b4c] text-white border-[#073b4c]' : 'text-[#073b4c]/60 dark:text-[#a3a3a3] border-transparent hover:border-[#073b4c]/20 dark:hover:border-[#3a3a3a] dark:hover:bg-[#222222]',
+                  )}>
+                  {t === 'global' ? <><Globe className="size-3.5 inline mr-1.5" />Global</> : <><MapPin className="size-3.5 inline mr-1.5" />Local</>}
+                </button>
+              ))}
+            </div>
+            <button onClick={() => setLbRefreshTick((v) => v + 1)} disabled={lbRefreshing}
+              className="size-8 rounded-full border-2 border-[#073b4c]/15 flex items-center justify-center hover:bg-[#f0f4f8] transition-colors disabled:opacity-40">
+              <RefreshCw className={cn('size-3.5 text-[#073b4c]', lbRefreshing && 'animate-spin')} />
+            </button>
+          </div>
+
+          {lbTab === 'local' && (
+            <div className="px-5 py-3 border-b-2 border-[#073b4c]/10 dark:border-[#2a2a2a] bg-[#f8fafc] dark:bg-[#1a1a1a]/50">
+              <div className="flex flex-wrap gap-2 items-center">
+                <span className="text-xs font-black text-[#073b4c]/40 dark:text-[#737373] uppercase tracking-widest shrink-0">Country:</span>
+                <button onClick={() => setSelectedCountry(detectedCountry)}
+                  className={cn('px-3 py-1 rounded-full border-2 text-xs font-bold transition-all',
+                    selectedCountry === detectedCountry ? 'bg-[#073b4c] text-white border-[#073b4c]' : 'border-[#073b4c]/20 text-[#073b4c]/60 hover:border-[#073b4c]/50',
+                  )}>
+                  📍 My Country
+                </button>
+                <div className="flex-1 min-w-0 relative max-w-xs">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-[#073b4c]/30" />
+                  <input value={searchCountry} onChange={(e) => setSearchCountry(e.target.value)}
+                    placeholder="Search country…"
+                    className="w-full h-7 pl-8 pr-3 text-xs font-medium border-2 border-[#073b4c]/20 dark:border-[#333333] rounded-full focus:outline-none focus:border-[#073b4c]/50 dark:focus:border-slate-400 bg-white dark:bg-[#2a2a2a] text-[#073b4c] dark:text-[#e5e5e5] placeholder:text-[#073b4c]/40 dark:placeholder:text-slate-500" />
+                </div>
+              </div>
+              {searchCountry && (
+                <div className="mt-2 flex flex-wrap gap-1.5 max-h-28 overflow-y-auto">
+                  {filteredCountries.slice(0, 20).map(([code, name]) => (
+                    <button key={code} onClick={() => { setSelectedCountry(code); setSearchCountry(''); }}
+                      className={cn('px-2.5 py-1 rounded-full border-2 text-[11px] font-bold transition-all',
+                        selectedCountry === code ? 'bg-[#073b4c] text-white border-[#073b4c]' : 'border-[#073b4c]/15 text-[#073b4c]/60 hover:border-[#073b4c]/40',
+                      )}>
+                      {name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {lbLoading ? (
+            <div className="h-56 flex items-center justify-center">
+              <Loader2 className="size-8 text-[#118ab2] animate-spin" />
+            </div>
+          ) : lbData.length === 0 ? (
+            <div className="h-40 flex flex-col items-center justify-center gap-2">
+              <Trophy className="size-10 text-[#073b4c]/10 dark:text-slate-700" />
+              <p className="text-sm font-bold text-[#073b4c]/30 dark:text-[#525252]">No data yet</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-[#073b4c]/6 dark:divide-slate-700/60">
+              {lbData.map((entry, i) => {
+                const isCurrentUser = user?.id === entry.user_id;
+                return (
+                  <motion.div key={entry.user_id}
+                    initial={{ opacity: 0, x: -8 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.025 }}
+                    className={cn('flex items-center gap-4 px-5 py-3.5 transition-colors',
+                      isCurrentUser ? 'bg-[#fffbea] dark:bg-[#8338ec]/10' : 'hover:bg-[#f8fafc] dark:hover:bg-[#222222]',
+                    )}>
+                    <div className="w-8 text-center shrink-0 font-black text-sm text-[#073b4c]/50 dark:text-[#737373]">
+                      {i < 3 ? <span className="text-xl">{['🥇','🥈','🥉'][i]}</span> : `#${entry.rank}`}
+                    </div>
+                    <div className="size-9 rounded-full overflow-hidden border-2 border-[#073b4c]/15 dark:border-[#333333] shrink-0 bg-gradient-to-br from-[#118ab2] to-[#06d6a0] flex items-center justify-center">
+                      {entry.avatar_url
+                        ? <img src={entry.avatar_url} alt="" className="size-full object-cover" />
+                        : <span className="text-white font-black text-xs">{(entry.display_name || '?').slice(0, 2).toUpperCase()}</span>}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className={cn('font-bold text-sm text-[#073b4c] dark:text-[#e5e5e5] truncate', isCurrentUser && 'text-[#8338ec]')}>
+                        {entry.display_name || 'Anonymous'}
+                        {isCurrentUser && <span className="ml-2 text-[9px] bg-[#8338ec] text-white rounded-full px-1.5 py-0.5 font-black">You</span>}
+                      </p>
+                      <p className="text-[11px] text-[#073b4c]/35 dark:text-[#525252] font-medium">{entry.quizzes_completed} quiz{entry.quizzes_completed !== 1 ? 'zes' : ''}</p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="font-black text-[#073b4c] dark:text-[#e5e5e5] text-sm">{entry.total_score.toLocaleString()}</p>
+                      <p className="text-[9px] text-[#073b4c]/25 dark:text-[#525252] font-bold uppercase tracking-wide">pts</p>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+// ── Main Dashboard ──────────────────────────────────────────────────────────
+function DashboardPage() {
+  const { t } = useI18n();
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const isAdmin = searchParams.get('admin') === 'true';
+  const [activeTab, setActiveTab] = useState<Tab>('new-course');
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+
+  const pendingGeneration = searchParams.get('pending_generation');
+  const pendingHandled = useRef(false);
+
+  const [form, setForm] = useState<FormState>(initialFormState);
+  const [enterClassroomLoading, setEnterClassroomLoading] = useState(false);
+  const [createClassroomLoading, setCreateClassroomLoading] = useState(false);
+  const [classroomJob, setClassroomJobRaw] = useState<ClassroomJobState | null>(() => {
+    try {
+      const saved = localStorage.getItem(CLASSROOM_JOB_STORAGE_KEY);
+      return saved ? (JSON.parse(saved) as ClassroomJobState) : null;
+    } catch { return null; }
+  });
+
+  const setClassroomJob = (updater: ClassroomJobState | null | ((prev: ClassroomJobState | null) => ClassroomJobState | null)) => {
+    setClassroomJobRaw((prev) => {
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      try {
+        if (next) localStorage.setItem(CLASSROOM_JOB_STORAGE_KEY, JSON.stringify(next));
+        else localStorage.removeItem(CLASSROOM_JOB_STORAGE_KEY);
+      } catch { /* ignore */ }
+      return next;
+    });
+  };
+
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const jobPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const plan = usePlanStore((s) => s.plan);
+  const canInstantClassroom = plan ? (PLAN_LIMITS[plan.account_type]?.canInstantClassroom ?? false) : false;
+
+  const { cachedValue: cachedRequirement, updateCache: updateRequirementCache } =
+    useDraftCache<string>({ key: 'requirementDraft' });
+
+  const currentModelId = useSettingsStore((s) => s.modelId);
+  const [error, setError] = useState<string | null>(null);
+  const [classrooms, setClassrooms] = useState<StageListItem[]>([]);
+  const [coursesLoading, setCoursesLoading] = useState(true);
+  const [showExhaustedModal, setShowExhaustedModal] = useState(false);
+  const [exhaustedReason, setExhaustedReason] = useState<string | undefined>(undefined);
+  const [thumbnails, setThumbnails] = useState<Record<string, Slide>>({});
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+
+  // ── Course outline ─────────────────────────────────────────────────────────
+  type OutlineCourse = { source: 'my'; item: StageListItem } | { source: 'browse'; item: Course };
+  const [outlineCourse, setOutlineCourse] = useState<OutlineCourse | null>(null);
+  const [outlineScenes, setOutlineScenes] = useState<SceneInfo[]>([]);
+  const [outlineSaving, setOutlineSaving] = useState(false);
+  const [outlineBrowseThumbnail, setOutlineBrowseThumbnail] = useState<Slide | undefined>(undefined);
+  const savedCoursesStore = useSavedCoursesStore();
+
+  // Hydrate form defaults
+  useEffect(() => {
+    try {
+      const savedWebSearch = localStorage.getItem(WEB_SEARCH_STORAGE_KEY);
+      const savedLanguage = localStorage.getItem(LANGUAGE_STORAGE_KEY);
+      const updates: Partial<FormState> = {};
+      if (savedWebSearch !== null) updates.webSearch = savedWebSearch === 'true';
+      if (savedLanguage === 'zh-CN' || savedLanguage === 'en-US') updates.language = savedLanguage;
+      else { const detected = navigator.language?.startsWith('zh') ? 'zh-CN' : 'en-US'; updates.language = detected; }
+      const pendingPrompt = localStorage.getItem('pendingPrompt');
+      if (pendingPrompt) { updates.requirement = pendingPrompt; localStorage.removeItem('pendingPrompt'); }
+      if (Object.keys(updates).length > 0) setForm((prev) => ({ ...prev, ...updates }));
+    } catch { /* ignore */ }
+    // restore draft
+    if (cachedRequirement) setForm((prev) => ({ ...prev, requirement: prev.requirement || cachedRequirement }));
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const loadClassrooms = async () => {
+    setCoursesLoading(true);
+    try {
+      const localList = await listStages();
+      const localMap = new Map(localList.map((c) => [c.id, c]));
+      const mergedList: StageListItem[] = [...localList];
+      if (user) {
+        const supabaseList = await fetchUserCoursesFromSupabase(user.id);
+        for (const sCourse of supabaseList) {
+          if (!localMap.has(sCourse.stage_id)) {
+            mergedList.push({
+              id: sCourse.stage_id, name: sCourse.name, description: '',
+              sceneCount: sCourse.slide_count,
+              createdAt: new Date(sCourse.created_at).getTime(),
+              updatedAt: new Date(sCourse.updated_at).getTime(),
+              is_cloud: true, supabase_id: sCourse.id,
+            });
+          }
+        }
+      }
+      mergedList.sort((a, b) => b.updatedAt - a.updatedAt);
+      setClassrooms(mergedList);
+
+      const localIds = mergedList.filter((c) => !c.is_cloud).map((c) => c.id);
+      if (localIds.length > 0) {
+        const slides = await getFirstSlideByStages(localIds);
+        setThumbnails(slides);
+      }
+    } catch (err) {
+      log.error('Failed to load classrooms:', err);
+    } finally {
+      setCoursesLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!authLoading) {
+      loadClassrooms();
+      if (user) usePlanStore.getState().refetch();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, authLoading]);
+
+  useEffect(() => {
+    useMediaGenerationStore.getState().revokeObjectUrls();
+    useMediaGenerationStore.setState({ tasks: {} });
+    loadClassrooms();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Poll for background classroom job
+  useEffect(() => {
+    if (!classroomJob || classroomJob.phase !== 'background') {
+      if (jobPollRef.current) { clearInterval(jobPollRef.current); jobPollRef.current = null; }
+      return;
+    }
+    const poll = async () => {
+      try {
+        const res = await fetch('/api/notifications?unread_only=false&limit=20', { cache: 'no-store' });
+        if (!res.ok) return;
+        const json = await res.json();
+        const match = (json.notifications ?? []).find(
+          (n: { type: string; metadata?: { job_id?: string }; action_url?: string }) =>
+            n.type === 'classroom_ready' && n.metadata?.job_id === classroomJob.jobId,
+        );
+        if (match) {
+          setClassroomJob((prev) => prev ? { ...prev, phase: 'done', classroomUrl: match.action_url ?? '' } : prev);
+          if (jobPollRef.current) { clearInterval(jobPollRef.current); jobPollRef.current = null; }
+        }
+      } catch { /* ignore */ }
+    };
+    poll();
+    jobPollRef.current = setInterval(poll, 10_000);
+    return () => { if (jobPollRef.current) clearInterval(jobPollRef.current); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [classroomJob?.phase, classroomJob?.jobId]);
+
+  // Handle pending generation after login redirect
+  useEffect(() => {
+    if (pendingGeneration === 'true' && !pendingHandled.current && !authLoading && user && form.requirement.trim()) {
+      pendingHandled.current = true;
+      const timer = setTimeout(() => handleGenerate(), 500);
+      return () => clearTimeout(timer);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingGeneration, authLoading, user, form.requirement]);
+
+  const updateForm = <K extends keyof FormState>(field: K, value: FormState[K]) => {
+    setForm((prev) => ({ ...prev, [field]: value }));
+    try {
+      if (field === 'webSearch') localStorage.setItem(WEB_SEARCH_STORAGE_KEY, String(value));
+      if (field === 'language') localStorage.setItem(LANGUAGE_STORAGE_KEY, String(value));
+      if (field === 'requirement') updateRequirementCache(value as string);
+    } catch { /* ignore */ }
+  };
+
+  const showSetupToast = (title: string, desc: string) => {
+    toast.custom((id) => (
+      <div onClick={() => { toast.dismiss(id); setSettingsOpen(true); }}
+        className="w-[356px] rounded-xl border border-amber-200/60 bg-gradient-to-r from-amber-50 via-white to-amber-50 shadow-lg p-4 flex items-start gap-3 cursor-pointer">
+        <div className="shrink-0 mt-0.5 size-9 rounded-lg bg-amber-100 flex items-center justify-center ring-1 ring-amber-200/50">
+          <Settings className="size-4.5 text-amber-600" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-amber-900 leading-tight">{title}</p>
+          <p className="text-xs text-amber-700/80 mt-0.5 leading-relaxed">{desc}</p>
+        </div>
       </div>
+    ), { duration: 4000 });
+  };
+
+  const handleGenerate = async () => {
+    if (enterClassroomLoading) return;
+    if (!authLoading && !user) {
+      setEnterClassroomLoading(true);
+      try { localStorage.setItem('pendingPrompt', form.requirement); } catch { /* ignore */ }
+      router.push(`/auth/login?redirect=${encodeURIComponent('/?pending_generation=true')}`);
+      return;
+    }
+    if (!currentModelId) {
+      showSetupToast(t('settings.modelNotConfigured'), t('settings.setupNeeded'));
+      setSettingsOpen(true);
+      return;
+    }
+    if (!form.requirement.trim()) { setError(t('upload.requirementRequired')); return; }
+    setEnterClassroomLoading(true);
+    if (user) {
+      try {
+        const planRes = await fetch('/api/user/plan', { cache: 'no-store' });
+        if (planRes.ok) {
+          const planJson = await planRes.json();
+          if (planJson.success && planJson.credits) {
+            const remaining = planJson.credits.remaining;
+            if (remaining !== 'unlimited' && remaining <= 0) {
+              const reason = planJson.plan?.account_type === 'FREE' ? 'free_limit_reached' : 'monthly_limit_reached';
+              setExhaustedReason(reason); setShowExhaustedModal(true); setEnterClassroomLoading(false); return;
+            }
+          }
+        }
+      } catch { /* non-fatal */ }
+    }
+    setError(null);
+    posthog.capture('classroom_generation_started', { has_pdf: !!form.pdfFile, web_search: !!form.webSearch, language: form.language });
+    try {
+      const isPortrait = window.matchMedia('(orientation: portrait)').matches;
+      const userProfile = useUserProfileStore.getState();
+      const requirements: UserRequirements = {
+        requirement: form.requirement, language: form.language,
+        userNickname: userProfile.nickname || undefined, userBio: userProfile.bio || undefined,
+        webSearch: form.webSearch || undefined, aspectRatio: isPortrait ? 'portrait' : 'landscape',
+      };
+      let pdfStorageKey: string | undefined, pdfFileName: string | undefined,
+        pdfProviderId: string | undefined, pdfProviderConfig: { apiKey?: string; baseUrl?: string } | undefined;
+      if (form.pdfFile) {
+        pdfStorageKey = await storePdfBlob(form.pdfFile);
+        pdfFileName = form.pdfFile.name;
+        const settings = useSettingsStore.getState();
+        pdfProviderId = settings.pdfProviderId;
+        const providerCfg = settings.pdfProvidersConfig?.[settings.pdfProviderId];
+        if (providerCfg) pdfProviderConfig = { apiKey: providerCfg.apiKey, baseUrl: providerCfg.baseUrl };
+      }
+      const sessionState = {
+        sessionId: nanoid(), requirements, pdfText: '', pdfImages: [], imageStorageIds: [],
+        pdfStorageKey, pdfFileName, pdfProviderId, pdfProviderConfig, sceneOutlines: null, currentStep: 'generating' as const,
+      };
+      sessionStorage.setItem('generationSession', JSON.stringify(sessionState));
+      router.push('/generation-preview');
+    } catch (err) {
+      log.error('Error preparing generation:', err);
+      setError(err instanceof Error ? err.message : t('upload.generateFailed'));
+      setEnterClassroomLoading(false);
+    }
+  };
+
+  const handleCreateClassroom = async () => {
+    if (createClassroomLoading) return;
+    if (!authLoading && !user) {
+      try { localStorage.setItem('pendingPrompt', form.requirement); } catch { /* ignore */ }
+      router.push(`/auth/login?redirect=${encodeURIComponent('/?pending_generation=true')}`);
+      return;
+    }
+    if (!form.requirement.trim()) { setError(t('upload.requirementRequired')); return; }
+    setCreateClassroomLoading(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/create-classroom', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          requirement: form.requirement, language: form.language,
+          enableWebSearch: form.webSearch, enableImageGeneration: true,
+          enableVideoGeneration: false, enableTTS: true,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || 'Failed to queue classroom');
+      }
+      const json = await res.json();
+      setClassroomJob({ jobId: json.jobId as string, requirement: form.requirement, phase: 'background' });
+      setShowCreateModal(true);
+    } catch (err) {
+      log.error('Create classroom error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to queue classroom generation');
+    } finally {
+      setCreateClassroomLoading(false);
+    }
+  };
+
+  const handleDelete = (id: string, e: React.MouseEvent) => { e.stopPropagation(); setPendingDeleteId(id); };
+  const confirmDelete = async (id: string) => {
+    setPendingDeleteId(null);
+    try { await deleteStageData(id); await loadClassrooms(); }
+    catch (err) { log.error('Failed to delete classroom:', err); toast.error('Failed to delete classroom'); }
+  };
+  const handleRename = async (id: string, newName: string) => {
+    try { await renameStage(id, newName); setClassrooms((prev) => prev.map((c) => c.id === id ? { ...c, name: newName } : c)); }
+    catch (err) { log.error('Failed to rename classroom:', err); toast.error(t('classroom.renameFailed')); }
+  };
+  const handleOpenCourse = (classroom: StageListItem) => {
+    setPendingIntroPayload({ stageId: classroom.id, name: classroom.name, description: classroom.description ?? '', language: form.language });
+    router.push(`/classroom/${classroom.id}`);
+  };
+
+  // Load scenes when a My Course outline opens; fetch first slide for Browse courses
+  useEffect(() => {
+    if (!outlineCourse) { setOutlineScenes([]); setOutlineBrowseThumbnail(undefined); return; }
+    if (outlineCourse.source === 'my') {
+      setOutlineBrowseThumbnail(undefined);
+      db.scenes
+        .where('stageId').equals(outlineCourse.item.id)
+        .sortBy('order')
+        .then((scenes) => setOutlineScenes(scenes.map((s) => ({ id: s.id, title: s.title, type: s.type }))));
+    } else {
+      setOutlineScenes([]);
+      setOutlineBrowseThumbnail(undefined);
+      // Fetch first slide canvas from the course content API
+      fetch(`/api/courses/${outlineCourse.item.id}/content`)
+        .then((r) => r.json())
+        .then((data) => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const firstSlide = (data.scenes ?? []).find((s: any) => s.content?.type === 'slide');
+          if (firstSlide?.content?.canvas) setOutlineBrowseThumbnail(firstSlide.content.canvas as Slide);
+        })
+        .catch(() => {});
+    }
+  }, [outlineCourse]);
+
+  const handleMyOutlineOpen = (classroom: StageListItem) => {
+    setOutlineCourse({ source: 'my', item: classroom });
+  };
+
+  const handleBrowseOutlineOpen = (course: Course) => {
+    setOutlineCourse({ source: 'browse', item: course });
+  };
+
+  const handleOutlineEnterClassroom = () => {
+    if (!outlineCourse) return;
+    if (outlineCourse.source === 'my') {
+      handleOpenCourse(outlineCourse.item);
+    } else {
+      const c = outlineCourse.item;
+      setPendingIntroPayload({ stageId: c.id, name: c.title, description: c.description, language: c.language });
+      router.push(`/classroom/${c.id}`);
+    }
+  };
+
+  const handleSaveCourse = async () => {
+    if (!outlineCourse || outlineCourse.source !== 'browse') return;
+    const course = outlineCourse.item;
+    setOutlineSaving(true);
+    try {
+      const stageId = await downloadCourseFromSupabase(course.id);
+      if (stageId) {
+        savedCoursesStore.markSaved(course.id);
+        await loadClassrooms();
+        toast.success('Course saved to My Courses!');
+      } else {
+        toast.error('Failed to save course');
+      }
+    } finally {
+      setOutlineSaving(false);
+    }
+  };
+
+  const canGenerate = !!form.requirement.trim();
+
+  return (
+    <div className="h-[100dvh] w-full bg-[#f8fafc] dark:bg-[#111111] flex overflow-hidden">
+      {/* Sidebar */}
+      <Sidebar
+        activeTab={activeTab}
+        setActiveTab={(t) => { setActiveTab(t); setOutlineCourse(null); }}
+        classroomJob={classroomJob}
+        onReopenJob={() => setShowCreateModal(true)}
+        onClearJob={() => setClassroomJob(null)}
+        isAdmin={isAdmin}
+        mobileOpen={mobileSidebarOpen}
+        onMobileClose={() => setMobileSidebarOpen(false)}
+      />
+
+      {/* Main content */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
+        {/* Mobile menu — no top bar; floating control only */}
+        <button
+          type="button"
+          onClick={() => setMobileSidebarOpen(true)}
+          aria-label="Open menu"
+          className="lg:hidden fixed top-4 left-4 z-30 size-10 rounded-xl border-2 border-[#073b4c]/15 dark:border-[#333333] bg-white dark:bg-[#1a1a1a] shadow-sm flex items-center justify-center hover:bg-[#f0f4f8] dark:hover:bg-[#2a2a2a] transition-colors"
+        >
+          <Menu className="size-5 text-[#073b4c]" />
+        </button>
+
+        <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
+
+        {/* Scrollable content area */}
+        <main className="flex-1 overflow-y-auto">
+          <div className="max-w-7xl mx-auto px-6 py-8 max-lg:pt-20">
+            <AnimatePresence mode="wait">
+              {outlineCourse ? (
+                <motion.div
+                  key="outline"
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.2, ease: 'easeOut' }}
+                >
+                  <CourseOutlinePage
+                    title={outlineCourse.source === 'my' ? outlineCourse.item.name : outlineCourse.item.title}
+                    description={outlineCourse.source === 'my' ? outlineCourse.item.description : outlineCourse.item.description}
+                    headline={outlineCourse.source === 'browse' ? outlineCourse.item.headline : undefined}
+                    language={outlineCourse.source === 'my' ? undefined : outlineCourse.item.language}
+                    tags={outlineCourse.source === 'browse' ? outlineCourse.item.tags : undefined}
+                    slideCount={outlineCourse.source === 'my' ? outlineCourse.item.sceneCount : outlineCourse.item.slideCount}
+                    scenes={outlineCourse.source === 'my' ? outlineScenes : undefined}
+                    thumbnail={outlineCourse.source === 'my' ? thumbnails[outlineCourse.item.id] : outlineBrowseThumbnail}
+                    isMyCourse={outlineCourse.source === 'my'}
+                    isSaved={outlineCourse.source === 'browse' && savedCoursesStore.isSaved(outlineCourse.item.id)}
+                    savingCourse={outlineSaving}
+                    onBack={() => setOutlineCourse(null)}
+                    onEnterClassroom={handleOutlineEnterClassroom}
+                    onSaveCourse={handleSaveCourse}
+                  />
+                </motion.div>
+              ) : (
+                <motion.div
+                  key={activeTab}
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.2, ease: 'easeOut' }}
+                >
+                  {activeTab === 'new-course' && (
+                    <NewCourseTab
+                      form={form}
+                      updateForm={updateForm}
+                      handleGenerate={handleGenerate}
+                      handleCreateClassroom={handleCreateClassroom}
+                      enterClassroomLoading={enterClassroomLoading}
+                      createClassroomLoading={createClassroomLoading}
+                      canGenerate={canGenerate}
+                      canInstantClassroom={canInstantClassroom}
+                      error={error}
+                      settingsOpen={settingsOpen}
+                      setSettingsOpen={setSettingsOpen}
+                    />
+                  )}
+                  {activeTab === 'my-courses' && (
+                    <MyCoursesTab
+                      classrooms={classrooms}
+                      thumbnails={thumbnails}
+                      onSelectCourse={handleMyOutlineOpen}
+                      onDeleteCourse={handleDelete}
+                      onRenameCourse={handleRename}
+                      pendingDeleteId={pendingDeleteId}
+                      onConfirmDelete={confirmDelete}
+                      onCancelDelete={() => setPendingDeleteId(null)}
+                      loading={coursesLoading}
+                    />
+                  )}
+                  {activeTab === 'browse' && <BrowseCoursesTab onSelectCourse={handleBrowseOutlineOpen} />}
+                  {activeTab === 'achievements' && <AchievementsTab />}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </main>
+      </div>
+
+      {/* Modals */}
+      <CoursesExhaustedModal open={showExhaustedModal} reason={exhaustedReason} onClose={() => setShowExhaustedModal(false)} />
+      <CreateClassroomModal open={showCreateModal} requirement={classroomJob?.requirement ?? ''} onClose={() => setShowCreateModal(false)} />
     </div>
   );
 }
 
 export default function Page() {
   return (
-    <Suspense fallback={null}>
-      <HomePage />
+    <Suspense fallback={
+      <div className="h-screen w-full flex items-center justify-center bg-[#f8fafc]">
+        <Loader2 className="size-10 text-[#118ab2] animate-spin" />
+      </div>
+    }>
+      <DashboardPage />
     </Suspense>
   );
 }

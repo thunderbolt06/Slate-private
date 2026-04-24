@@ -102,8 +102,8 @@ export function NotificationBell() {
         type="button"
         onClick={handleOpen}
         className={cn(
-          'relative flex items-center gap-2 h-9 px-3 rounded-full border-2 border-[#073b4c] bg-white text-[#073b4c] font-bold text-xs',
-          'hover:translate-y-[-1px] shadow-[3px_3px_0_#073b4c] hover:shadow-[4px_4px_0_#073b4c] transition-all cursor-pointer active:translate-y-0 active:shadow-[1px_1px_0_#073b4c]',
+          'relative flex items-center gap-2 h-9 px-3 rounded-full border-2 border-[#073b4c] dark:border-slate-300 bg-white dark:bg-slate-800 text-[#073b4c] dark:text-slate-100 font-bold text-xs',
+          'hover:translate-y-[-1px] shadow-[3px_3px_0_#073b4c] dark:shadow-[3px_3px_0_theme(colors.slate.400)] hover:shadow-[4px_4px_0_#073b4c] dark:hover:shadow-[4px_4px_0_theme(colors.slate.400)] transition-all cursor-pointer active:translate-y-0 active:shadow-[1px_1px_0_#073b4c] dark:active:shadow-[1px_1px_0_theme(colors.slate.400)]',
         )}
         aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ''}`}
       >
@@ -114,7 +114,7 @@ export function NotificationBell() {
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               exit={{ scale: 0 }}
-              className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-[#ef476f] border-2 border-white text-white text-[10px] font-black flex items-center justify-center"
+              className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-[#ef476f] border-2 border-white dark:border-slate-800 text-white text-[10px] font-black flex items-center justify-center"
             >
               {unreadCount > 9 ? '9+' : unreadCount}
             </motion.span>
@@ -129,10 +129,10 @@ export function NotificationBell() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -8, scale: 0.96 }}
             transition={{ duration: 0.15, ease: [0.25, 0.1, 0.25, 1] }}
-            className="absolute right-0 top-full mt-2 w-80 bg-white dark:bg-slate-900 border-[3px] border-[#073b4c] rounded-2xl shadow-[6px_6px_0_#073b4c] z-50 overflow-hidden"
+            className="absolute right-0 top-full mt-2 w-80 bg-white dark:bg-slate-900 border-[3px] border-[#073b4c] dark:border-slate-600 rounded-2xl shadow-[6px_6px_0_#073b4c] dark:shadow-[6px_6px_0_theme(colors.slate.600)] z-50 overflow-hidden"
           >
-            <div className="px-4 py-3 border-b-2 border-[#073b4c]/10 flex items-center justify-between">
-              <span className="text-sm font-black text-[#073b4c] uppercase tracking-wide">
+            <div className="px-4 py-3 border-b-2 border-[#073b4c]/10 dark:border-slate-700 flex items-center justify-between">
+              <span className="text-sm font-black text-[#073b4c] dark:text-slate-100 uppercase tracking-wide">
                 Notifications
               </span>
               {notifications.some((n) => !n.is_read) && (
@@ -152,8 +152,8 @@ export function NotificationBell() {
             <div className="max-h-[380px] overflow-y-auto">
               {notifications.length === 0 ? (
                 <div className="py-10 text-center">
-                  <Bell className="size-8 text-[#073b4c]/20 mx-auto mb-2" />
-                  <p className="text-sm font-medium text-[#073b4c]/50">No notifications yet</p>
+                  <Bell className="size-8 text-[#073b4c]/20 dark:text-slate-500 mx-auto mb-2" />
+                  <p className="text-sm font-medium text-[#073b4c]/50 dark:text-slate-400">No notifications yet</p>
                 </div>
               ) : (
                 notifications.map((n) => (
@@ -162,10 +162,10 @@ export function NotificationBell() {
                     type="button"
                     onClick={() => handleNotificationClick(n)}
                     className={cn(
-                      'w-full text-left px-4 py-3 flex gap-3 transition-colors border-b border-[#073b4c]/5 last:border-0',
+                      'w-full text-left px-4 py-3 flex gap-3 transition-colors border-b border-[#073b4c]/5 dark:border-slate-700/50 last:border-0',
                       n.is_read
                         ? 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
-                        : 'bg-[#ef476f]/5 hover:bg-[#ef476f]/10',
+                        : 'bg-[#ef476f]/5 dark:bg-[#ef476f]/10 hover:bg-[#ef476f]/10 dark:hover:bg-[#ef476f]/20',
                     )}
                   >
                     <div
@@ -175,11 +175,11 @@ export function NotificationBell() {
                       )}
                     />
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold text-[#073b4c] leading-tight">{n.title}</p>
+                      <p className="text-sm font-bold text-[#073b4c] dark:text-slate-100 leading-tight">{n.title}</p>
                       {n.body && (
-                        <p className="text-xs text-[#073b4c]/60 mt-0.5 line-clamp-2">{n.body}</p>
+                        <p className="text-xs text-[#073b4c]/60 dark:text-slate-400 mt-0.5 line-clamp-2">{n.body}</p>
                       )}
-                      <p className="text-[10px] text-[#073b4c]/40 mt-1">
+                      <p className="text-[10px] text-[#073b4c]/40 dark:text-slate-500 mt-1">
                         {timeAgo(n.created_at)}
                       </p>
                     </div>

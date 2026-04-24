@@ -27,6 +27,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     const saved = (localStorage.getItem('slate-theme') as Theme) || 'light';
     setThemeState(saved);
     applyTheme(saved);
+    // Listen for system preference changes
     const mq = window.matchMedia('(prefers-color-scheme: dark)');
     const listener = () => {
       if ((localStorage.getItem('slate-theme') as Theme) === 'system') {
