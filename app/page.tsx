@@ -89,6 +89,7 @@ import { CoursesExhaustedModal } from '@/components/billing/courses-exhausted-mo
 import { setPendingIntroPayload } from '@/lib/classroom/pending-intro';
 import { NotificationBell } from '@/components/notifications/notification-bell';
 import { usePlanStore } from '@/lib/store/user-plan';
+import { PLAN_LIMITS } from '@/lib/stripe/plans';
 import { CreateClassroomModal } from '@/components/classroom/create-classroom-modal';
 import {
   ClassroomGenerationStatus,
@@ -289,12 +290,16 @@ function SidebarNotificationRow() {
       </AnimatePresence>
     </div>
   );
+}
+
 interface ClassroomSplitButtonProps {
   canGenerate: boolean;
   createClassroomLoading: boolean;
   enterClassroomLoading: boolean;
   onBasicClassroom: () => void;
   onInstantClassroom: () => void;
+  canInstantClassroom?: boolean;
+  onUpgradeToUltra?: () => void;
 }
 
 function Sidebar({
@@ -524,6 +529,8 @@ function ClassroomSplitButton({
   enterClassroomLoading,
   onBasicClassroom,
   onInstantClassroom,
+  canInstantClassroom = true,
+  onUpgradeToUltra,
 }: ClassroomSplitButtonProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -540,8 +547,13 @@ function ClassroomSplitButton({
     return () => document.removeEventListener('mousedown', handler);
   }, [dropdownOpen]);
 
-  const isLoading = createClassroomLoading || enterClassroomLoading;
-  const active = canGenerate && !isLoading;
+  const active =
+    canGenerate && !isLoading && (canInstantClassroom || Boolean(onUpgradeToUltra));
+
+  const handleInstantClick = () => {
+    if (canInstantClassroom) onInstantClassroom();
+    else onUpgradeToUltra?.();
+  };
 
   return (
     <div ref={containerRef} className="relative shrink-0">
@@ -559,8 +571,8 @@ function ClassroomSplitButton({
             {/* Primary action — Instant Classroom */}
             <button
               type="button"
-              onClick={onInstantClassroom}
-              disabled={!active}
+              onClick={handleInstantClick}
+              disabled={!canGenerate || isLoading || (!canInstantClassroom && !onUpgradeToUltra)}
               aria-busy={enterClassroomLoading}
               className="h-full pl-5 pr-3 flex items-center gap-2 font-bold cursor-pointer disabled:cursor-not-allowed"
             >
