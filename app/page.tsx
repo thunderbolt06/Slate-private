@@ -219,7 +219,7 @@ function SidebarNotificationRow() {
     <div ref={containerRef} className="relative">
       <button
         onClick={handleOpen}
-        className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl font-bold text-sm text-[#073b4c]/60 hover:bg-[#f0f4f8] hover:text-[#073b4c] transition-all"
+        className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl font-bold text-sm text-[#073b4c]/60 hover:bg-[#f0f4f8] hover:text-[#073b4c] dark:text-[#a3a3a3] dark:hover:bg-[#222222] dark:hover:text-[#f0f0f0] transition-all"
       >
         <div className="relative shrink-0">
           <Bell className="size-4.5" />
@@ -979,12 +979,6 @@ function CourseGroupFolder({
             {group.name}
           </p>
         )}
-        <button
-          onClick={() => onDeleteGroup(group.id)}
-          className="shrink-0 size-5 rounded-full bg-[#f0f4f8] dark:bg-[#2a2a2a] flex items-center justify-center hover:bg-[#ef476f] hover:text-white transition-colors text-[#073b4c]/30 dark:text-[#737373]"
-        >
-          <X className="size-3" />
-        </button>
       </div>
 
       {/* Expanded courses list */}

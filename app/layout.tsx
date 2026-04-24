@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Nunito } from 'next/font/google';
+import { Nunito, Fredoka } from 'next/font/google';
 import './globals.css';
 import 'animate.css';
 import 'katex/dist/katex.min.css';
@@ -23,6 +23,13 @@ const nunito = Nunito({
   display: 'swap',
 });
 
+const fredoka = Fredoka({
+  subsets: ['latin'],
+  variable: '--font-fredoka',
+  display: 'swap',
+  weight: ['400', '500', '600', '700'],
+});
+
 export const metadata: Metadata = {
   title: 'Slate',
   description:
@@ -35,7 +42,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={cn(nunito.variable, 'h-full')} suppressHydrationWarning>
+    <html lang="en" className={cn(nunito.variable, fredoka.variable, 'h-full')} suppressHydrationWarning>
       <body
         className={`font-sans antialiased h-full`}
         suppressHydrationWarning

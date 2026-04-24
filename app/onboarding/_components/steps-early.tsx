@@ -61,7 +61,7 @@ export const Step1Welcome = ({ onNext }: { onNext: () => void }) => (
         }}
       >
         Your AI-powered classroom. Turn any topic into an interactive course with slides, narration,
-        and AI classmates — in under a minute.
+        and AI classmates, in under a minute.
       </p>
 
       <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 36, flexWrap: 'wrap' }}>
@@ -190,14 +190,6 @@ export const Step3Goal = ({
     eyebrow={name ? `Hi ${name}` : 'Quick one'}
     title="Why are you here?"
     subtitle="We'll tailor every course we make for you to fit this."
-    footer={
-      <>
-        <span />
-        <PillBtn onClick={onNext} disabled={!value} icon="→">
-          Continue
-        </PillBtn>
-      </>
-    }
   >
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, maxWidth: 640, margin: '0 auto' }}>
       {GOALS.map((g) => (
@@ -208,7 +200,10 @@ export const Step3Goal = ({
           emoji={g.emoji}
           color={g.color}
           selected={value === g.key}
-          onClick={() => onChange(g.key as OnboardingAnswers['goal'])}
+          onClick={() => {
+            onChange(g.key as OnboardingAnswers['goal']);
+            onNext();
+          }}
         />
       ))}
     </div>
@@ -241,9 +236,10 @@ export const Step4Source = ({
     bgVariant="cool"
     eyebrow="Quick question"
     title="How did you find us?"
-    subtitle="Totally optional — helps us say thank you to the right places."
+    subtitle="Totally optional. Helps us say thank you to the right places."
     footer={
       <>
+        <span />
         <button
           onClick={onNext}
           style={{
@@ -259,9 +255,6 @@ export const Step4Source = ({
         >
           Skip
         </button>
-        <PillBtn onClick={onNext} disabled={!value} icon="→">
-          Continue
-        </PillBtn>
       </>
     }
   >
@@ -274,7 +267,10 @@ export const Step4Source = ({
           color={s.color}
           size="sm"
           selected={value === s.key}
-          onClick={() => onChange(s.key)}
+          onClick={() => {
+            onChange(s.key);
+            onNext();
+          }}
         />
       ))}
     </div>
@@ -283,10 +279,10 @@ export const Step4Source = ({
 
 // ── Step 5: Level ──
 const LEVELS = [
-  { key: 'beginner', label: 'Beginner', sub: "I'm brand new — start from the basics.", emoji: '🌱', color: GREEN },
+  { key: 'beginner', label: 'Beginner', sub: "I'm brand new, start from the basics.", emoji: '🌱', color: GREEN },
   { key: 'intermediate', label: 'Intermediate', sub: 'I know some stuff. Challenge me a bit.', emoji: '🧗', color: BLUE },
   { key: 'advanced', label: 'Advanced', sub: 'Skip the fluff. Give me the hard parts.', emoji: '⚡', color: RED },
-  { key: 'mixed', label: 'Depends on the topic', sub: 'Ask me each time — it varies.', emoji: '🎚️', color: PURPLE },
+  { key: 'mixed', label: 'Depends on the topic', sub: 'Ask me each time. It varies.', emoji: '🎚️', color: PURPLE },
 ] as const;
 
 export const Step5Level = ({
@@ -303,14 +299,6 @@ export const Step5Level = ({
     eyebrow="Calibrating"
     title="Where are you starting from?"
     subtitle="We'll adjust depth, pace, and vocabulary to match."
-    footer={
-      <>
-        <span />
-        <PillBtn onClick={onNext} disabled={!value} icon="→">
-          Continue
-        </PillBtn>
-      </>
-    }
   >
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, maxWidth: 640, margin: '0 auto' }}>
       {LEVELS.map((l) => (
@@ -321,7 +309,10 @@ export const Step5Level = ({
           emoji={l.emoji}
           color={l.color}
           selected={value === l.key}
-          onClick={() => onChange(l.key as OnboardingAnswers['level'])}
+          onClick={() => {
+            onChange(l.key as OnboardingAnswers['level']);
+            onNext();
+          }}
         />
       ))}
     </div>
@@ -513,7 +504,7 @@ export const Step6Interests = ({
           </button>
         </div>
         <div style={{ fontFamily: NUNITO, fontSize: 12, color: '#A8B3BD', marginTop: 6 }}>
-          Slate can teach almost anything — just type it in.
+          Slate can teach almost anything. Just type it in.
         </div>
       </div>
     </StepLayout>
@@ -525,7 +516,7 @@ const STYLES = [
   { key: 'visual', label: 'Visual', sub: 'Show me diagrams, charts, and animations.', emoji: '👁️', color: BLUE },
   { key: 'audio', label: 'Audio', sub: 'Narration-first. I listen on the go.', emoji: '🎧', color: PURPLE },
   { key: 'reading', label: 'Reading', sub: 'Give me well-written notes I can scan.', emoji: '📖', color: YELLOW },
-  { key: 'hands', label: 'Hands-on', sub: 'I learn best by doing — quizzes and problems.', emoji: '✋', color: GREEN },
+  { key: 'hands', label: 'Hands-on', sub: 'I learn best by doing. Quizzes and problems.', emoji: '✋', color: GREEN },
 ] as const;
 
 export const Step7Style = ({
@@ -542,14 +533,6 @@ export const Step7Style = ({
     eyebrow="How you learn best"
     title="Pick your learning style"
     subtitle="We'll bias course generation toward this, but you can switch anytime."
-    footer={
-      <>
-        <span />
-        <PillBtn onClick={onNext} disabled={!value} icon="→">
-          Continue
-        </PillBtn>
-      </>
-    }
   >
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, maxWidth: 640, margin: '0 auto' }}>
       {STYLES.map((s) => (
@@ -560,7 +543,10 @@ export const Step7Style = ({
           emoji={s.emoji}
           color={s.color}
           selected={value === s.key}
-          onClick={() => onChange(s.key as OnboardingAnswers['style'])}
+          onClick={() => {
+            onChange(s.key as OnboardingAnswers['style']);
+            onNext();
+          }}
         />
       ))}
     </div>
@@ -589,19 +575,11 @@ export const Step8Time = ({
     eyebrow="Your pace"
     title="How much time per day?"
     subtitle="We'll size every course to fit. Nothing feels overwhelming this way."
-    footer={
-      <>
-        <span />
-        <PillBtn onClick={onNext} disabled={value == null} icon="→">
-          Continue
-        </PillBtn>
-      </>
-    }
   >
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, maxWidth: 640, margin: '0 auto' }}>
       {TIMES.map((t) => (
         <div key={t.key} style={{ position: 'relative' }}>
-          {t.popular && (
+          {'popular' in t && t.popular && (
             <div
               style={{
                 position: 'absolute',
@@ -628,7 +606,10 @@ export const Step8Time = ({
             emoji={t.emoji}
             color={t.color}
             selected={value === t.key}
-            onClick={() => onChange(t.key as OnboardingAnswers['time'])}
+            onClick={() => {
+              onChange(t.key as OnboardingAnswers['time']);
+              onNext();
+            }}
           />
         </div>
       ))}
@@ -652,15 +633,7 @@ export const Step9Mate = ({
       bgVariant="default"
       eyebrow="Your cast"
       title="Pick your sidekick"
-      subtitle="Professor Sage leads every class. Choose one classmate to ride shotgun — you can change later."
-      footer={
-        <>
-          <span />
-          <PillBtn onClick={onNext} disabled={!value} icon="→">
-            Continue
-          </PillBtn>
-        </>
-      }
+      subtitle="Professor Sage leads every class. Choose one classmate to ride shotgun. You can change later."
     >
       <div
         style={{
@@ -676,7 +649,10 @@ export const Step9Mate = ({
           return (
             <button
               key={m.key}
-              onClick={() => onChange(m.key as OnboardingAnswers['mate'])}
+              onClick={() => {
+                onChange(m.key as OnboardingAnswers['mate']);
+                onNext();
+              }}
               style={{
                 background: selected ? m.color + '18' : '#fff',
                 border: `3px solid ${INK}`,

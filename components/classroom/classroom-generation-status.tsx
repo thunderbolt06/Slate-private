@@ -81,14 +81,13 @@ export function ClassroomGenerationStatus({ job, onReopen, onClear }: Props) {
                   router.push(path);
                 }
               }}
-              className="flex items-center gap-2 h-9 px-4 rounded-full border-2 border-[#073b4c] bg-[#06d6a0] text-[#073b4c] font-bold text-xs shadow-[3px_3px_0_#073b4c] hover:shadow-[4px_4px_0_#073b4c] hover:translate-y-[-1px] transition-all cursor-pointer active:translate-y-0 active:shadow-[1px_1px_0_#073b4c]"
+              className="flex items-center gap-2 h-9 px-4 rounded-full border-2 border-[#073b4c] bg-[#06d6a0] text-[#073b4c] font-bold text-xs shadow-[3px_3px_0_#073b4c] hover:shadow-[4px_4px_0_#073b4c] hover:translate-y-[-1px] transition-all cursor-pointer active:translate-y-0 active:shadow-[1px_1px_0_#073b4c] max-w-full min-w-0 overflow-hidden"
             >
               <CheckCircle2 className="size-3.5 shrink-0" />
-              <span className="truncate max-w-[140px]">
+              <span className="truncate min-w-0 flex-1 text-left">
                 {job.courseTitle || job.requirement.slice(0, 24) + (job.requirement.length > 24 ? '…' : '')}
               </span>
-              <span className="text-[10px] opacity-60 hidden sm:inline">›</span>
-              <span className="text-xs font-black hidden sm:inline">Enter Classroom</span>
+              <span className="text-xs font-black shrink-0 hidden xl:inline">Enter</span>
               <ExternalLink className="size-3 shrink-0 opacity-60" />
             </motion.button>
           )}

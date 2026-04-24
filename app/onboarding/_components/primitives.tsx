@@ -137,14 +137,14 @@ export const OptionCard = ({
       onMouseEnter={() => setH(true)}
       onMouseLeave={() => setH(false)}
       style={{
-        background: selected ? color : '#fff',
+        background: selected ? color + '22' : '#fff',
         border: `3px solid ${INK}`,
         borderRadius: 20,
         boxShadow: selected ? `6px 6px 0 ${INK}` : h ? `5px 5px 0 ${INK}` : `4px 4px 0 ${INK}`,
         padding: pad,
         textAlign: 'left',
         cursor: 'pointer',
-        transform: h ? 'translate(-1px,-1px)' : 'translate(0,0)',
+        transform: h || selected ? 'translate(-1px,-1px)' : 'translate(0,0)',
         transition: 'transform .14s ease, box-shadow .14s ease, background .14s ease',
         display: 'flex',
         gap: 14,
@@ -161,7 +161,7 @@ export const OptionCard = ({
             height: 44,
             minWidth: 44,
             borderRadius: 12,
-            background: selected ? '#fff' : color,
+            background: color,
             border: `2.5px solid ${INK}`,
             display: 'flex',
             alignItems: 'center',
@@ -338,19 +338,6 @@ export const ProgressBar = ({
         }}
       >
         SLATE
-        <span
-          style={{
-            fontSize: 9,
-            color: '#fff',
-            background: RED,
-            padding: '2px 8px',
-            borderRadius: 999,
-            fontWeight: 700,
-            border: `1.5px solid ${INK}`,
-          }}
-        >
-          BETA
-        </span>
       </div>
       <div
         style={{
@@ -367,7 +354,7 @@ export const ProgressBar = ({
           style={{
             width: `${pct}%`,
             height: '100%',
-            background: `linear-gradient(90deg, ${YELLOW}, ${GREEN}, ${BLUE})`,
+            background: INK,
             transition: 'width .5s cubic-bezier(.22,1.2,.36,1)',
           }}
         />

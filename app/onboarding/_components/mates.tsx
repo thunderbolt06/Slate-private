@@ -94,7 +94,7 @@ export const MATES: Mate[] = [
     role: 'The Explorer',
     color: ORANGE,
     desc: "Always asking 'what if' and 'how about…' to spark new angles.",
-    quote: 'Wait — does this also apply to…? Oooh, good question.',
+    quote: 'Wait, does this also apply to…? Oooh, good question.',
     face: (
       <g>
         <path d="M 42 38 Q 44 18 65 16 Q 86 18 88 38" fill="#D35400" />
