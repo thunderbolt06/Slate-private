@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { stripe } from '@/lib/stripe/client';
+import { getStripe } from '@/lib/stripe/client';
 import { createAdminClient } from '@/utils/supabase/admin';
 import { TOPUP_COURSES_AMOUNT } from '@/lib/stripe/plans';
 import type Stripe from 'stripe';
@@ -27,6 +27,7 @@ export async function POST(req: NextRequest) {
 
   let event: Stripe.Event;
   try {
+    const stripe = getStripe();
     const rawBody = await req.arrayBuffer();
     event = stripe.webhooks.constructEvent(Buffer.from(rawBody), sig, webhookSecret);
   } catch (err: unknown) {
@@ -35,6 +36,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: `Webhook Error: ${msg}` }, { status: 400 });
   }
 
+  const stripe = getStripe();
   const admin = createAdminClient();
 
   try {
@@ -91,7 +93,7 @@ export async function POST(req: NextRequest) {
           const sub = await stripe.subscriptions.retrieve(session.subscription as string);
           const resolvedPeriod =
             (sub.metadata?.period as SubscriptionPeriodWebhook | undefined) ?? period;
-          await upsertSubscription(admin, userId, sub, resolvedPeriod as SubscriptionPeriodWebhook);
+          await upsertSubscription(admin, userId, sub, resolvedPeriod);
         }
         break;
       }
@@ -160,12 +162,14 @@ export async function POST(req: NextRequest) {
           const itemPeriodEnd = sub.items.data[0]?.current_period_end ?? null;
           const periodEnd = itemPeriodEnd ? new Date(itemPeriodEnd * 1000).toISOString() : null;
           const isActive = ['active', 'trialing'].includes(sub.status);
+          const resolvedPeriod = sub.metadata?.period as SubscriptionPeriodWebhook | undefined;
+          const isUltra = resolvedPeriod === 'ultra_monthly' || resolvedPeriod === 'ultra_yearly';
 
           await admin
             .from('user_plans')
             .update({
               subscription_status: isActive ? 'active' : sub.status,
-              account_type: isActive ? 'PLUS' : 'FREE',
+              account_type: isActive ? (isUltra ? 'ULTRA' : 'PLUS') : 'FREE',
               current_period_end: periodEnd,
               courses_generated_month: 0,
               courses_month_reset_at: new Date().toISOString(),
@@ -206,7 +210,7 @@ export async function POST(req: NextRequest) {
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-type SubscriptionPeriodWebhook = 'monthly' | 'yearly';
+type SubscriptionPeriodWebhook = 'monthly' | 'yearly' | 'ultra_monthly' | 'ultra_yearly';
 
 async function upsertSubscription(
   admin: ReturnType<typeof createAdminClient>,
@@ -217,7 +221,8 @@ async function upsertSubscription(
   const firstItem = sub.items.data[0];
   const priceId = firstItem?.price?.id ?? null;
   const isActive = ['active', 'trialing'].includes(sub.status);
-  const accountType = isActive ? 'PLUS' : 'FREE';
+  const isUltra = period === 'ultra_monthly' || period === 'ultra_yearly';
+  const accountType = isActive ? (isUltra ? 'ULTRA' : 'PLUS') : 'FREE';
 
   // In Stripe v22 (API version dahlia), current_period_end lives on the
   // subscription item, not on the subscription object itself.

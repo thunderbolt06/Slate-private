@@ -8,9 +8,8 @@ import { createLogger } from '@/lib/logger';
 
 const log = createLogger('CatalogAPI');
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!;
-const anonSupabase = createSupabaseClient(supabaseUrl, supabaseKey);
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
 type CourseTagRowLike = { tag_type: string; tag_value: string };
 type CourseRowLike = {
@@ -34,6 +33,15 @@ type UserPlanVisibilityLike = { user_id: string; is_public: boolean };
 
 export async function GET(req: NextRequest) {
   try {
+    if (!supabaseUrl || !supabaseKey) {
+      return apiError(
+        'MISSING_REQUIRED_FIELD',
+        503,
+        'Supabase is not configured for this environment',
+      );
+    }
+
+    const anonSupabase = createSupabaseClient(supabaseUrl, supabaseKey);
     const searchParams = req.nextUrl.searchParams;
     const subject = searchParams.get('subject');
     const topic = searchParams.get('topic');

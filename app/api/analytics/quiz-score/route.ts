@@ -5,38 +5,6 @@ import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { getGeoInfo } from '@/lib/analytics/geo';
 
 /**
- * Check if the authenticated user has already completed a quiz scene.
- * GET /api/analytics/quiz-score?sceneId=...
- */
-export async function GET(req: NextRequest) {
-  const sceneId = req.nextUrl.searchParams.get('sceneId');
-  if (!sceneId) return apiError('MISSING_REQUIRED_FIELD', 400, 'sceneId is required');
-
-  const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return apiSuccess({ completed: false });
-
-  const { data } = await supabase
-    .from('quiz_scores')
-    .select('score, total_points, percentage')
-    .eq('user_id', user.id)
-    .eq('scene_id', sceneId)
-    .order('score', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (!data) return apiSuccess({ completed: false });
-
-  return apiSuccess({
-    completed: true,
-    score: data.score,
-    totalPoints: data.total_points,
-    percentage: data.percentage,
-  });
-}
-
-/**
  * Quiz Score API
  * Handles saving quiz results and updating the geography-based leaderboard.
  */

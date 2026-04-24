@@ -1,21 +1,32 @@
-export type AccountType = 'FREE' | 'PLUS' | 'ADMIN';
-export type SubscriptionPeriod = 'monthly' | 'yearly' | null;
+export type AccountType = 'FREE' | 'PLUS' | 'ULTRA' | 'ADMIN';
+export type SubscriptionPeriod = 'monthly' | 'yearly' | 'ultra_monthly' | 'ultra_yearly' | null;
 
 export interface PlanLimits {
-  coursesPerMonth: number; // for FREE: total lifetime cap
+  coursesPerMonth: number;      // for FREE: total lifetime cap
   isUnlimited: boolean;
+  canInstantClassroom: boolean; // whether "Instant Classroom" (real-time) is available
 }
 
 export const PLAN_LIMITS: Record<AccountType, PlanLimits> = {
-  FREE:  { coursesPerMonth: 2,     isUnlimited: false },
-  PLUS:  { coursesPerMonth: 30,    isUnlimited: false },
-  ADMIN: { coursesPerMonth: 99999, isUnlimited: true  },
+  FREE:  { coursesPerMonth: 2,     isUnlimited: false, canInstantClassroom: false },
+  PLUS:  { coursesPerMonth: 30,    isUnlimited: false, canInstantClassroom: false },
+  ULTRA: { coursesPerMonth: 99999, isUnlimited: true,  canInstantClassroom: true  },
+  ADMIN: { coursesPerMonth: 99999, isUnlimited: true,  canInstantClassroom: true  },
 };
 
-/** Standard + Instant Classrooms share one credit pool per month */
-export const CLASSROOMS_PER_MONTH: Record<AccountType, number | 'unlimited'> = {
-  FREE:  2,
-  PLUS:  30,
+/** Standard Classrooms per month (async/background generation) */
+export const BASIC_CLASSROOMS_PER_MONTH: Record<AccountType, number | 'unlimited'> = {
+  FREE: 2,
+  PLUS: 30,
+  ULTRA: 'unlimited',
+  ADMIN: 'unlimited',
+};
+
+/** Instant classrooms per month (real-time live generation, Ultra only) */
+export const INSTANT_CLASSROOMS_PER_MONTH: Record<AccountType, number | 'unlimited'> = {
+  FREE: 0,
+  PLUS: 0,
+  ULTRA: 30,
   ADMIN: 'unlimited',
 };
 
@@ -23,14 +34,15 @@ export const CLASSROOMS_PER_MONTH: Record<AccountType, number | 'unlimited'> = {
 export const TOPUP_COURSES_AMOUNT = 10;
 
 export interface PricingPlan {
-  id: 'monthly' | 'yearly' | 'topup';
+  id: 'monthly' | 'yearly' | 'topup' | 'ultra_monthly' | 'ultra_yearly';
   label: string;
-  price: number;       // in cents
+  price: number;          // in cents
   displayPrice: string;
   period: string;
   stripePriceEnvKey: string;
   savings?: string;
   badge?: string;
+  tier?: 'plus' | 'ultra';
 }
 
 export const PRICING_PLANS: PricingPlan[] = [
@@ -41,6 +53,7 @@ export const PRICING_PLANS: PricingPlan[] = [
     displayPrice: '$20',
     period: '/month',
     stripePriceEnvKey: 'STRIPE_PRICE_MONTHLY',
+    tier: 'plus',
   },
   {
     id: 'yearly',
@@ -51,6 +64,7 @@ export const PRICING_PLANS: PricingPlan[] = [
     stripePriceEnvKey: 'STRIPE_PRICE_YEARLY',
     savings: 'Save $48',
     badge: 'Best Value',
+    tier: 'plus',
   },
   {
     id: 'topup',
@@ -61,9 +75,30 @@ export const PRICING_PLANS: PricingPlan[] = [
     stripePriceEnvKey: 'STRIPE_PRICE_TOPUP',
     badge: '+10 courses',
   },
+  {
+    id: 'ultra_monthly',
+    label: 'Ultra Monthly',
+    price: 20000,
+    displayPrice: '$200',
+    period: '/month',
+    stripePriceEnvKey: 'STRIPE_PRICE_ULTRA_MONTHLY',
+    badge: 'Instant Classroom',
+    tier: 'ultra',
+  },
+  {
+    id: 'ultra_yearly',
+    label: 'Ultra Yearly',
+    price: 180000,
+    displayPrice: '$1,800',
+    period: '/year',
+    stripePriceEnvKey: 'STRIPE_PRICE_ULTRA_YEARLY',
+    savings: 'Save $600',
+    badge: 'Best Value',
+    tier: 'ultra',
+  },
 ];
 
-export function getStripePriceId(period: 'monthly' | 'yearly' | 'topup'): string {
+export function getStripePriceId(period: 'monthly' | 'yearly' | 'topup' | 'ultra_monthly' | 'ultra_yearly'): string {
   const plan = PRICING_PLANS.find((p) => p.id === period);
   if (!plan) throw new Error(`Unknown plan period: ${period}`);
   const priceId = process.env[plan.stripePriceEnvKey];
@@ -97,23 +132,31 @@ export function getCreditSummary(plan: UserPlan): {
   remaining: number | 'unlimited';
   resetsAt: string | null;
 } {
-  if (plan.account_type === 'ADMIN') {
+  if (plan.account_type === 'ADMIN' || plan.account_type === 'ULTRA') {
     return { used: plan.courses_generated_total, total: 'unlimited', remaining: 'unlimited', resetsAt: null };
   }
   if (plan.account_type === 'FREE') {
     const used = plan.courses_generated_total;
-    const total = 2 + (plan.extra_credits || 0);
-    return { used, total, remaining: Math.max(0, total - used), resetsAt: null };
+    const baseTotal = 2;
+    const total = baseTotal + (plan.extra_credits || 0);
+    return {
+      used,
+      total: total,
+      remaining: Math.max(0, total - used),
+      resetsAt: null,
+    };
   }
 
   // PLUS
   const used = plan.courses_generated_month;
   const baseMonthly = 30;
+  // For PLUS, remaining is (monthly cap - monthly used) + any extra credits
   const remaining = Math.max(0, baseMonthly - used) + (plan.extra_credits || 0);
+
   return {
     used,
     total: baseMonthly + (plan.extra_credits || 0),
-    remaining,
+    remaining: remaining,
     resetsAt: plan.courses_month_reset_at,
   };
 }

@@ -83,37 +83,70 @@
 }
 
 .dark {
-  --background: #fdfdfd;
-  --foreground: #073b4c;
-  --card: #ffffff;
-  --card-foreground: #073b4c;
-  --popover: #ffffff;
-  --popover-foreground: #073b4c;
+  --background: #111111;
+  --foreground: #f0f0f0;
+  --card: #1a1a1a;
+  --card-foreground: #f0f0f0;
+  --popover: #1a1a1a;
+  --popover-foreground: #f0f0f0;
   --primary: #ef476f;
   --primary-foreground: #ffffff;
   --secondary: #ffd166;
   --secondary-foreground: #073b4c;
-  --muted: #f0f4f8;
-  --muted-foreground: #118ab2;
+  --muted: #1a1a1a;
+  --muted-foreground: #a3a3a3;
   --accent: #118ab2;
   --accent-foreground: #ffffff;
   --destructive: #ef476f;
-  --border: #073b4c;
-  --input: #073b4c;
-  --ring: #073b4c;
+  --border: #333333;
+  --input: #333333;
+  --ring: #333333;
   --chart-1: #ef476f;
   --chart-2: #ffd166;
   --chart-3: #118ab2;
-  --chart-4: #073b4c;
-  --chart-5: #052c39;
-  --sidebar: #fdfdfd;
-  --sidebar-foreground: #073b4c;
+  --chart-4: #f0f0f0;
+  --chart-5: #a3a3a3;
+  --sidebar: #0d0d0d;
+  --sidebar-foreground: #f0f0f0;
   --sidebar-primary: #ef476f;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #f0f4f8;
-  --sidebar-accent-foreground: #073b4c;
-  --sidebar-border: #073b4c;
-  --sidebar-ring: #073b4c;
+  --sidebar-accent: #1a1a1a;
+  --sidebar-accent-foreground: #f0f0f0;
+  --sidebar-border: #2a2a2a;
+  --sidebar-ring: #2a2a2a;
+
+  /* Slate brand overrides for dark mode */
+  --sl-bg: #111111;
+  --sl-surface: #1a1a1a;
+  --sl-muted: #1a1a1a;
+  --sl-border: #333333;
+  --sl-navy: #f0f0f0;
+  --sl-navy-05: rgba(240,240,240,0.05);
+  --sl-navy-08: rgba(240,240,240,0.08);
+  --sl-navy-10: rgba(240,240,240,0.10);
+  --sl-navy-15: rgba(240,240,240,0.15);
+  --sl-navy-20: rgba(240,240,240,0.20);
+  --sl-navy-30: rgba(240,240,240,0.30);
+  --sl-navy-40: rgba(240,240,240,0.40);
+  --sl-navy-50: rgba(240,240,240,0.50);
+  --sl-navy-60: rgba(240,240,240,0.60);
+}
+
+:root {
+  --sl-bg: #f8fafc;
+  --sl-surface: #ffffff;
+  --sl-muted: #f0f4f8;
+  --sl-border: #073b4c;
+  --sl-navy: #073b4c;
+  --sl-navy-05: rgba(7,59,76,0.05);
+  --sl-navy-08: rgba(7,59,76,0.08);
+  --sl-navy-10: rgba(7,59,76,0.10);
+  --sl-navy-15: rgba(7,59,76,0.15);
+  --sl-navy-20: rgba(7,59,76,0.20);
+  --sl-navy-30: rgba(7,59,76,0.30);
+  --sl-navy-40: rgba(7,59,76,0.40);
+  --sl-navy-50: rgba(7,59,76,0.50);
+  --sl-navy-60: rgba(7,59,76,0.60);
 }
 
 @layer base {

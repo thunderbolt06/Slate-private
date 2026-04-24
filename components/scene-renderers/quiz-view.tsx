@@ -29,7 +29,7 @@ import { useParams } from 'next/navigation';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
-type Phase = 'not_started' | 'answering' | 'grading' | 'reviewing' | 'already_completed';
+type Phase = 'not_started' | 'answering' | 'grading' | 'reviewing';
 type ScoreStatus = 'idle' | 'saving' | 'saved' | 'failed';
 
 interface QuestionResult {
@@ -698,7 +698,6 @@ export function QuizView({ questions, sceneId }: QuizViewProps) {
   const [answers, setAnswers] = useState<Record<string, string | string[]>>({});
   const [results, setResults] = useState<QuestionResult[]>([]);
   const [scoreStatus, setScoreStatus] = useState<ScoreStatus>('idle');
-  const [serverScore, setServerScore] = useState<{ score: number; totalPoints: number; percentage: number } | null>(null);
 
   // Draft cache for quiz answers, keyed by sceneId to isolate across classrooms
   const {
@@ -709,53 +708,14 @@ export function QuizView({ questions, sceneId }: QuizViewProps) {
     key: `quizDraft:${sceneId}`,
   });
 
-  // Persist completed quiz results so students can't retake after scoring
-  const {
-    cachedValue: cachedResults,
-    updateCache: updateResultsCache,
-  } = useDraftCache<{ answers: Record<string, string | string[]>; results: QuestionResult[] }>({
-    key: `quizResults:${sceneId}`,
-  });
-
-  // On mount: check server for prior completion (cross-device), then fall back to localStorage
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch(`/api/analytics/quiz-score?sceneId=${encodeURIComponent(sceneId)}`);
-        if (!cancelled && res.ok) {
-          const { data } = await res.json() as { data: { completed: boolean; score?: number; totalPoints?: number; percentage?: number } };
-          if (data?.completed && data.score !== undefined) {
-            setServerScore({ score: data.score, totalPoints: data.totalPoints!, percentage: data.percentage! });
-            setPhase('already_completed');
-            return;
-          }
-        }
-      } catch {
-        // not authenticated or network error — fall through to localStorage
-      }
-      if (cancelled) return;
-      // Fall back to local cache
-      if (cachedResults) {
-        setAnswers(cachedResults.answers);
-        setResults(cachedResults.results);
-        setPhase('reviewing');
-        setScoreStatus('saved');
-        return;
-      }
-      if (cachedAnswers && Object.keys(cachedAnswers).length > 0) {
-        setAnswers(cachedAnswers);
-        setPhase('answering');
-      }
-    })();
-    return () => { cancelled = true; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   // Restore cached answers during render (derived state pattern)
   const [prevCachedAnswers, setPrevCachedAnswers] = useState(cachedAnswers);
   if (cachedAnswers !== prevCachedAnswers) {
     setPrevCachedAnswers(cachedAnswers);
+    if (cachedAnswers && Object.keys(cachedAnswers).length > 0 && phase === 'not_started') {
+      setAnswers(cachedAnswers);
+      setPhase('answering');
+    }
   }
 
   const totalPoints = useMemo(
@@ -816,10 +776,7 @@ export function QuizView({ questions, sceneId }: QuizViewProps) {
 
       setResults(ordered);
 
-      // 4. Persist results so student cannot retake
-      updateResultsCache({ answers, results: ordered });
-
-      // 5. Show results immediately, then submit score in background
+      // 4. Show results immediately, then submit score in background
       const totalEarned = ordered.reduce((sum, r) => sum + r.earned, 0);
       setScoreStatus('saving');
       setPhase('reviewing');
@@ -842,7 +799,7 @@ export function QuizView({ questions, sceneId }: QuizViewProps) {
     return () => {
       cancelled = true;
     };
-  }, [phase, questions, answers, locale, avatar, classroomId, nickname, sceneId, totalPoints, updateResultsCache]);
+  }, [phase, questions, answers, locale, avatar, classroomId, nickname, sceneId, totalPoints]);
 
   const earnedScore = useMemo(() => results.reduce((sum, r) => sum + r.earned, 0), [results]);
 
@@ -857,38 +814,6 @@ export function QuizView({ questions, sceneId }: QuizViewProps) {
   return (
     <div className="w-full h-full bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-900 overflow-hidden flex flex-col">
       <AnimatePresence mode="wait">
-        {phase === 'already_completed' && serverScore && (
-          <motion.div
-            key="already_completed"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="flex-1 flex flex-col items-center justify-center gap-5 px-6"
-          >
-            <div className="w-16 h-16 bg-gradient-to-br from-emerald-100 to-teal-50 dark:from-emerald-900/50 dark:to-teal-900/30 rounded-2xl flex items-center justify-center shadow-lg ring-1 ring-emerald-200/50 dark:ring-emerald-700/50">
-              <Trophy className="w-8 h-8 text-emerald-500" />
-            </div>
-            <div className="text-center">
-              <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100">{t('quiz.title')}</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('quiz.alreadyCompleted') || 'You have already completed this quiz.'}</p>
-            </div>
-            <div className={cn(
-              'w-full max-w-xs rounded-2xl p-6 bg-gradient-to-r text-white shadow-lg',
-              serverScore.percentage >= 80
-                ? 'from-emerald-500 to-teal-500 shadow-emerald-200/50 dark:shadow-emerald-900/50'
-                : serverScore.percentage >= 60
-                  ? 'from-amber-500 to-yellow-500 shadow-amber-200/50 dark:shadow-amber-900/50'
-                  : 'from-red-500 to-rose-500 shadow-red-200/50 dark:shadow-red-900/50',
-            )}>
-              <p className="text-white/80 text-sm font-medium">{t('quiz.yourBestScore') || 'Your best score'}</p>
-              <div className="flex items-baseline gap-1 mt-1">
-                <span className="text-4xl font-black">{serverScore.score}</span>
-                <span className="text-white/60 text-lg">/ {serverScore.totalPoints}</span>
-              </div>
-              <p className="text-white/80 text-sm mt-2">{serverScore.percentage}%</p>
-            </div>
-          </motion.div>
-        )}
-
         {phase === 'not_started' && (
           <motion.div
             key="cover"

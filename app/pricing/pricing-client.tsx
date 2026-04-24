@@ -11,7 +11,10 @@ import {
   Sparkles,
   Clock,
   MessageCircle,
+  Headphones,
   ChevronLeft,
+  Bolt,
+  Infinity,
   RefreshCw,
   Info,
 } from 'lucide-react';
@@ -21,58 +24,23 @@ import { UpgradeSuccessModal } from '@/components/billing/upgrade-success-modal'
 import { usePlanStore } from '@/lib/store/user-plan';
 import { Button } from '@/components/ui/button';
 import posthog from 'posthog-js';
-import type { PaymentProvider, PaymentProviderResponse } from '@/app/api/payment/provider/route';
-import type { RazorpayPlanId } from '@/lib/razorpay/client';
-
-// ── Types ────────────────────────────────────────────────────────────────────
-
-type CheckoutPeriod = 'monthly' | 'yearly';
-
-// ── Razorpay script loader (only loaded for IN users) ───────────────────────
-type RazorpayCtor = new (opts: object) => {
-  open(): void;
-  on(e: string, h: (r: { error: { description: string } }) => void): void;
-};
-
-function getErrorMessage(err: unknown) {
-  return err instanceof Error ? err.message : 'Something went wrong';
-}
-
-function loadRazorpayScript(): Promise<boolean> {
-  return new Promise((resolve) => {
-    if (typeof window !== 'undefined' && window.Razorpay) return resolve(true);
-    const s = document.createElement('script');
-    s.src = 'https://checkout.razorpay.com/v1/checkout.js';
-    s.onload = () => resolve(true);
-    s.onerror = () => resolve(false);
-    document.body.appendChild(s);
-  });
-}
-
-// ── INR display prices matching lib/razorpay/client.ts amounts ──────────────
-
-// Approximate rate: $1 ≈ ₹85
-// yearly display is per-month equivalent (₹16,299 ÷ 12 ≈ ₹1,359)
-const INR_PRICES = {
-  monthly: { display: '₹1,699', sub: '/ month' },
-  yearly:  { display: '₹1,359', sub: '/ month', billed: 'Billed ₹16,299/yr · save ₹4,089' },
-  topup:   { display: '₹499',   sub: 'one-time' },
-} as const;
 
 // ── Feature table ───────────────────────────────────────────────────────────
 
 const FEATURES: {
   label: string;
   free: boolean | string;
-  plus: boolean | string;
+  standard: boolean | string;
+  ultra: boolean | string;
 }[] = [
-  { label: 'AI course generation',      free: true,      plus: true      },
-  { label: 'Classrooms / mo',           free: '2 total', plus: '30 / mo' },
-  { label: 'Instant Classroom',         free: false,     plus: true      },
-  { label: 'Cloud storage & quizzes',   free: true,      plus: true      },
-  { label: 'Monthly credit reset',      free: false,     plus: true      },
-  { label: 'Priority generation',       free: false,     plus: true      },
-  { label: 'Slate community',           free: false,     plus: true      },
+  { label: 'AI course generation', free: true, standard: true, ultra: true },
+  { label: 'Standard Classrooms / mo', free: '2 total', standard: '30 / mo', ultra: 'Unlimited' },
+  { label: 'Instant classrooms / mo', free: false, standard: false, ultra: '30 / mo' },
+  { label: 'Cloud storage & quizzes', free: true, standard: true, ultra: true },
+  { label: 'Monthly credit reset', free: false, standard: true, ultra: true },
+  { label: 'Priority generation', free: false, standard: true, ultra: true },
+  { label: 'Slate community', free: false, standard: true, ultra: true },
+  { label: '1-on-1 support', free: false, standard: false, ultra: true },
 ];
 
 function FeatureVal({ value, color }: { value: boolean | string; color: string }) {
@@ -134,7 +102,7 @@ function ClassroomTypeCard({
 
 // ── Credits info ────────────────────────────────────────────────────────────
 
-function CreditsInfo({ topupPrice }: { topupPrice: string }) {
+function CreditsInfo() {
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -149,24 +117,32 @@ function CreditsInfo({ topupPrice }: { topupPrice: string }) {
             How credits work
           </h3>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           <div className="space-y-1">
             <p className="text-xs font-black text-[#073b4c]/40 uppercase tracking-widest">Free</p>
             <p className="text-sm text-[#073b4c]/70">
-              2 lifetime classroom credits. Once used, top up for {topupPrice} per 10 extra classrooms.
+              2 lifetime credits. Once used, top up for $5 per 10 extra Standard Classrooms.
             </p>
           </div>
           <div className="space-y-1">
-            <p className="text-xs font-black text-[#118AB2] uppercase tracking-widest">Plus</p>
+            <p className="text-xs font-black text-[#118AB2] uppercase tracking-widest">Standard</p>
             <p className="text-sm text-[#073b4c]/70">
-              30 classroom credits per month (Standard + Instant), reset on your billing date. Unused credits don&apos;t carry over.
+              30 Standard Classroom credits reset every month on your billing date. Unused credits
+              don't carry over.
+            </p>
+          </div>
+          <div className="space-y-1">
+            <p className="text-xs font-black text-[#ffd166] uppercase tracking-widest">Ultra</p>
+            <p className="text-sm text-[#073b4c]/70">
+              30 instant classroom credits + unlimited Standard Classrooms per month. Instant credits
+              reset monthly.
             </p>
           </div>
         </div>
         <div className="mt-4 pt-4 border-t border-[#073b4c]/5 flex items-start gap-2">
           <RefreshCw className="size-3.5 text-[#073b4c]/30 mt-0.5 shrink-0" />
           <p className="text-xs text-[#073b4c]/40">
-            Top-ups add 10 Standard Classroom credits for {topupPrice} and work on any plan. Credits never
+            Top-ups add 10 Standard Classroom credits for $5 and work on any plan. Credits never
             expire once purchased.
           </p>
         </div>
@@ -183,7 +159,6 @@ export function PricingClient() {
   const [plan, setPlan] = useState<UserPlan | null>(null);
   const [loading, setLoading] = useState<string | null>(null);
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
-  const [paymentProvider, setPaymentProvider] = useState<PaymentProviderResponse | null>(null);
   const [successModal, setSuccessModal] = useState<{ open: boolean; period: SubscriptionPeriod }>({
     open: false,
     period: null,
@@ -210,7 +185,8 @@ export function PricingClient() {
           setPlan(json.plan);
           usePlanStore.getState().refetch();
           const isUpdated = successParam
-            ? json.plan.account_type === 'PLUS' || json.plan.subscription_status === 'active'
+            ? ['PLUS', 'ULTRA'].includes(json.plan.account_type) ||
+              json.plan.subscription_status === 'active'
             : true;
           if (isUpdated || count >= 5) clearInterval(interval);
         }
@@ -229,83 +205,12 @@ export function PricingClient() {
       .catch(() => {});
   }, []);
 
-  // Detect payment provider from geo (runs once, server-side headers used)
-  useEffect(() => {
-    fetch('/api/payment/provider')
-      .then((r) => r.json())
-      .then((data: PaymentProviderResponse) => setPaymentProvider(data))
-      .catch(() => setPaymentProvider({ provider: 'stripe', countryCode: 'XX', countryName: 'Unknown' }));
-  }, []);
-
-  const handleCheckout = async (period: CheckoutPeriod) => {
+  const handleCheckout = async (
+    period: 'monthly' | 'yearly' | 'ultra_monthly' | 'ultra_yearly',
+  ) => {
     setLoading(period);
-    const provider: PaymentProvider = paymentProvider?.provider ?? 'stripe';
-    posthog.capture('checkout_initiated', { plan_period: period, provider });
-
+    posthog.capture('checkout_initiated', { plan_period: period });
     try {
-      // ── Razorpay (India) ────────────────────────────────────────────────────
-      if (provider === 'razorpay') {
-        const scriptLoaded = await loadRazorpayScript();
-        if (!scriptLoaded) {
-          toast.error('Failed to load payment gateway. Please try again.');
-          setLoading(null);
-          return;
-        }
-
-        const orderRes = await fetch('/api/razorpay/create-order', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ period: period as RazorpayPlanId }),
-        });
-        const orderData = await orderRes.json();
-        if (!orderRes.ok) throw new Error(orderData.error || 'Failed to create order');
-
-        const Razorpay = (window as unknown as { Razorpay: RazorpayCtor }).Razorpay;
-        const rzp = new Razorpay({
-          key: orderData.key_id,
-          amount: orderData.amount,
-          currency: orderData.currency,
-          order_id: orderData.order_id,
-          name: 'Slate',
-          description: `Slate ${period} plan`,
-          theme: { color: '#073b4c' },
-          handler: async (response: { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string }) => {
-            try {
-              const verifyRes = await fetch('/api/razorpay/verify-payment', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ...response, period }),
-              });
-              const verifyData = await verifyRes.json();
-              if (!verifyRes.ok) throw new Error(verifyData.error || 'Payment verification failed');
-
-              setSuccessModal({ open: true, period: period as SubscriptionPeriod });
-              usePlanStore.getState().refetch();
-              posthog.capture('razorpay_checkout_completed', { plan_period: period, payment_id: response.razorpay_payment_id });
-            } catch (err: unknown) {
-              toast.error(getErrorMessage(err) || 'Payment verification failed');
-            } finally {
-              setLoading(null);
-            }
-          },
-          modal: {
-            ondismiss: () => {
-              toast.info('Payment cancelled — no charge was made.');
-              setLoading(null);
-            },
-          },
-        });
-
-        rzp.on('payment.failed', (response: { error: { description: string } }) => {
-          toast.error(response.error.description || 'Payment failed');
-          setLoading(null);
-        });
-
-        rzp.open();
-        return; // loading cleared inside handlers above
-      }
-
-      // ── Stripe (rest of world) ──────────────────────────────────────────────
       const res = await fetch('/api/stripe/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -314,10 +219,10 @@ export function PricingClient() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Checkout failed');
       if (json.url) window.location.href = json.url;
-    } catch (err: unknown) {
-      toast.error(getErrorMessage(err));
+    } catch (err: any) {
+      toast.error(err.message || 'Something went wrong');
     } finally {
-      if (provider !== 'razorpay') setLoading(null);
+      setLoading(null);
     }
   };
 
@@ -329,8 +234,8 @@ export function PricingClient() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Portal failed');
       if (json.url) window.open(json.url, '_blank');
-    } catch (err: unknown) {
-      toast.error(getErrorMessage(err));
+    } catch (err: any) {
+      toast.error(err.message || 'Something went wrong');
     } finally {
       setLoading(null);
     }
@@ -339,18 +244,19 @@ export function PricingClient() {
   const currentPeriod = plan?.subscription_period;
   const accountType = plan?.account_type ?? 'FREE';
   const isPlus = accountType === 'PLUS';
+  const isUltra = accountType === 'ULTRA';
   const isAdmin = accountType === 'ADMIN';
 
-  // Geo-aware pricing display
-  const isIndia = paymentProvider?.provider === 'razorpay';
-  const stdMonthlyPrice    = isIndia ? INR_PRICES.monthly.display : '$20';
-  const stdYearlyPrice     = isIndia ? INR_PRICES.yearly.display  : '$16';
-  const stdYearlyBilled    = isIndia ? INR_PRICES.yearly.billed   : 'Billed $192/yr · save $48';
-  const stdYearlySaveBadge = isIndia ? 'Save ₹4,089/yr'          : 'Save $48/yr';
-  const topupPrice         = isIndia ? INR_PRICES.topup.display   : '$5';
+  const isStandardMonthlyActive = isPlus && currentPeriod === 'monthly';
+  const isStandardYearlyActive = isPlus && currentPeriod === 'yearly';
+  const isUltraMonthlyActive = isUltra && currentPeriod === 'monthly';
+  const isUltraYearlyActive = isUltra && currentPeriod === 'yearly';
 
-  const checkoutId: CheckoutPeriod = billingCycle === 'monthly' ? 'monthly' : 'yearly';
-  const isPlusActive = isPlus && currentPeriod === billingCycle;
+  const standardCheckoutId = billingCycle === 'monthly' ? 'monthly' : 'yearly';
+  const ultraCheckoutId = billingCycle === 'monthly' ? 'ultra_monthly' : 'ultra_yearly';
+  const isStandardActive =
+    billingCycle === 'monthly' ? isStandardMonthlyActive : isStandardYearlyActive;
+  const isUltraActive = billingCycle === 'monthly' ? isUltraMonthlyActive : isUltraYearlyActive;
 
   return (
     <>
@@ -403,24 +309,6 @@ export function PricingClient() {
           </motion.div>
         </div>
 
-        {/* ── Payment provider badge ── */}
-        {paymentProvider && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.1 }}
-            className="flex justify-center mb-4"
-          >
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-[#073b4c]/10 bg-white text-[10px] font-black text-[#073b4c]/40 uppercase tracking-widest">
-              {paymentProvider.provider === 'razorpay' ? (
-                <>🇮🇳 Paying in INR · Razorpay</>
-              ) : (
-                <>💳 Paying in USD · Stripe</>
-              )}
-            </span>
-          </motion.div>
-        )}
-
         {/* ── Billing toggle ── */}
         <motion.div
           initial={{ opacity: 0 }}
@@ -456,7 +344,7 @@ export function PricingClient() {
         </motion.div>
 
         {/* ── Plan cards ── */}
-        <div className="max-w-3xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6 mb-14">
+        <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6 mb-14">
 
           {/* FREE */}
           <motion.div
@@ -483,14 +371,14 @@ export function PricingClient() {
             </div>
 
             <div className="mb-6">
-              <span className="text-4xl font-black text-[#073b4c]">{isIndia ? '₹0' : '$0'}</span>
+              <span className="text-4xl font-black text-[#073b4c]">$0</span>
               <span className="text-[#073b4c]/30 text-sm ml-1">forever</span>
             </div>
 
             <ul className="space-y-2.5 mb-8 flex-1">
               <li className="flex items-center gap-2 text-sm text-[#073b4c]/70">
                 <Check className="size-3.5 text-[#06D6A0] stroke-[3] shrink-0" />
-                <strong>2 classrooms</strong> (lifetime)
+                <strong>2 Standard Classrooms</strong> (lifetime)
               </li>
               <li className="flex items-center gap-2 text-sm text-[#073b4c]/70">
                 <Check className="size-3.5 text-[#06D6A0] stroke-[3] shrink-0" />
@@ -499,6 +387,10 @@ export function PricingClient() {
               <li className="flex items-center gap-2 text-sm text-[#073b4c]/70">
                 <Check className="size-3.5 text-[#06D6A0] stroke-[3] shrink-0" />
                 Leaderboard & analytics
+              </li>
+              <li className="flex items-start gap-2 text-sm text-[#073b4c]/40">
+                <span className="mt-0.5 text-base font-bold leading-none">—</span>
+                No instant classrooms
               </li>
             </ul>
 
@@ -514,14 +406,14 @@ export function PricingClient() {
             transition={{ delay: 0.2 }}
             className="relative rounded-3xl border-[3px] border-[#118AB2] bg-white p-7 flex flex-col shadow-[6px_6px_0_#118AB2]"
           >
-            {isPlusActive && (
+            {isStandardActive && (
               <div className="absolute -top-3 left-5 px-3 py-0.5 bg-[#118AB2] rounded-full text-white text-[10px] font-black uppercase tracking-widest">
                 Active
               </div>
             )}
-            {billingCycle === 'yearly' && !isPlusActive && (
+            {billingCycle === 'yearly' && !isStandardActive && (
               <div className="absolute -top-3 right-5 px-3 py-0.5 bg-[#118AB2]/15 border border-[#118AB2]/30 rounded-full text-[#118AB2] text-[10px] font-black uppercase tracking-widest">
-                {stdYearlySaveBadge}
+                Save $48/yr
               </div>
             )}
 
@@ -541,15 +433,15 @@ export function PricingClient() {
 
             {billingCycle === 'monthly' ? (
               <div className="mb-6">
-                <span className="text-4xl font-black text-[#073b4c]">{stdMonthlyPrice}</span>
+                <span className="text-4xl font-black text-[#073b4c]">$20</span>
                 <span className="text-[#073b4c]/30 text-sm ml-1">/ month</span>
               </div>
             ) : (
               <div className="mb-1">
-                <span className="text-4xl font-black text-[#073b4c]">{stdYearlyPrice}</span>
+                <span className="text-4xl font-black text-[#073b4c]">$16</span>
                 <span className="text-[#073b4c]/30 text-sm ml-1">/ month</span>
                 <p className="text-xs font-bold text-[#06D6A0] mt-0.5 mb-5">
-                  {stdYearlyBilled}
+                  Billed $192/yr · save $48
                 </p>
               </div>
             )}
@@ -557,11 +449,7 @@ export function PricingClient() {
             <ul className="space-y-2.5 mb-8 flex-1">
               <li className="flex items-center gap-2 text-sm text-[#073b4c]/70">
                 <Check className="size-3.5 text-[#118AB2] stroke-[3] shrink-0" />
-                <strong>30 classrooms / month</strong>
-              </li>
-              <li className="flex items-center gap-2 text-sm text-[#073b4c]/70">
-                <span className="text-sm shrink-0">⚡</span>
-                <strong>Instant Classroom</strong> included
+                <strong>30 Standard Classrooms / month</strong>
               </li>
               <li className="flex items-center gap-2 text-sm text-[#073b4c]/70">
                 <Check className="size-3.5 text-[#118AB2] stroke-[3] shrink-0" />
@@ -575,9 +463,13 @@ export function PricingClient() {
                 <Check className="size-3.5 text-[#118AB2] stroke-[3] shrink-0" />
                 Everything in Free
               </li>
+              <li className="flex items-start gap-2 text-sm text-[#073b4c]/40">
+                <span className="mt-0.5 text-base font-bold leading-none">—</span>
+                No instant classrooms
+              </li>
             </ul>
 
-            {isPlusActive ? (
+            {isStandardActive ? (
               <button
                 onClick={handlePortal}
                 disabled={loading === 'portal'}
@@ -587,25 +479,117 @@ export function PricingClient() {
               </button>
             ) : (
               <button
-                onClick={() => handleCheckout(checkoutId)}
-                disabled={!!loading || isAdmin}
+                onClick={() => handleCheckout(standardCheckoutId as 'monthly' | 'yearly')}
+                disabled={!!loading || isAdmin || isUltra}
                 className="h-11 rounded-2xl border-[3px] border-[#118AB2] bg-[#118AB2] text-white font-bold text-sm flex items-center justify-center hover:bg-[#0e7aa0] hover:shadow-[4px_4px_0_#073b4c] transition-all cursor-pointer disabled:opacity-50 shadow-[3px_3px_0_#073b4c]"
               >
-                {loading === checkoutId
+                {loading === standardCheckoutId
                   ? 'Redirecting…'
-                  : billingCycle === 'monthly'
-                    ? 'Get Standard'
-                    : 'Get Standard Yearly'}
+                  : isUltra
+                    ? 'Included in Ultra'
+                    : billingCycle === 'monthly'
+                      ? 'Get Standard'
+                      : 'Get Standard Yearly'}
               </button>
             )}
           </motion.div>
 
+          {/* ULTRA */}
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            id="ultra"
+            className="relative rounded-3xl border-[3px] border-[#ffd166] bg-gradient-to-br from-[#fffdf0] to-white p-7 flex flex-col shadow-[6px_6px_0_#ffd166]"
+          >
+            <div className="absolute -top-3 right-5 px-3 py-0.5 bg-[#ffd166] border border-[#073b4c]/10 rounded-full text-[#073b4c] text-[10px] font-black uppercase tracking-widest flex items-center gap-1">
+              {isUltraActive ? (
+                'Active'
+              ) : (
+                <>
+                  <Bolt className="size-2.5" />
+                  Instant Classroom
+                </>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2 mb-5">
+              <div className="size-9 rounded-xl bg-[#ffd166]/20 border-2 border-[#ffd166]/40 flex items-center justify-center">
+                <Sparkles className="size-4 text-[#ffd166]" />
+              </div>
+              <div>
+                <p className="text-xs font-black text-[#ffd166]/70 uppercase tracking-widest">
+                  Ultra
+                </p>
+                <h2 className="text-lg font-black text-[#073b4c]">
+                  {billingCycle === 'monthly' ? 'Monthly' : 'Yearly'}
+                </h2>
+              </div>
+            </div>
+
+            {billingCycle === 'monthly' ? (
+              <div className="mb-6">
+                <span className="text-4xl font-black text-[#073b4c]">$200</span>
+                <span className="text-[#073b4c]/30 text-sm ml-1">/ month</span>
+              </div>
+            ) : (
+              <div className="mb-1">
+                <span className="text-4xl font-black text-[#073b4c]">$150</span>
+                <span className="text-[#073b4c]/30 text-sm ml-1">/ month</span>
+                <p className="text-xs font-bold text-[#06D6A0] mt-0.5 mb-5">
+                  Billed $1,800/yr · save $600
+                </p>
+              </div>
+            )}
+
+            <ul className="space-y-2.5 mb-8 flex-1">
+              <li className="flex items-center gap-2 text-sm text-[#073b4c]/70">
+                <Bolt className="size-3.5 text-[#ffd166] shrink-0" />
+                <strong>30 instant classrooms / month</strong>
+              </li>
+              <li className="flex items-center gap-2 text-sm text-[#073b4c]/70">
+                <Infinity className="size-3.5 text-[#ffd166] shrink-0" />
+                <strong>Unlimited Standard Classrooms</strong>
+              </li>
+              <li className="flex items-center gap-2 text-sm text-[#073b4c]/70">
+                <Check className="size-3.5 text-[#ffd166] stroke-[3] shrink-0" />
+                Monthly instant credit reset
+              </li>
+              <li className="flex items-center gap-2 text-sm text-[#073b4c]/70">
+                <Headphones className="size-3.5 text-[#ffd166] shrink-0" />
+                <strong>1-on-1 support</strong> from the team
+              </li>
+              <li className="flex items-center gap-2 text-sm text-[#073b4c]/70">
+                <MessageCircle className="size-3.5 text-[#ffd166] shrink-0" />
+                Slate community access
+              </li>
+            </ul>
+
+            {isUltraActive ? (
+              <button
+                onClick={handlePortal}
+                disabled={loading === 'portal'}
+                className="h-11 rounded-2xl border-[3px] border-[#ffd166] text-[#073b4c] font-bold text-sm flex items-center justify-center gap-2 hover:bg-[#ffd166]/10 transition-colors cursor-pointer disabled:opacity-50"
+              >
+                {loading === 'portal' ? 'Loading…' : 'Manage Subscription'}
+              </button>
+            ) : (
+              <button
+                onClick={() => handleCheckout(ultraCheckoutId as 'ultra_monthly' | 'ultra_yearly')}
+                disabled={!!loading || isAdmin}
+                className="h-11 rounded-2xl border-[3px] border-[#073b4c] bg-[#ffd166] text-[#073b4c] font-black text-sm flex items-center justify-center hover:bg-[#f5c842] hover:shadow-[4px_4px_0_#073b4c] transition-all cursor-pointer disabled:opacity-50 shadow-[3px_3px_0_#073b4c]"
+              >
+                {loading === ultraCheckoutId
+                  ? 'Redirecting…'
+                  : billingCycle === 'monthly'
+                    ? 'Get Ultra'
+                    : 'Get Ultra Yearly'}
+              </button>
+            )}
+          </motion.div>
         </div>
 
-        {/* ── Credits info ── */}
-        <CreditsInfo topupPrice={topupPrice} />
-
-        {/* ── Feature comparison table ── */}
+        {/* ── Classroom types explainer ── */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -613,10 +597,55 @@ export function PricingClient() {
           className="max-w-3xl mx-auto mb-12"
         >
           <h3 className="text-center text-xs font-black text-[#073b4c]/30 uppercase tracking-widest mb-5">
+            Two ways to learn
+          </h3>
+          <div className="flex flex-col md:flex-row gap-5">
+            <ClassroomTypeCard
+              icon={<Clock className="size-5 text-[#8338ec]" />}
+              title="Standard Classroom"
+              color="#8338ec"
+              borderColor="border-[#8338ec]/20"
+              shadowColor="shadow-[4px_4px_0_#8338ec]/15"
+              badge="All plans"
+              features={[
+                'Generated in the background in 3–5 min',
+                'Full slide deck with quizzes & leaderboard',
+                'Available on Free and Standard',
+                'Top up extra credits for $5 per 10 courses',
+              ]}
+            />
+            <ClassroomTypeCard
+              icon={<Bolt className="size-5 text-[#ffd166]" />}
+              title="Instant Classroom"
+              color="#f5c842"
+              borderColor="border-[#ffd166]/40"
+              shadowColor="shadow-[4px_4px_0_#ffd166]/30"
+              badge="Ultra only"
+              features={[
+                'Streams live — enter the classroom instantly',
+                'Real-time AI generation as you learn',
+                '30 instant classrooms per month',
+                'Resets on your billing date',
+              ]}
+            />
+          </div>
+        </motion.div>
+
+        {/* ── Credits info ── */}
+        <CreditsInfo />
+
+        {/* ── Feature comparison table ── */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.55 }}
+          className="max-w-3xl mx-auto mb-12"
+        >
+          <h3 className="text-center text-xs font-black text-[#073b4c]/30 uppercase tracking-widest mb-5">
             Full comparison
           </h3>
           <div className="rounded-3xl border-[3px] border-[#073b4c]/10 bg-white overflow-hidden">
-            <div className="grid grid-cols-3 border-b-[3px] border-[#073b4c]/5 px-5 py-3">
+            <div className="grid grid-cols-4 border-b-[3px] border-[#073b4c]/5 px-5 py-3">
               <span className="text-xs font-black text-[#073b4c]/30 uppercase tracking-widest">
                 Feature
               </span>
@@ -624,22 +653,28 @@ export function PricingClient() {
                 Free
               </span>
               <span className="text-xs font-black text-[#118AB2] uppercase tracking-widest text-center">
-                Plus
+                Standard
+              </span>
+              <span className="text-xs font-black text-[#ffd166] uppercase tracking-widest text-center">
+                Ultra
               </span>
             </div>
             {FEATURES.map((f, i) => (
               <div
                 key={f.label}
-                className={`grid grid-cols-3 items-center px-5 py-3.5 ${
+                className={`grid grid-cols-4 items-center px-5 py-3.5 ${
                   i < FEATURES.length - 1 ? 'border-b border-[#073b4c]/5' : ''
-                } ${f.label === 'Instant Classroom' ? 'bg-[#f0f4f8]/50' : ''}`}
+                } ${f.label === 'Instant classrooms / mo' ? 'bg-[#fffdf0]' : ''}`}
               >
                 <span className="text-sm text-[#073b4c]/70 font-medium flex items-center gap-1.5">
+                  {f.label === '1-on-1 support' && (
+                    <Headphones className="size-3.5 text-[#ffd166] shrink-0" />
+                  )}
                   {f.label === 'Slate community' && (
                     <MessageCircle className="size-3.5 text-[#118AB2] shrink-0" />
                   )}
-                  {f.label === 'Instant Classroom' && (
-                    <span className="text-xs shrink-0">⚡</span>
+                  {f.label === 'Instant classrooms / mo' && (
+                    <Bolt className="size-3.5 text-[#ffd166] shrink-0" />
                   )}
                   {f.label}
                 </span>
@@ -647,7 +682,10 @@ export function PricingClient() {
                   <FeatureVal value={f.free} color="text-[#06D6A0]" />
                 </div>
                 <div className="flex justify-center">
-                  <FeatureVal value={f.plus} color="text-[#118AB2]" />
+                  <FeatureVal value={f.standard} color="text-[#118AB2]" />
+                </div>
+                <div className="flex justify-center">
+                  <FeatureVal value={f.ultra} color="text-[#ffd166]" />
                 </div>
               </div>
             ))}

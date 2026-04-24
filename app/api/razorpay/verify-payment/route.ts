@@ -80,8 +80,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, type: 'topup' });
     }
 
-    // Subscription plans — all non-topup periods map to PLUS
-    const accountType = 'PLUS' as const;
+    // Subscription plans
+    const isUltra = period === 'ultra_monthly' || period === 'ultra_yearly';
+    const accountType = isUltra ? 'ULTRA' : 'PLUS';
+
     await admin.from('user_plans').upsert(
       {
         user_id: user.id,
@@ -99,9 +101,8 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({ success: true, type: 'subscription', account_type: accountType });
-  } catch (err: unknown) {
+  } catch (err: any) {
     console.error('[razorpay/verify-payment] error:', err);
-    const message = err instanceof Error ? err.message : 'Internal Server Error';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: err.message || 'Internal Server Error' }, { status: 500 });
   }
 }
