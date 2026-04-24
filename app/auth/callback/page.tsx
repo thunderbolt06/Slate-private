@@ -43,7 +43,7 @@ function AuthCallbackInner() {
     }
 
     const p = getOrStartExchange(code);
-    void p.then(({ error }) => {
+    void p.then(async ({ error }) => {
       pkceExchangePromise = null;
       pkceExchangeCode = null;
 
@@ -51,7 +51,11 @@ function AuthCallbackInner() {
         router.replace('/auth/login?error=auth_failed');
         return;
       }
-      router.replace(next);
+
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      const isNewUser = !user?.user_metadata?.onboarding;
+      router.replace(isNewUser ? '/onboarding' : next);
     });
   }, [router, searchParams]);
 

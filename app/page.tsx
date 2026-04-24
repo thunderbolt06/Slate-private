@@ -642,7 +642,7 @@ function ClassroomSplitButton({
               aria-busy={enterClassroomLoading}
               className="h-full pl-5 pr-3 flex items-center gap-2 font-bold cursor-pointer disabled:cursor-not-allowed"
             >
-              <span className="text-xs font-bold">⚡ Instant Classroom</span>
+              <span className="text-xs font-bold">Instant Classroom</span>
               {enterClassroomLoading ? (
                 <Loader2 className="size-3.5 animate-spin" aria-hidden />
               ) : (
@@ -1621,7 +1621,7 @@ function BrowseCoursesTab({ onSelectCourse }: { onSelectCourse: (course: Course)
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(false);
-  const [offset, setOffset] = useState(0);
+  const offsetRef = useRef(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSubject, setSelectedSubject] = useState('All');
   const [selectedAge, setSelectedAge] = useState('All');
@@ -1643,24 +1643,33 @@ function BrowseCoursesTab({ onSelectCourse }: { onSelectCourse: (course: Course)
 
   const fetchCatalog = useCallback(async (reset = true, q?: string) => {
     if (reset) setLoading(true); else setLoadingMore(true);
-    const currentOffset = reset ? 0 : offset;
+    const currentOffset = reset ? 0 : offsetRef.current;
     try {
       const params = buildParams({ offset: currentOffset });
       if (q !== undefined) params.set('q', q);
       const res = await fetch(`/api/catalog?${params.toString()}`);
       const json = await res.json();
       if (json.success) {
-        if (reset) { setCourses(json.courses); setOffset(json.courses.length); }
-        else { setCourses((prev) => [...prev, ...json.courses]); setOffset((prev) => prev + json.courses.length); }
+        if (reset) {
+          setCourses(json.courses);
+          offsetRef.current = json.courses.length;
+        } else {
+          setCourses((prev) => {
+            const existingIds = new Set(prev.map((c) => c.id));
+            const fresh = (json.courses as Course[]).filter((c) => !existingIds.has(c.id));
+            return [...prev, ...fresh];
+          });
+          offsetRef.current += json.courses.length;
+        }
         setHasMore(json.hasMore ?? false);
       }
     } catch { /* ignore */ } finally {
       if (reset) setLoading(false); else setLoadingMore(false);
     }
-  }, [buildParams, offset]);
+  }, [buildParams]);
 
   useEffect(() => {
-    setOffset(0); setCourses([]); fetchCatalog(true);
+    offsetRef.current = 0; setCourses([]); fetchCatalog(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSubject, selectedAge]);
 
