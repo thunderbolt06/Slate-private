@@ -29,7 +29,8 @@ function LoginContent() {
   // Redirect if already logged in
   useEffect(() => {
     if (!loading && user) {
-      router.replace(redirectTo);
+      const isNewUser = !user?.user_metadata?.onboarding;
+      router.replace(isNewUser ? '/onboarding' : redirectTo);
     }
   }, [user, loading, router, redirectTo]);
 
@@ -41,10 +42,11 @@ function LoginContent() {
 
     try {
       if (mode === 'login') {
-        await signInWithEmail(email, password);
+        const data = await signInWithEmail(email, password);
         posthog.identify(email, { email });
         posthog.capture('user_signed_in', { method: 'email' });
-        router.replace(redirectTo);
+        const isNewUser = !data.user?.user_metadata?.onboarding;
+        router.replace(isNewUser ? '/onboarding' : redirectTo);
       } else {
         await signUpWithEmail(email, password);
         posthog.identify(email, { email });

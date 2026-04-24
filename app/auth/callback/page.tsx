@@ -44,9 +44,6 @@ function AuthCallbackInner() {
 
     const p = getOrStartExchange(code);
     void p.then(async ({ error }) => {
-      pkceExchangePromise = null;
-      pkceExchangeCode = null;
-
       if (error) {
         router.replace('/auth/login?error=auth_failed');
         return;

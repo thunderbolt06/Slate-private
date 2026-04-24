@@ -53,7 +53,7 @@ const FREE_FEATURES = [
 
 const PRO_FEATURES = [
   '30 classroom credits / month',
-  'All 4 Mates (Sage, Zap, Luna, Finn)',
+  'All 4 Mates',
   'Full-length lessons (up to 45 min)',
   'Instant Classroom, no wait',
   'Import from PDF, YouTube, URL',
@@ -194,7 +194,7 @@ export function PricingPanel({ onFreeContinue }: { onFreeContinue?: () => void }
   };
 
   return (
-    <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+    <div style={{ maxWidth: 1100, margin: '0 auto', color: INK }}>
       {/* Provider badge */}
       {provider && (
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 18 }}>
@@ -592,7 +592,7 @@ function PlanTagline({ children, color = '#495057' }: { children: React.ReactNod
 function PriceBlock({ value, sub }: { value: string; sub: string }) {
   return (
     <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: -4 }}>
-      <span style={{ fontFamily: FREDOKA, fontWeight: 700, fontSize: 48, color: 'inherit' }}>
+      <span style={{ fontFamily: FREDOKA, fontWeight: 700, fontSize: 48, color: INK }}>
         {value}
       </span>
       <span style={{ fontFamily: NUNITO, fontSize: 14, color: '#6B7B85' }}>{sub}</span>
