@@ -3,9 +3,10 @@
 import { useState, useEffect, useRef, useCallback, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, LogOut, Mail, Zap, Crown, Shield, BookOpen, ExternalLink, RefreshCw, Flame, GraduationCap } from 'lucide-react';
+import { X, LogOut, Mail, Zap, Crown, Shield, BookOpen, ExternalLink, RefreshCw, Flame, GraduationCap, Sun, Moon, Monitor } from 'lucide-react';
 import { useAuth } from '@/lib/hooks/use-auth';
 import { usePlanStore } from '@/lib/store/user-plan';
+import { useTheme } from '@/lib/hooks/use-theme';
 import type { UserPlan } from '@/lib/stripe/plans';
 
 type ProfileCertificate = { id: string; courseId: string; courseName: string; createdAt: string };
@@ -17,10 +18,10 @@ interface AuthProfileModalProps {
 
 // ── Plan & Credits sub-component ─────────────────────────────────────────────
 
-const ACCOUNT_META: Record<string, { label: string; color: string; bg: string; icon: React.ReactNode }> = {
-  FREE:  { label: 'Free',  color: '#073b4c', bg: '#f0f4f8', icon: <BookOpen className="size-3" /> },
-  PLUS:  { label: 'Plus',  color: '#118AB2', bg: '#e8f6fd', icon: <Zap className="size-3" /> },
-  ADMIN: { label: 'Admin', color: '#06D6A0', bg: '#e6fdf7', icon: <Shield className="size-3" /> },
+const ACCOUNT_META: Record<string, { label: string; color: string; bgClass: string; icon: React.ReactNode }> = {
+  FREE:  { label: 'Free',  color: '#073b4c', bgClass: 'bg-[#f0f4f8] dark:bg-[#1a2332]', icon: <BookOpen className="size-3" /> },
+  PLUS:  { label: 'Plus',  color: '#118AB2', bgClass: 'bg-[#e8f6fd] dark:bg-[#0a1929]', icon: <Zap className="size-3" /> },
+  ADMIN: { label: 'Admin', color: '#06D6A0', bgClass: 'bg-[#e6fdf7] dark:bg-[#0a1f1a]', icon: <Shield className="size-3" /> },
 };
 
 function PlanCreditsSection({
@@ -37,7 +38,7 @@ function PlanCreditsSection({
   onClose: () => void;
 }) {
   if (!plan && isLoading) {
-    return <div className="mb-4 h-20 rounded-2xl bg-[#f0f4f8] animate-pulse" />;
+    return <div className="mb-4 h-20 rounded-2xl bg-[#f0f4f8] dark:bg-[#1a1a1a] animate-pulse" />;
   }
 
   if (!plan) return null;
@@ -64,13 +65,13 @@ function PlanCreditsSection({
   return (
     <div className="mb-4">
       <div className="flex items-center justify-between mb-2 px-1">
-        <h4 className="text-[11px] font-black text-[#073b4c]/30 uppercase tracking-widest">Plan & Credits</h4>
+        <h4 className="text-[11px] font-black text-[#073b4c]/30 dark:text-[#737373] uppercase tracking-widest">Plan & Credits</h4>
         <button
           onClick={onRefresh}
           disabled={isLoading}
           title="Refresh plan data"
-          className="size-5 flex items-center justify-center rounded-full hover:bg-[#f0f4f8]
-            text-[#073b4c]/30 hover:text-[#073b4c]/60 transition-all disabled:opacity-40 cursor-pointer"
+          className="size-5 flex items-center justify-center rounded-full hover:bg-[#f0f4f8] dark:hover:bg-[#2a2a2a]
+            text-[#073b4c]/30 hover:text-[#073b4c]/60 dark:text-[#737373] transition-all disabled:opacity-40 cursor-pointer"
         >
           <RefreshCw className={`size-3 ${isLoading ? 'animate-spin' : ''}`} />
         </button>
@@ -78,12 +79,12 @@ function PlanCreditsSection({
 
       {/* Account type badge */}
       <div
-        className="flex items-center justify-between rounded-2xl border-2 px-3 py-2.5 mb-2"
-        style={{ borderColor: `${meta.color}20`, backgroundColor: meta.bg }}
+        className={`flex items-center justify-between rounded-2xl border-2 px-3 py-2.5 mb-2 ${meta.bgClass}`}
+        style={{ borderColor: `${meta.color}20` }}
       >
         <div className="flex items-center gap-2">
           <span style={{ color: meta.color }}>{meta.icon}</span>
-          <span className="text-xs font-black" style={{ color: meta.color }}>{meta.label}</span>
+          <span className="text-xs font-black dark:opacity-90" style={{ color: meta.color }}>{meta.label}</span>
           {plan.subscription_period && (
             <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full capitalize"
               style={{ background: `${meta.color}18`, color: meta.color }}>
@@ -110,12 +111,12 @@ function PlanCreditsSection({
       </div>
 
       {/* Credit usage bar */}
-      <div className="bg-[#f0f4f8] rounded-2xl border-2 border-[#073b4c]/5 px-3 py-2.5">
+      <div className="bg-[#f0f4f8] dark:bg-[#1a1a1a] rounded-2xl border-2 border-[#073b4c]/5 dark:border-[#2a2a2a] px-3 py-2.5">
         <div className="flex items-center justify-between mb-1.5">
-          <span className="text-[10px] font-black text-[#073b4c]/50 uppercase tracking-tighter">
+          <span className="text-[10px] font-black text-[#073b4c]/50 dark:text-[#737373] uppercase tracking-tighter">
             {plan.account_type === 'FREE' ? 'Course Credits (Lifetime)' : 'Courses This Month'}
           </span>
-          <span className="text-[10px] font-black text-[#073b4c]">
+          <span className="text-[10px] font-black text-[#073b4c] dark:text-[#e0e0e0]">
             {remaining === 'unlimited' ? '∞ unlimited' : `${remaining} left`}
           </span>
         </div>
@@ -131,7 +132,7 @@ function PlanCreditsSection({
 
         {total !== 'unlimited' ? (
           <>
-            <div className="w-full h-1.5 rounded-full bg-[#073b4c]/10 overflow-hidden">
+            <div className="w-full h-1.5 rounded-full bg-[#073b4c]/10 dark:bg-white/10 overflow-hidden">
               <div
                 className="h-full rounded-full transition-all duration-700"
                 style={{
@@ -140,7 +141,7 @@ function PlanCreditsSection({
                 }}
               />
             </div>
-            <p className="text-[9px] text-[#073b4c]/30 mt-1">
+            <p className="text-[9px] text-[#073b4c]/30 dark:text-[#737373] mt-1">
               {used} of {total as number} used
             </p>
           </>
@@ -168,6 +169,7 @@ function PlanCreditsSection({
  */
 export function AuthProfileModal({ open, onClose }: AuthProfileModalProps) {
   const { user, signOut } = useAuth();
+  const { theme, setTheme } = useTheme();
   const panelRef = useRef<HTMLDivElement>(null);
   const portalReady = useSyncExternalStore(
     () => () => {},
@@ -289,28 +291,28 @@ export function AuthProfileModal({ open, onClose }: AuthProfileModalProps) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -12, scale: 0.95 }}
             transition={{ duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
-            className="fixed top-16 right-4 z-[100] flex min-h-0 w-[320px] max-h-[calc(100dvh-5rem)] flex-col overflow-hidden rounded-3xl border-[3px] border-[#073b4c] bg-white shadow-[6px_6px_0_#073b4c]"
+            className="fixed top-16 right-4 z-[100] flex min-h-0 w-[320px] max-h-[calc(100dvh-5rem)] flex-col overflow-hidden rounded-3xl border-[3px] border-[#073b4c] dark:border-[#333333] bg-white dark:bg-[#1a1a1a] shadow-[6px_6px_0_#073b4c] dark:shadow-[6px_6px_0_rgba(0,0,0,0.5)]"
           >
             {/* Certificates overlay */}
             {certificatesOpen && (
-              <div className="absolute inset-0 z-20 flex flex-col bg-white rounded-[20px]">
-                <div className="flex items-center justify-between px-4 pt-3 pb-2 border-b-2 border-[#073b4c]/10 shrink-0">
-                  <h3 className="text-xs font-black text-[#073b4c] tracking-tight flex items-center gap-1.5">
+              <div className="absolute inset-0 z-20 flex flex-col bg-white dark:bg-[#1a1a1a] rounded-[20px]">
+                <div className="flex items-center justify-between px-4 pt-3 pb-2 border-b-2 border-[#073b4c]/10 dark:border-[#2a2a2a] shrink-0">
+                  <h3 className="text-xs font-black text-[#073b4c] dark:text-[#f0f0f0] tracking-tight flex items-center gap-1.5">
                     <GraduationCap className="size-3.5 text-[#06d6a0]" />
                     Your certificates
                   </h3>
                   <button
                     type="button"
                     onClick={() => setCertificatesOpen(false)}
-                    className="size-7 rounded-full border-2 border-[#073b4c]/20 flex items-center justify-center hover:bg-[#f0f4f8] hover:border-[#073b4c]/40 transition-all cursor-pointer"
+                    className="size-7 rounded-full border-2 border-[#073b4c]/20 dark:border-[#333333] flex items-center justify-center hover:bg-[#f0f4f8] dark:hover:bg-[#2a2a2a] hover:border-[#073b4c]/40 transition-all cursor-pointer"
                     aria-label="Back to profile"
                   >
-                    <X className="size-3.5 text-[#073b4c]/60" />
+                    <X className="size-3.5 text-[#073b4c]/60 dark:text-[#a3a3a3]" />
                   </button>
                 </div>
                 <div className="flex-1 overflow-y-auto px-4 py-3 min-h-0">
                   {!(stats?.certificates?.length) ? (
-                    <p className="text-[11px] font-semibold text-[#073b4c]/45 leading-relaxed">
+                    <p className="text-[11px] font-semibold text-[#073b4c]/45 dark:text-[#737373] leading-relaxed">
                       Complete a course to earn your first certificate. It will show up here.
                     </p>
                   ) : (
@@ -319,18 +321,18 @@ export function AuthProfileModal({ open, onClose }: AuthProfileModalProps) {
                         <li key={c.id}>
                           <a
                             href={`/c/${c.id}`}
-                            className="flex items-start gap-2.5 rounded-xl border-2 border-[#073b4c]/10 bg-[#f0f4f8]/60 px-3 py-2.5 hover:border-[#06d6a0]/40 hover:bg-[#06d6a0]/5 transition-all group cursor-pointer"
+                            className="flex items-start gap-2.5 rounded-xl border-2 border-[#073b4c]/10 dark:border-[#2a2a2a] bg-[#f0f4f8]/60 dark:bg-[#111111] px-3 py-2.5 hover:border-[#06d6a0]/40 hover:bg-[#06d6a0]/5 dark:hover:border-[#06d6a0]/40 dark:hover:bg-[#06d6a0]/5 transition-all group cursor-pointer"
                           >
                             <GraduationCap className="size-4 text-[#06d6a0] shrink-0 mt-0.5" />
                             <span className="flex-1 min-w-0">
-                              <span className="block text-xs font-black text-[#073b4c] group-hover:text-[#118AB2] leading-snug">
+                              <span className="block text-xs font-black text-[#073b4c] dark:text-[#e0e0e0] group-hover:text-[#118AB2] leading-snug">
                                 {c.courseName}
                               </span>
-                              <span className="text-[9px] font-bold text-[#073b4c]/35 uppercase tracking-tight">
+                              <span className="text-[9px] font-bold text-[#073b4c]/35 dark:text-[#737373] uppercase tracking-tight">
                                 {c.createdAt ? new Date(c.createdAt).toLocaleDateString() : ''}
                               </span>
                             </span>
-                            <ExternalLink className="size-3.5 text-[#073b4c]/25 group-hover:text-[#118AB2] shrink-0 mt-0.5" />
+                            <ExternalLink className="size-3.5 text-[#073b4c]/25 dark:text-[#737373] group-hover:text-[#118AB2] shrink-0 mt-0.5" />
                           </a>
                         </li>
                       ))}
@@ -342,12 +344,12 @@ export function AuthProfileModal({ open, onClose }: AuthProfileModalProps) {
 
             {/* Header */}
             <div className="flex shrink-0 items-center justify-between px-5 pt-4 pb-3">
-              <h3 className="text-sm font-black text-[#073b4c] tracking-tight">Your Profile</h3>
+              <h3 className="text-sm font-black text-[#073b4c] dark:text-[#f0f0f0] tracking-tight">Your Profile</h3>
               <button
                 onClick={closeProfile}
-                className="size-7 rounded-full border-2 border-[#073b4c]/20 flex items-center justify-center hover:bg-[#f0f4f8] hover:border-[#073b4c]/40 transition-all cursor-pointer"
+                className="size-7 rounded-full border-2 border-[#073b4c]/20 dark:border-[#333333] flex items-center justify-center hover:bg-[#f0f4f8] dark:hover:bg-[#2a2a2a] hover:border-[#073b4c]/40 transition-all cursor-pointer"
               >
-                <X className="size-3.5 text-[#073b4c]/60" />
+                <X className="size-3.5 text-[#073b4c]/60 dark:text-[#a3a3a3]" />
               </button>
             </div>
 
@@ -368,9 +370,9 @@ export function AuthProfileModal({ open, onClose }: AuthProfileModalProps) {
                 {/* Name & provider badge */}
                 <div className="flex-1 min-w-0">
                   {fullName && (
-                    <p className="text-base font-bold text-[#073b4c] truncate leading-tight">{fullName}</p>
+                    <p className="text-base font-bold text-[#073b4c] dark:text-[#f0f0f0] truncate leading-tight">{fullName}</p>
                   )}
-                  <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 bg-[#f0f4f8] rounded-full border border-[#073b4c]/10">
+                  <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 bg-[#f0f4f8] dark:bg-[#2a2a2a] rounded-full border border-[#073b4c]/10 dark:border-[#333333]">
                     {provider === 'google' ? (
                       <svg className="size-3" viewBox="0 0 24 24">
                         <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />
@@ -381,7 +383,7 @@ export function AuthProfileModal({ open, onClose }: AuthProfileModalProps) {
                     ) : (
                       <Mail className="size-3 text-[#118AB2]" />
                     )}
-                    <span className="text-[10px] font-semibold text-[#073b4c]/50 capitalize">{provider}</span>
+                    <span className="text-[10px] font-semibold text-[#073b4c]/50 dark:text-[#737373] capitalize">{provider}</span>
                   </span>
                 </div>
               </div>
@@ -396,31 +398,31 @@ export function AuthProfileModal({ open, onClose }: AuthProfileModalProps) {
 
               {/* Stats Section */}
               <div className="mb-5">
-                <h4 className="text-[11px] font-black text-[#073b4c]/30 uppercase tracking-widest mb-3 px-1">My Learning Journey</h4>
+                <h4 className="text-[11px] font-black text-[#073b4c]/30 dark:text-[#737373] uppercase tracking-widest mb-3 px-1">My Learning Journey</h4>
                 <div className="grid grid-cols-2 gap-2.5 mb-4">
                   <div className="col-span-1 bg-[#ef476f]/5 border-2 border-[#ef476f]/10 rounded-2xl p-3 flex flex-col justify-center">
                     <p className="text-[10px] font-black text-[#ef476f] uppercase tracking-tighter mb-0.5">Total Points</p>
-                    <p className="text-xl/none font-black text-[#073b4c]">{(stats?.totalScore || 0).toLocaleString()}</p>
+                    <p className="text-xl/none font-black text-[#073b4c] dark:text-[#e0e0e0]">{(stats?.totalScore || 0).toLocaleString()}</p>
                   </div>
                   <div className="col-span-1 bg-[#118ab2]/5 border-2 border-[#118ab2]/10 rounded-2xl p-3 flex flex-col justify-center">
                     <p className="text-[10px] font-black text-[#118ab2] uppercase tracking-tighter mb-0.5">Global Rank</p>
-                    <p className="text-xl/none font-black text-[#073b4c]">
+                    <p className="text-xl/none font-black text-[#073b4c] dark:text-[#e0e0e0]">
                       #{stats?.globalRank?.toLocaleString() || '-'}
                     </p>
                   </div>
                   <div className="col-span-2 bg-[#ff9f1c]/10 border-2 border-[#ff9f1c]/20 rounded-2xl p-3 flex items-center justify-between">
                     <div>
                       <p className="text-[10px] font-black text-[#ff9f1c] uppercase tracking-tighter mb-0.5 flex items-center gap-1"><Flame className="size-3" /> Current Streak</p>
-                      <p className="text-xl/none font-black text-[#073b4c]">{stats?.currentStreak || 0} <span className="text-[12px] opacity-60">Days</span></p>
+                      <p className="text-xl/none font-black text-[#073b4c] dark:text-[#e0e0e0]">{stats?.currentStreak || 0} <span className="text-[12px] opacity-60">Days</span></p>
                     </div>
                     <div className="text-right">
                       <p className="text-[10px] font-black text-[#ff9f1c]/60 uppercase tracking-tighter mb-0.5">Best</p>
-                      <p className="text-sm/none font-black text-[#073b4c]/60">{stats?.highestStreak || 0} Days</p>
+                      <p className="text-sm/none font-black text-[#073b4c]/60 dark:text-[#a3a3a3]">{stats?.highestStreak || 0} Days</p>
                     </div>
                   </div>
                   <div className="bg-[#06d6a0]/5 border-2 border-[#06d6a0]/10 rounded-2xl p-3">
                     <p className="text-[10px] font-black text-[#06d6a0] uppercase tracking-tighter mb-0.5">Watch Time</p>
-                    <p className="text-xl/none font-black text-[#073b4c]">
+                    <p className="text-xl/none font-black text-[#073b4c] dark:text-[#e0e0e0]">
                       {Math.floor((stats?.totalWatchTime || 0) / 60)}<span className="text-[10px]">m</span>
                     </p>
                   </div>
@@ -429,20 +431,45 @@ export function AuthProfileModal({ open, onClose }: AuthProfileModalProps) {
                     onClick={() => setCertificatesOpen(true)}
                     className="text-left bg-violet-500/8 border-2 border-violet-500/20 rounded-2xl p-3 hover:border-violet-500/40 hover:bg-violet-500/12 transition-all cursor-pointer w-full"
                   >
-                    <p className="text-[10px] font-black text-violet-700 uppercase tracking-tighter mb-0.5 flex items-center gap-1">
+                    <p className="text-[10px] font-black text-violet-700 dark:text-violet-400 uppercase tracking-tighter mb-0.5 flex items-center gap-1">
                       <GraduationCap className="size-3" />
                       Courses completed
                     </p>
-                    <p className="text-xl/none font-black text-[#073b4c]">{stats?.coursesCompleted ?? 0}</p>
-                    <p className="text-[9px] font-bold text-[#073b4c]/35 mt-0.5">Tap to view certificates</p>
+                    <p className="text-xl/none font-black text-[#073b4c] dark:text-[#e0e0e0]">{stats?.coursesCompleted ?? 0}</p>
+                    <p className="text-[9px] font-bold text-[#073b4c]/35 dark:text-[#737373] mt-0.5">Tap to view certificates</p>
                   </button>
+                </div>
+              </div>
+
+              {/* Appearance */}
+              <div className="mb-4">
+                <h4 className="text-[11px] font-black text-[#073b4c]/30 dark:text-[#737373] uppercase tracking-widest mb-2 px-1">Appearance</h4>
+                <div className="grid grid-cols-3 gap-1.5 p-1.5 bg-[#f0f4f8] dark:bg-[#111111] rounded-2xl border-2 border-[#073b4c]/5 dark:border-[#2a2a2a]">
+                  {([
+                    { value: 'light', icon: <Sun className="size-3" />, label: 'Light' },
+                    { value: 'dark',  icon: <Moon className="size-3" />, label: 'Dark' },
+                    { value: 'system', icon: <Monitor className="size-3" />, label: 'System' },
+                  ] as const).map((opt) => (
+                    <button
+                      key={opt.value}
+                      onClick={() => setTheme(opt.value)}
+                      className={`flex items-center gap-1.5 py-1 px-2 rounded-lg font-bold text-[10px] transition-all ${
+                        theme === opt.value
+                          ? 'bg-white dark:bg-slate-700 text-[#073b4c] dark:text-[#f0f0f0] shadow-[2px_2px_0_#073b4c] dark:shadow-[2px_2px_0_rgba(0,0,0,0.5)] border-2 border-[#073b4c] dark:border-[#333333]'
+                          : 'text-[#073b4c]/50 dark:text-[#737373] hover:text-[#073b4c] dark:hover:text-slate-300 border-2 border-transparent'
+                      }`}
+                    >
+                      {opt.icon}
+                      {opt.label}
+                    </button>
+                  ))}
                 </div>
               </div>
 
               {/* Sign out button */}
               <button
                 onClick={handleSignOut}
-                className="w-full h-11 rounded-2xl border-[3px] border-[#073b4c] bg-white text-[#073b4c] font-bold text-sm flex items-center justify-center gap-2 hover:bg-[#ef476f] hover:text-white hover:translate-y-[-2px] shadow-[3px_3px_0_#073b4c] hover:shadow-[5px_5px_0_#073b4c] transition-all cursor-pointer active:translate-y-0 active:shadow-[2px_2px_0_#073b4c]"
+                className="w-full h-11 rounded-2xl border-[3px] border-[#073b4c] dark:border-[#333333] bg-white dark:bg-transparent text-[#073b4c] dark:text-[#f0f0f0] font-bold text-sm flex items-center justify-center gap-2 hover:bg-[#ef476f] hover:text-white hover:translate-y-[-2px] shadow-[3px_3px_0_#073b4c] dark:shadow-[3px_3px_0_rgba(0,0,0,0.5)] hover:shadow-[5px_5px_0_#073b4c] transition-all cursor-pointer active:translate-y-0 active:shadow-[2px_2px_0_#073b4c]"
               >
                 <LogOut className="size-4" />
                 Sign Out
