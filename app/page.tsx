@@ -1698,7 +1698,7 @@ function BrowseCoursesTab({ onSelectCourse }: { onSelectCourse: (course: Course)
       </div>
 
       {/* Search */}
-      <form onSubmit={(e) => { e.preventDefault(); setOffset(0); setCourses([]); fetchCatalog(true, searchQuery); }}
+      <form onSubmit={(e) => { e.preventDefault(); offsetRef.current = 0; setCourses([]); fetchCatalog(true, searchQuery); }}
         className="mb-6">
         <div className="relative flex items-center max-w-2xl">
           <Search className="absolute left-4 size-5 text-[#073b4c]/40" />
