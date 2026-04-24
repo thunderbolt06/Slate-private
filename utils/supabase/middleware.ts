@@ -12,9 +12,14 @@ export const updateSession = async (request: NextRequest) => {
     },
   });
 
+  // If Supabase isn't configured (e.g. CI/build previews), don't crash middleware.
+  if (!supabaseUrl || !supabaseKey) {
+    return supabaseResponse;
+  }
+
   const supabase = createServerClient(
-    supabaseUrl!,
-    supabaseKey!,
+    supabaseUrl,
+    supabaseKey,
     {
       cookies: {
         getAll() {

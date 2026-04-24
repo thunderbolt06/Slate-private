@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createClient } from '@/utils/supabase/server';
-import { getRazorpayClient, RAZORPAY_PLANS, type RazorpayPlanId } from '@/lib/razorpay/client';
+import { getRazorpay, RAZORPAY_PLANS, type RazorpayPlanId } from '@/lib/razorpay/client';
 
 /**
  * POST /api/razorpay/create-order
@@ -12,6 +12,7 @@ import { getRazorpayClient, RAZORPAY_PLANS, type RazorpayPlanId } from '@/lib/ra
  */
 export async function POST(req: NextRequest) {
   try {
+    const razorpay = getRazorpay();
     const cookieStore = await cookies();
     const supabase = createClient(cookieStore);
     const {
@@ -33,7 +34,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Amount must be at least 100 paise' }, { status: 400 });
     }
 
-    const razorpay = getRazorpayClient();
     const order = await razorpay.orders.create({
       amount: plan.amount,
       currency: plan.currency,
@@ -51,9 +51,8 @@ export async function POST(req: NextRequest) {
       currency: order.currency,
       key_id: process.env.RAZORPAY_KEY_ID,
     });
-  } catch (err: unknown) {
+  } catch (err: any) {
     console.error('[razorpay/create-order] error:', err);
-    const message = err instanceof Error ? err.message : 'Internal Server Error';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: err.message || 'Internal Server Error' }, { status: 500 });
   }
 }

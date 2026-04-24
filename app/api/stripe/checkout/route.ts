@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { stripe } from '@/lib/stripe/client';
+import { getStripe } from '@/lib/stripe/client';
 import { getStripePriceId } from '@/lib/stripe/plans';
 import { cookies } from 'next/headers';
 import { createClient } from '@/utils/supabase/server';
@@ -14,6 +14,7 @@ import { getPostHogClient } from '@/lib/posthog-server';
  */
 export async function POST(req: NextRequest) {
   try {
+    const stripe = getStripe();
     const cookieStore = await cookies();
     const supabase = createClient(cookieStore);
     const {
@@ -25,10 +26,10 @@ export async function POST(req: NextRequest) {
     }
 
     const { period } = (await req.json()) as {
-      period: 'monthly' | 'yearly';
+      period: 'monthly' | 'yearly' | 'ultra_monthly' | 'ultra_yearly';
     };
 
-    if (!['monthly', 'yearly'].includes(period)) {
+    if (!['monthly', 'yearly', 'ultra_monthly', 'ultra_yearly'].includes(period)) {
       return NextResponse.json({ error: 'Invalid plan period' }, { status: 400 });
     }
 
