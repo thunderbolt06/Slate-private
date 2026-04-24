@@ -2392,12 +2392,11 @@ function DashboardPage() {
     setError(null);
     posthog.capture('classroom_generation_started', { has_pdf: !!form.pdfFile, web_search: !!form.webSearch, language: form.language });
     try {
-      const isPortrait = window.matchMedia('(orientation: portrait)').matches;
       const userProfile = useUserProfileStore.getState();
       const requirements: UserRequirements = {
         requirement: form.requirement, language: form.language,
         userNickname: userProfile.nickname || undefined, userBio: userProfile.bio || undefined,
-        webSearch: form.webSearch || undefined, aspectRatio: isPortrait ? 'portrait' : 'landscape',
+        webSearch: form.webSearch || undefined, aspectRatio: 'landscape',
       };
       let pdfStorageKey: string | undefined, pdfFileName: string | undefined,
         pdfProviderId: string | undefined, pdfProviderConfig: { apiKey?: string; baseUrl?: string } | undefined;
