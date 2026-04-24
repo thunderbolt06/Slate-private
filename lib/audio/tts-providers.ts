@@ -880,10 +880,15 @@ async function generateGeminiTTS(
   if (config.apiKey) {
     authHeader = `Bearer ${config.apiKey}`;
   } else {
-    const auth = new GoogleAuth({
-      keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS,
+    const authOptions: ConstructorParameters<typeof GoogleAuth>[0] = {
       scopes: ['https://www.googleapis.com/auth/cloud-platform'],
-    });
+    };
+    if (process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
+      authOptions.credentials = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON);
+    } else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+      authOptions.keyFilename = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+    }
+    const auth = new GoogleAuth(authOptions);
     const client = await auth.getClient();
     const tokenResponse = await client.getAccessToken();
     if (!tokenResponse.token) throw new Error('Gemini TTS: failed to obtain ADC access token');
