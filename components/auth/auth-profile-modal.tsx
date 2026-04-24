@@ -350,11 +350,11 @@ export function AuthProfileModal({ open, onClose }: AuthProfileModalProps) {
               <div className="flex items-center gap-3.5 mb-4">
                 {/* Avatar */}
                 {avatarUrl ? (
-                  <div className="size-14 rounded-2xl border-[3px] border-[#073b4c] overflow-hidden shadow-[3px_3px_0_#073b4c] shrink-0">
+                  <div className="size-14 rounded-2xl border-[3px] border-[#073b4c] dark:border-[#4a9db5] overflow-hidden shadow-[3px_3px_0_#073b4c] dark:shadow-[3px_3px_0_#4a9db5] shrink-0">
                     <img src={avatarUrl} alt="" className="size-full object-cover" />
                   </div>
                 ) : (
-                  <div className="size-14 rounded-2xl border-[3px] border-[#073b4c] bg-gradient-to-br from-[#118AB2] to-[#06D6A0] shadow-[3px_3px_0_#073b4c] flex items-center justify-center shrink-0">
+                  <div className="size-14 rounded-2xl border-[3px] border-[#073b4c] dark:border-[#4a9db5] bg-gradient-to-br from-[#118AB2] to-[#06D6A0] shadow-[3px_3px_0_#073b4c] dark:shadow-[3px_3px_0_#4a9db5] flex items-center justify-center shrink-0">
                     <span className="text-lg font-black text-white">{initials}</span>
                   </div>
                 )}

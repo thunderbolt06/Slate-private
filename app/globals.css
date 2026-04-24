@@ -157,6 +157,14 @@
     @apply bg-background text-foreground;
   }
 }
+/* Override pointer cursors globally — use default arrow everywhere */
+*, *:hover {
+  cursor: default !important;
+}
+input, textarea, [contenteditable], .prosemirror-editor {
+  cursor: text !important;
+}
+
 /* ProseMirror Editor Styles */
 .prosemirror-editor {
   cursor: text;
