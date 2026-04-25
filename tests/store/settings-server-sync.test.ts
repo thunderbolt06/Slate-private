@@ -98,6 +98,20 @@ vi.mock('@/lib/audio/constants', () => ({
     'openai-tts': 'alloy',
     'browser-native-tts': 'default',
   },
+  DEFAULT_TTS_PROVIDER: 'gemini-tts',
+  DEFAULT_TTS_VOICE: 'Aoede',
+  DEFAULT_TTS_MODELS: {
+    'openai-tts': 'gpt-4o-mini-tts',
+    'browser-native-tts': '',
+  },
+  getTTSVoices: (providerId: string) => {
+    const map: Record<string, Array<{ id: string; name: string }>> = {
+      'openai-tts': [{ id: 'alloy', name: 'Alloy' }],
+      'azure-tts': [{ id: 'zh-CN-XiaoxiaoNeural', name: 'Xiaoxiao' }],
+      'browser-native-tts': [{ id: 'default', name: 'Default' }],
+    };
+    return map[providerId] || [];
+  },
 }));
 
 vi.mock('@/lib/audio/types', () => ({}));

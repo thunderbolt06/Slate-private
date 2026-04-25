@@ -377,16 +377,16 @@ export function AuthProfileModal({ open, onClose }: AuthProfileModalProps) {
             exit={{ opacity: 0, y: 16, scale: 0.96 }}
             transition={{ duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
             className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[100]
-              w-[640px] max-w-[calc(100vw-2rem)] max-h-[calc(100dvh-4rem)]
-              flex rounded-3xl border-[3px] border-[#073b4c] dark:border-[#333333]
+              w-[640px] max-w-[calc(100vw-2rem)] max-h-[calc(100dvh-2rem)]
+              flex flex-col sm:flex-row rounded-3xl border-[3px] border-[#073b4c] dark:border-[#333333]
               bg-white dark:bg-[#1a1a1a]
               shadow-[8px_8px_0_#073b4c] dark:shadow-[8px_8px_0_rgba(0,0,0,0.6)]
               overflow-hidden"
           >
             {/* Left nav */}
-            <div className="w-[160px] shrink-0 border-r-[3px] border-[#073b4c]/10 dark:border-[#2a2a2a] bg-[#f8fafb] dark:bg-[#141414] flex flex-col">
+            <div className="w-full sm:w-[160px] sm:shrink-0 border-b-[3px] sm:border-b-0 sm:border-r-[3px] border-[#073b4c]/10 dark:border-[#2a2a2a] bg-[#f8fafb] dark:bg-[#141414] flex flex-col">
               {/* Nav items */}
-              <nav className="flex flex-col gap-1 px-2 py-4 flex-1">
+              <nav className="flex flex-row sm:flex-col gap-1 px-2 py-2 sm:py-4 flex-1">
                 {NAV_ITEMS.map((item) => (
                   <button
                     key={item.id}

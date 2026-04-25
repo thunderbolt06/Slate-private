@@ -33,9 +33,9 @@ export function TTSSettings({ selectedProviderId }: TTSSettingsProps) {
   const effectiveVoice =
     selectedProviderId === activeProviderId
       ? ttsVoice
-      : DEFAULT_TTS_VOICES[selectedProviderId] || 'default';
+      : DEFAULT_TTS_VOICES[selectedProviderId];
 
-  const ttsProvider = TTS_PROVIDERS[selectedProviderId] ?? TTS_PROVIDERS['openai-tts'];
+  const ttsProvider = TTS_PROVIDERS[selectedProviderId];
   const isServerConfigured = !!ttsProvidersConfig[selectedProviderId]?.isServerConfigured;
 
   const [showApiKey, setShowApiKey] = useState(false);

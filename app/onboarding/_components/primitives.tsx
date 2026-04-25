@@ -296,10 +296,10 @@ export const ProgressBar = ({
         top: 0,
         left: 0,
         right: 0,
-        padding: '18px 28px',
+        padding: 'clamp(12px, 3vw, 18px) clamp(14px, 3vw, 28px)',
         display: 'flex',
         alignItems: 'center',
-        gap: 16,
+        gap: 'clamp(8px, 2vw, 16px)',
         background: 'rgba(253,253,253,.85)',
         backdropFilter: 'blur(8px)',
         zIndex: 50,
@@ -428,7 +428,7 @@ export const StepLayout = ({
     }}
   >
     <OnboardBg variant={bgVariant} />
-    <div style={{ width: '100%', maxWidth, padding: '0 24px', position: 'relative', zIndex: 2 }}>
+    <div style={{ width: '100%', maxWidth, padding: '0 clamp(16px, 4vw, 24px)', position: 'relative', zIndex: 2 }}>
       {eyebrow && (
         <div
           style={{
@@ -450,7 +450,7 @@ export const StepLayout = ({
           style={{
             fontFamily: FREDOKA,
             fontWeight: 700,
-            fontSize: 'clamp(32px, 5vw, 52px)',
+            fontSize: 'clamp(26px, 6vw, 52px)',
             color: INK,
             letterSpacing: '-0.025em',
             lineHeight: 1.02,

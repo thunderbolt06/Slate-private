@@ -9,10 +9,15 @@ import type { ProviderId } from '@/lib/ai/providers';
 import type { ProvidersConfig } from '@/lib/types/settings';
 import { PROVIDERS } from '@/lib/ai/providers';
 import type { TTSProviderId, ASRProviderId } from '@/lib/audio/types';
-import { ASR_PROVIDERS, DEFAULT_TTS_VOICES, DEFAULT_TTS_MODELS, TTS_PROVIDERS } from '@/lib/audio/constants';
-
-const DEFAULT_TTS_PROVIDER: TTSProviderId = 'gemini-tts';
-const DEFAULT_TTS_VOICE = DEFAULT_TTS_VOICES[DEFAULT_TTS_PROVIDER];
+import {
+  ASR_PROVIDERS,
+  DEFAULT_TTS_PROVIDER,
+  DEFAULT_TTS_VOICE,
+  DEFAULT_TTS_VOICES,
+  DEFAULT_TTS_MODELS,
+  TTS_PROVIDERS,
+  getTTSVoices,
+} from '@/lib/audio/constants';
 import { PDF_PROVIDERS } from '@/lib/pdf/constants';
 import type { PDFProviderId } from '@/lib/pdf/types';
 import type { ImageProviderId, VideoProviderId } from '@/lib/media/types';
@@ -159,7 +164,6 @@ export interface SettingsState {
   sidebarCollapsed: boolean;
   chatAreaCollapsed: boolean;
   chatAreaWidth: number;
-  mobileReflowPreferred: boolean;
   roundtableCollapsed: boolean;
   captionsCollapsed: boolean;
 
@@ -181,11 +185,15 @@ export interface SettingsState {
   setSidebarCollapsed: (collapsed: boolean) => void;
   setChatAreaCollapsed: (collapsed: boolean) => void;
   setChatAreaWidth: (width: number) => void;
-  setMobileReflowPreferred: (preferred: boolean) => void;
   setRoundtableCollapsed: (collapsed: boolean) => void;
   setCaptionsCollapsed: (collapsed: boolean) => void;
 
   // Audio actions
+  setTTSSelection: (selection: {
+    providerId: TTSProviderId;
+    voice?: string;
+    modelId?: string;
+  }) => void;
   setTTSProvider: (providerId: TTSProviderId) => void;
   setTTSVoice: (voice: string) => void;
   setTTSSpeed: (speed: number) => void;
@@ -408,6 +416,17 @@ function ensureValidProviderSelections(state: Partial<SettingsState>): void {
     state.ttsProviderId = defaultAudioConfig.ttsProviderId;
   }
 
+  // Validate voice belongs to the selected TTS provider. Skip when the
+  // provider has no static voice list (e.g. Azure loads voices from JSON).
+  const ttsProviderId = state.ttsProviderId as TTSProviderId;
+  const ttsVoices = getTTSVoices(ttsProviderId);
+  if (
+    ttsVoices.length > 0 &&
+    (!state.ttsVoice || !ttsVoices.some((v) => v.id === state.ttsVoice))
+  ) {
+    state.ttsVoice = DEFAULT_TTS_VOICES[ttsProviderId];
+  }
+
   if (!hasProviderId(ASR_PROVIDERS, state.asrProviderId)) {
     state.asrProviderId = defaultAudioConfig.asrProviderId;
   }
@@ -624,7 +643,6 @@ export const useSettingsStore = create<SettingsState>()(
         sidebarCollapsed: true,
         chatAreaCollapsed: true,
         chatAreaWidth: 320,
-        mobileReflowPreferred: true,
         roundtableCollapsed: false,
         captionsCollapsed: true,
 
@@ -689,22 +707,53 @@ export const useSettingsStore = create<SettingsState>()(
         setSidebarCollapsed: (collapsed) => set({ sidebarCollapsed: collapsed }),
         setChatAreaCollapsed: (collapsed) => set({ chatAreaCollapsed: collapsed }),
         setChatAreaWidth: (width) => set({ chatAreaWidth: width }),
-        setMobileReflowPreferred: (preferred) => set({ mobileReflowPreferred: preferred }),
         setRoundtableCollapsed: (collapsed) => set({ roundtableCollapsed: collapsed }),
         setCaptionsCollapsed: (collapsed) => set({ captionsCollapsed: collapsed }),
 
         // Audio actions
-        setTTSProvider: (providerId) =>
+        setTTSSelection: ({ providerId, voice, modelId }) =>
           set((state) => {
-            // If switching provider, set default voice for that provider
-            const shouldUpdateVoice = state.ttsProviderId !== providerId;
-            return {
+            const availableVoices = getTTSVoices(providerId);
+            const defaultVoice = DEFAULT_TTS_VOICES[providerId];
+            let nextVoice: string;
+            if (voice === undefined) {
+              // Switching provider without a voice → use that provider's default,
+              // unless the existing voice already belongs to the new provider.
+              nextVoice =
+                state.ttsProviderId === providerId &&
+                availableVoices.some((v) => v.id === state.ttsVoice)
+                  ? state.ttsVoice
+                  : defaultVoice;
+            } else if (availableVoices.length === 0 || availableVoices.some((v) => v.id === voice)) {
+              // Empty voice list = dynamic source (e.g. Azure JSON); trust the caller.
+              nextVoice = voice;
+            } else {
+              log.warn(
+                `Voice "${voice}" not in ${providerId} voice list; falling back to "${defaultVoice}"`,
+              );
+              nextVoice = defaultVoice;
+            }
+
+            const update: Partial<SettingsState> = {
               ttsProviderId: providerId,
-              ...(shouldUpdateVoice && { ttsVoice: DEFAULT_TTS_VOICES[providerId] }),
+              ttsVoice: nextVoice,
             };
+            if (modelId !== undefined) {
+              update.ttsProvidersConfig = {
+                ...state.ttsProvidersConfig,
+                [providerId]: {
+                  ...state.ttsProvidersConfig[providerId],
+                  modelId,
+                },
+              };
+            }
+            return update;
           }),
 
-        setTTSVoice: (voice) => set({ ttsVoice: voice }),
+        setTTSProvider: (providerId) => get().setTTSSelection({ providerId }),
+
+        setTTSVoice: (voice) =>
+          get().setTTSSelection({ providerId: get().ttsProviderId, voice }),
 
         setTTSSpeed: (speed) => set({ ttsSpeed: speed }),
 
@@ -1104,7 +1153,7 @@ export const useSettingsStore = create<SettingsState>()(
 
               const validTTSVoice =
                 validTTSProvider !== state.ttsProviderId
-                  ? DEFAULT_TTS_VOICES[validTTSProvider as TTSProviderId] || 'default'
+                  ? DEFAULT_TTS_VOICES[validTTSProvider as TTSProviderId]
                   : state.ttsVoice;
 
               // Auto-disable image/video generation when no provider is usable
@@ -1138,7 +1187,7 @@ export const useSettingsStore = create<SettingsState>()(
                   autoTtsProvider = serverTtsIds.includes(DEFAULT_TTS_PROVIDER)
                     ? DEFAULT_TTS_PROVIDER
                     : serverTtsIds[0];
-                  autoTtsVoice = DEFAULT_TTS_VOICES[autoTtsProvider] || 'default';
+                  autoTtsVoice = DEFAULT_TTS_VOICES[autoTtsProvider];
                 }
 
                 // ASR: select first server provider if current is not server-configured

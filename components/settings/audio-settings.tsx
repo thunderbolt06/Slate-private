@@ -16,7 +16,6 @@ import { useI18n } from '@/lib/hooks/use-i18n';
 import { useSettingsStore } from '@/lib/store/settings';
 import {
   TTS_PROVIDERS,
-  getTTSVoices,
   ASR_PROVIDERS,
   getASRSupportedLanguages,
 } from '@/lib/audio/constants';
@@ -93,7 +92,7 @@ export function AudioSettings({ onSave }: AudioSettingsProps = {}) {
   const setTTSEnabled = useSettingsStore((state) => state.setTTSEnabled);
   const setASREnabled = useSettingsStore((state) => state.setASREnabled);
 
-  const ttsProvider = TTS_PROVIDERS[ttsProviderId] ?? TTS_PROVIDERS['openai-tts'];
+  const ttsProvider = TTS_PROVIDERS[ttsProviderId];
 
   // Azure voices - load from static JSON
   const azureVoices = useMemo(() => azureVoicesData.voices, []);
@@ -150,7 +149,7 @@ export function AudioSettings({ onSave }: AudioSettingsProps = {}) {
   const ttsTestRequestIdRef = useRef(0);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
 
-  const asrProvider = ASR_PROVIDERS[asrProviderId] ?? ASR_PROVIDERS['openai-whisper'];
+  const asrProvider = ASR_PROVIDERS[asrProviderId];
 
   // Reset locale filter when provider changes (derived state pattern)
   const [prevTTSProviderId, setPrevTTSProviderId] = useState(ttsProviderId);
@@ -196,35 +195,6 @@ export function AudioSettings({ onSave }: AudioSettingsProps = {}) {
   useEffect(() => {
     stopTTSPreview();
   }, [ttsProviderId, stopTTSPreview]);
-
-  // Initialize and reset TTS voice when provider changes
-  useEffect(() => {
-    let availableVoices: Array<{ id: string; name: string }> = [];
-
-    if (ttsProviderId === 'azure-tts') {
-      // Use Azure voices from JSON
-      availableVoices = azureVoices.map((voice) => ({
-        id: voice.ShortName,
-        name: voice.LocalName,
-      }));
-    } else {
-      // Use static voices from constants
-      availableVoices = getTTSVoices(ttsProviderId);
-    }
-
-    if (availableVoices.length > 0) {
-      // Initialize default voice if not set
-      if (!ttsVoice) {
-        setTTSVoice(availableVoices[0].id);
-      } else {
-        // Check if current voice is available in new provider
-        const currentVoiceExists = availableVoices.some((v) => v.id === ttsVoice);
-        if (!currentVoiceExists) {
-          setTTSVoice(availableVoices[0].id);
-        }
-      }
-    }
-  }, [ttsProviderId, ttsVoice, azureVoices, setTTSVoice]);
 
   // Initialize and reset ASR language when provider changes
   useEffect(() => {

@@ -4,15 +4,12 @@ import { generateTTS } from '@/lib/audio/tts-providers';
 import { resolveTTSApiKey, resolveTTSBaseUrl } from '@/lib/server/provider-config';
 import { createLogger } from '@/lib/logger';
 import { resolveGenerationLanguage } from '@/lib/constants/generation';
-import { DEFAULT_TTS_VOICES } from '@/lib/audio/constants';
+import { DEFAULT_TTS_PROVIDER, DEFAULT_TTS_VOICES } from '@/lib/audio/constants';
 import { splitLongSpeechTextByBytes, GEMINI_TTS_MAX_BYTES, concatWavBuffers } from '@/lib/audio/tts-utils';
-import type { TTSProviderId } from '@/lib/audio/types';
 
 const log = createLogger('IntroSSE');
 
 export const maxDuration = 300;
-
-const DEFAULT_TTS_PROVIDER: TTSProviderId = 'gemini-tts';
 
 /**
  * SSE Endpoint for prioritized course introduction.

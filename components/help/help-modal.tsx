@@ -51,7 +51,7 @@ export function HelpModal({ open, onClose }: HelpModalProps) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 12, scale: 0.95 }}
             transition={{ duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
-            className="fixed bottom-4 left-[272px] z-[100] w-[320px] rounded-3xl border-[3px] border-[#073b4c] dark:border-[#333333] bg-white dark:bg-[#1a1a1a] shadow-[6px_6px_0_#073b4c] dark:shadow-[6px_6px_0_rgba(0,0,0,0.5)] overflow-hidden"
+            className="fixed bottom-4 inset-x-4 sm:inset-x-auto sm:left-[272px] sm:w-[320px] z-[100] rounded-3xl border-[3px] border-[#073b4c] dark:border-[#333333] bg-white dark:bg-[#1a1a1a] shadow-[6px_6px_0_#073b4c] dark:shadow-[6px_6px_0_rgba(0,0,0,0.5)] overflow-hidden"
           >
             {/* Header */}
             <div className="flex items-center justify-between px-5 pt-4 pb-3">

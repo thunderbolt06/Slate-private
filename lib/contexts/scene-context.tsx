@@ -12,7 +12,6 @@ import React, {
 import { useStageStore } from '@/lib/store/stage';
 import type { Scene } from '@/lib/types/stage';
 import { produce } from 'immer';
-import { usePortraitReflow } from '@/lib/hooks/use-portrait-reflow';
 
 interface SceneContextValue<T = unknown> {
   sceneId: string;
@@ -49,21 +48,7 @@ export function SceneProvider({ children }: { children: React.ReactNode }) {
   const sceneType = currentScene?.type || 'slide';
   const rawSceneData = currentScene?.content || null;
 
-  const reflowedSlide = usePortraitReflow(
-    rawSceneData && rawSceneData.type === 'slide' ? (rawSceneData as any).canvas : null,
-    { 
-      syncToStore: true,
-      portraitSlide: rawSceneData && rawSceneData.type === 'slide' ? (rawSceneData as any).portraitCanvas : undefined
-    }
-  );
-
-  const sceneData = useMemo(() => {
-    if (!rawSceneData) return null;
-    if (rawSceneData.type === 'slide' && reflowedSlide) {
-      return { ...rawSceneData, canvas: reflowedSlide };
-    }
-    return rawSceneData;
-  }, [rawSceneData, reflowedSlide]);
+  const sceneData = rawSceneData;
 
   // Listeners for scene data changes
   const listenersRef = useRef(new Set<() => void>());

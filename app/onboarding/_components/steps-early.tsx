@@ -15,7 +15,7 @@ export const Step1Welcome = ({ onNext }: { onNext: () => void }) => (
           style={{
             fontFamily: FREDOKA,
             fontWeight: 700,
-            fontSize: 'clamp(64px, 10vw, 120px)',
+            fontSize: 'clamp(44px, 13vw, 120px)',
             color: INK,
             letterSpacing: '-0.035em',
             lineHeight: 0.92,
@@ -30,7 +30,7 @@ export const Step1Welcome = ({ onNext }: { onNext: () => void }) => (
         style={{
           fontFamily: FREDOKA,
           fontWeight: 700,
-          fontSize: 'clamp(32px, 5vw, 48px)',
+          fontSize: 'clamp(24px, 6vw, 48px)',
           color: INK,
           letterSpacing: '-0.02em',
           margin: '0 0 20px',
@@ -191,7 +191,7 @@ export const Step3Goal = ({
     title="Why are you here?"
     subtitle="We'll tailor every course we make for you to fit this."
   >
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, maxWidth: 640, margin: '0 auto' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 14, maxWidth: 640, margin: '0 auto' }}>
       {GOALS.map((g) => (
         <OptionCard
           key={g.key}
@@ -258,7 +258,7 @@ export const Step4Source = ({
       </>
     }
   >
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, maxWidth: 640, margin: '0 auto' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, maxWidth: 640, margin: '0 auto' }}>
       {SOURCES.map((s) => (
         <OptionCard
           key={s.key}
@@ -300,7 +300,7 @@ export const Step5Level = ({
     title="Where are you starting from?"
     subtitle="We'll adjust depth, pace, and vocabulary to match."
   >
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, maxWidth: 640, margin: '0 auto' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 14, maxWidth: 640, margin: '0 auto' }}>
       {LEVELS.map((l) => (
         <OptionCard
           key={l.key}
@@ -534,7 +534,7 @@ export const Step7Style = ({
     title="Pick your learning style"
     subtitle="We'll bias course generation toward this, but you can switch anytime."
   >
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, maxWidth: 640, margin: '0 auto' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 14, maxWidth: 640, margin: '0 auto' }}>
       {STYLES.map((s) => (
         <OptionCard
           key={s.key}
@@ -576,7 +576,7 @@ export const Step8Time = ({
     title="How much time per day?"
     subtitle="We'll size every course to fit. Nothing feels overwhelming this way."
   >
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, maxWidth: 640, margin: '0 auto' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 14, maxWidth: 640, margin: '0 auto' }}>
       {TIMES.map((t) => (
         <div key={t.key} style={{ position: 'relative' }}>
           {'popular' in t && t.popular && (
@@ -638,7 +638,7 @@ export const Step9Mate = ({
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(4, 1fr)',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
           gap: 14,
           maxWidth: 960,
           margin: '0 auto',

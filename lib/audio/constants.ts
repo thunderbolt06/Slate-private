@@ -1197,6 +1197,8 @@ export function getTTSProvider(providerId: TTSProviderId): TTSProviderConfig | u
  * Default voice for each TTS provider.
  * Used when switching providers or testing a non-active provider.
  */
+export const DEFAULT_TTS_PROVIDER: TTSProviderId = 'gemini-tts';
+
 export const DEFAULT_TTS_VOICES: Record<TTSProviderId, string> = {
   'smallest-tts': 'ethan',
   'openai-tts': 'alloy',
@@ -1211,6 +1213,8 @@ export const DEFAULT_TTS_VOICES: Record<TTSProviderId, string> = {
   'browser-native-tts': 'default',
   'gemini-tts': 'Aoede',
 };
+
+export const DEFAULT_TTS_VOICE = DEFAULT_TTS_VOICES[DEFAULT_TTS_PROVIDER];
 
 export const DEFAULT_TTS_MODELS: Record<TTSProviderId, string> = {
   'smallest-tts': 'lightning-v3.1',

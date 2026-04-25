@@ -2,7 +2,6 @@ import { useMemo } from 'react';
 import type { Slide } from '@/lib/types/slides';
 import { useSlideBackgroundStyle } from '@/lib/hooks/use-slide-background-style';
 import { ThumbnailElement } from './ThumbnailElement';
-import { usePortraitReflow } from '@/lib/hooks/use-portrait-reflow';
 
 interface ThumbnailSlideProps {
   /** Slide data */
@@ -24,13 +23,12 @@ interface ThumbnailSlideProps {
  * Uses CSS transform scale to resize the entire view for better performance
  */
 export function ThumbnailSlide({
-  slide: originalSlide,
+  slide,
   size,
   viewportSize: originalViewportSize,
   viewportRatio: originalViewportRatio,
   visible = true,
 }: ThumbnailSlideProps) {
-  const slide = usePortraitReflow(originalSlide);
   const viewportSize = slide?.viewportSize || originalViewportSize;
   const viewportRatio = slide?.viewportRatio || originalViewportRatio;
   // Calculate scale ratio

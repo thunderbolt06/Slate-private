@@ -8,6 +8,7 @@ import { type GenerateClassroomInput } from '@/lib/server/classroom-generation';
 import { getTemporalClient, TASK_QUEUE } from '@/temporal/client';
 import { buildRequestOrigin } from '@/lib/server/classroom-storage';
 import { createLogger } from '@/lib/logger';
+import { DEFAULT_TTS_PROVIDER } from '@/lib/audio/constants';
 
 const log = createLogger('CreateClassroom API');
 
@@ -72,7 +73,7 @@ export async function POST(req: NextRequest) {
         userId: user.id,
         userEmail: user.email,
         jobId,
-        ttsProvider: 'gemini-tts',
+        ttsProvider: DEFAULT_TTS_PROVIDER,
       }],
     });
 

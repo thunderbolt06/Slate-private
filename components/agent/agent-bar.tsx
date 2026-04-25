@@ -278,9 +278,7 @@ function TeacherVoicePill({
 }) {
   const ttsProviderId = useSettingsStore((s) => s.ttsProviderId);
   const ttsVoice = useSettingsStore((s) => s.ttsVoice);
-  const setTTSProvider = useSettingsStore((s) => s.setTTSProvider);
-  const setTTSVoice = useSettingsStore((s) => s.setTTSVoice);
-  const setTTSProviderConfig = useSettingsStore((s) => s.setTTSProviderConfig);
+  const setTTSSelection = useSettingsStore((s) => s.setTTSSelection);
   const ttsProvidersConfig = useSettingsStore((s) => s.ttsProvidersConfig);
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [previewingId, setPreviewingId] = useState<string | null>(null);
@@ -456,11 +454,11 @@ function TeacherVoicePill({
                     <button
                       type="button"
                       onClick={() => {
-                        setTTSProvider(provider.providerId);
-                        setTTSVoice(voice.id);
-                        if (group.modelId) {
-                          setTTSProviderConfig(provider.providerId, { modelId: group.modelId });
-                        }
+                        setTTSSelection({
+                          providerId: provider.providerId,
+                          voice: voice.id,
+                          modelId: group.modelId || undefined,
+                        });
                         setPopoverOpen(false);
                       }}
                       className={cn(

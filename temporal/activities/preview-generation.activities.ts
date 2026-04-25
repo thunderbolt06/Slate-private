@@ -134,7 +134,7 @@ export async function generateSceneTTSToSupabaseActivity(
   }
 
   const ttsBaseUrl = resolveTTSBaseUrl(providerId) || TTS_PROVIDERS[providerId]?.defaultBaseUrl;
-  const voice = DEFAULT_TTS_VOICES[providerId] || 'default';
+  const voice = DEFAULT_TTS_VOICES[providerId];
   const format = TTS_PROVIDERS[providerId]?.supportedFormats?.[0] || 'mp3';
   const mimeType = format === 'mp3' ? 'audio/mpeg' : `audio/${format}`;
 

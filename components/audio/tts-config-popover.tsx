@@ -39,7 +39,7 @@ export function TtsConfigPopover() {
   const ttsVoice = useSettingsStore((s) => s.ttsVoice);
   const ttsSpeed = useSettingsStore((s) => s.ttsSpeed);
   const ttsProvidersConfig = useSettingsStore((s) => s.ttsProvidersConfig);
-  const setTTSVoice = useSettingsStore((s) => s.setTTSVoice);
+  const setTTSSelection = useSettingsStore((s) => s.setTTSSelection);
 
   const voices = getTTSVoices(ttsProviderId);
   const localizedVoices = useMemo(
@@ -146,7 +146,10 @@ export function TtsConfigPopover() {
           <div className="px-3.5 py-3 space-y-3">
             {/* Voice + Preview row */}
             <div className="flex items-center gap-2">
-              <Select value={ttsVoice} onValueChange={setTTSVoice}>
+              <Select
+                value={ttsVoice}
+                onValueChange={(voice) => setTTSSelection({ providerId: ttsProviderId, voice })}
+              >
                 <SelectTrigger className="h-7 text-xs flex-1 min-w-0">
                   <SelectValue />
                 </SelectTrigger>

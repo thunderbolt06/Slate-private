@@ -130,8 +130,7 @@ export function MediaPopover({ onSettingsOpen }: MediaPopoverProps) {
   const ttsVoice = useSettingsStore((s) => s.ttsVoice);
   const ttsSpeed = useSettingsStore((s) => s.ttsSpeed);
   const ttsProvidersConfig = useSettingsStore((s) => s.ttsProvidersConfig);
-  const setTTSProvider = useSettingsStore((s) => s.setTTSProvider);
-  const setTTSVoice = useSettingsStore((s) => s.setTTSVoice);
+  const setTTSSelection = useSettingsStore((s) => s.setTTSSelection);
   const setTTSSpeed = useSettingsStore((s) => s.setTTSSpeed);
 
   const asrProviderId = useSettingsStore((s) => s.asrProviderId);
@@ -417,8 +416,10 @@ export function MediaPopover({ onSettingsOpen }: MediaPopoverProps) {
                 selectedGroupId={ttsProviderId}
                 selectedItemId={ttsVoice}
                 onSelect={(gid, voiceId) => {
-                  setTTSProvider(gid as import('@/lib/audio/types').TTSProviderId);
-                  setTTSVoice(voiceId);
+                  setTTSSelection({
+                    providerId: gid as import('@/lib/audio/types').TTSProviderId,
+                    voice: voiceId,
+                  });
                 }}
               />
             </TabPanel>

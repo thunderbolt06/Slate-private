@@ -26,6 +26,7 @@ import type {
   ClassroomGenerationStep,
 } from './classroom-generation.workflow';
 import { getStatusQuery } from './classroom-generation.workflow';
+import { DEFAULT_TTS_PROVIDER } from '@/lib/audio/constants';
 
 // ---------------------------------------------------------------------------
 // Activity proxies
@@ -78,7 +79,7 @@ export interface QueuedClassroomWorkflowInput {
 export async function queuedClassroomGenerationWorkflow(
   args: QueuedClassroomWorkflowInput,
 ): Promise<PersistResult> {
-  const { input, baseUrl, userId, userEmail, jobId, ttsProvider = 'gemini-tts' } = args;
+  const { input, baseUrl, userId, userEmail, jobId, ttsProvider = DEFAULT_TTS_PROVIDER } = args;
 
   let status: ClassroomJobStatus = 'running';
   let step: ClassroomGenerationStep = 'initializing';
