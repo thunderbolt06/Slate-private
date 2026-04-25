@@ -847,39 +847,48 @@ async function generateFishTTS(config: TTSModelConfig, text: string): Promise<TT
 }
 
 /**
- * Gemini TTS implementation (Google Cloud Text-to-Speech API)
- * Uses Application Default Credentials (ADC) or API key for authentication.
- * Supports gemini-2.5-flash-tts, gemini-2.5-flash-lite-preview-tts, gemini-2.5-pro-tts
+ * Gemini TTS implementation using the Gemini Developer API.
+ * Uses generativelanguage.googleapis.com/v1beta/models/{model}:generateContent
+ * Works with a standard Gemini API key — no Vertex AI / service account needed.
  */
 async function generateGeminiTTS(
   config: TTSModelConfig,
   text: string,
 ): Promise<TTSProviderResult> {
   const baseUrl = config.baseUrl || TTS_PROVIDERS['gemini-tts'].defaultBaseUrl!;
-  const modelName = config.modelId || 'gemini-2.5-flash-lite-preview-tts';
-
-  const audioEncodingMap: Record<string, string> = {
-    mp3: 'MP3',
-    wav: 'LINEAR16',
-    ogg: 'OGG_OPUS',
+  // Normalise legacy / wrong-suffix model IDs to the actual Developer API names.
+  // ListModels confirms: gemini-2.5-flash-preview-tts, gemini-2.5-pro-preview-tts
+  const MODEL_REMAP: Record<string, string> = {
+    'gemini-2.5-flash-lite-preview-tts': 'gemini-2.5-flash-lite-preview-tts',
+    'gemini-2.5-flash-tts-preview':      'gemini-2.5-flash-preview-tts',
+    'gemini-2.5-pro-tts-preview':        'gemini-2.5-pro-preview-tts',
   };
-  const requestedFormat = config.format || 'mp3';
-  const audioEncoding = audioEncodingMap[requestedFormat] || 'MP3';
+  const rawModel = config.modelId || 'gemini-2.5-flash-preview-tts';
+  const modelName = MODEL_REMAP[rawModel] ?? rawModel;
+  const voiceName = config.voice || 'Aoede';
 
   const requestBody = {
-    input: { text },
-    voice: {
-      languageCode: 'en-US',
-      name: config.voice || 'Kore',
-      model_name: modelName,
+    contents: [{ parts: [{ text }] }],
+    generationConfig: {
+      responseModalities: ['AUDIO'],
+      speechConfig: {
+        voiceConfig: {
+          prebuiltVoiceConfig: { voiceName },
+        },
+      },
     },
-    audioConfig: { audioEncoding },
   };
 
-  let authHeader: string;
-  if (config.apiKey) {
-    authHeader = `Bearer ${config.apiKey}`;
+  let fetchUrl = `${baseUrl}/v1beta/models/${modelName}:generateContent`;
+  const reqHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
+
+  if (config.apiKey && config.apiKey.startsWith('AIza')) {
+    // Google API keys are passed as query params
+    fetchUrl += `?key=${config.apiKey}`;
+  } else if (config.apiKey) {
+    reqHeaders['Authorization'] = `Bearer ${config.apiKey}`;
   } else {
+    // Fall back to ADC (service account / workload identity)
     const authOptions: ConstructorParameters<typeof GoogleAuth>[0] = {
       scopes: ['https://www.googleapis.com/auth/cloud-platform'],
     };
@@ -892,17 +901,12 @@ async function generateGeminiTTS(
     const client = await auth.getClient();
     const tokenResponse = await client.getAccessToken();
     if (!tokenResponse.token) throw new Error('Gemini TTS: failed to obtain ADC access token');
-    authHeader = `Bearer ${tokenResponse.token}`;
+    reqHeaders['Authorization'] = `Bearer ${tokenResponse.token}`;
   }
 
-  const projectId = process.env.GOOGLE_CLOUD_PROJECT || 'vocal-antler-494115-g4';
-  const response = await fetch(`${baseUrl}/v1/text:synthesize`, {
+  const response = await fetch(fetchUrl, {
     method: 'POST',
-    headers: {
-      Authorization: authHeader,
-      'Content-Type': 'application/json; charset=utf-8',
-      'x-goog-user-project': projectId,
-    },
+    headers: reqHeaders,
     body: JSON.stringify(requestBody),
   });
 
@@ -912,14 +916,64 @@ async function generateGeminiTTS(
   }
 
   const data = await response.json();
-  if (!data.audioContent) {
-    throw new Error(`Gemini TTS: no audioContent in response`);
+  const inlineData = data?.candidates?.[0]?.content?.parts?.[0]?.inlineData;
+  if (!inlineData?.data) {
+    throw new Error(`Gemini TTS: no audio in response. Keys: ${JSON.stringify(Object.keys(data ?? {}))}`);
   }
 
-  return {
-    audio: new Uint8Array(Buffer.from(data.audioContent, 'base64')),
-    format: requestedFormat === 'wav' ? 'wav' : requestedFormat === 'ogg' ? 'ogg' : 'mp3',
+  const audioBytes = Buffer.from(inlineData.data, 'base64');
+  const mimeType: string = inlineData.mimeType || '';
+  const mimeTypeLower = mimeType.toLowerCase();
+
+  // Check actual magic bytes — Gemini sometimes returns raw PCM even when
+  // mimeType says "audio/wav". WAV magic = R I F F (0x52 0x49 0x46 0x46)
+  const hasWavHeader =
+    audioBytes.length >= 4 &&
+    audioBytes[0] === 0x52 && audioBytes[1] === 0x49 &&
+    audioBytes[2] === 0x46 && audioBytes[3] === 0x46;
+
+  const isPcmByMime =
+    mimeTypeLower.startsWith('audio/pcm') ||
+    mimeTypeLower.startsWith('audio/l16') ||
+    mimeTypeLower.startsWith('audio/raw');
+
+  if (!hasWavHeader || isPcmByMime) {
+    // Raw PCM — extract sample rate from mimeType if present, default 24 kHz
+    const sampleRate = parseInt(mimeType.match(/rate=(\d+)/i)?.[1] ?? '24000', 10);
+    log.info(`Gemini TTS: wrapping PCM as WAV (mimeType=${mimeType}, hasWavHeader=${hasWavHeader})`);
+    return { audio: geminiPcmToWav(new Uint8Array(audioBytes), sampleRate), format: 'wav' };
+  }
+
+  const format = mimeTypeLower.includes('mp3') || mimeTypeLower.includes('mpeg') ? 'mp3'
+    : mimeTypeLower.includes('ogg') ? 'ogg'
+    : 'wav';
+  return { audio: new Uint8Array(audioBytes), format };
+}
+
+/**
+ * Wrap raw 16-bit mono PCM in a WAV container for browser playback.
+ */
+function geminiPcmToWav(pcm: Uint8Array, sampleRate = 24000): Uint8Array {
+  const numChannels = 1;
+  const bitsPerSample = 16;
+  const byteRate = (sampleRate * numChannels * bitsPerSample) / 8;
+  const blockAlign = (numChannels * bitsPerSample) / 8;
+  const dataSize = pcm.length;
+  const header = new ArrayBuffer(44);
+  const v = new DataView(header);
+  const enc = (s: string, off: number) => {
+    for (let i = 0; i < s.length; i++) v.setUint8(off + i, s.charCodeAt(i));
   };
+  enc('RIFF', 0); v.setUint32(4, 36 + dataSize, true); enc('WAVE', 8);
+  enc('fmt ', 12); v.setUint32(16, 16, true); v.setUint16(20, 1, true);
+  v.setUint16(22, numChannels, true); v.setUint32(24, sampleRate, true);
+  v.setUint32(28, byteRate, true); v.setUint16(32, blockAlign, true);
+  v.setUint16(34, bitsPerSample, true);
+  enc('data', 36); v.setUint32(40, dataSize, true);
+  const out = new Uint8Array(44 + dataSize);
+  out.set(new Uint8Array(header), 0);
+  out.set(pcm, 44);
+  return out;
 }
 
 /**

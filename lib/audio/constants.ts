@@ -944,12 +944,13 @@ export const TTS_PROVIDERS: Record<TTSProviderId, TTSProviderConfig> = {
     id: 'gemini-tts',
     name: 'Gemini TTS',
     requiresApiKey: true,
-    defaultBaseUrl: 'https://texttospeech.googleapis.com',
+    defaultBaseUrl: 'https://generativelanguage.googleapis.com',
     icon: '/logos/google.svg',
     models: [
-      { id: 'gemini-2.5-flash-lite-preview-tts', name: 'Base' },
+      { id: 'gemini-2.5-flash-preview-tts', name: 'Flash' },
+      // { id: 'gemini-2.5-pro-preview-tts', name: 'Pro' },
     ],
-    defaultModelId: 'gemini-2.5-flash-lite-preview-tts',
+    defaultModelId: 'gemini-2.5-flash-preview-tts',
     voices: [
       { id: 'Aoede', name: 'US Female Narrator', language: 'en', gender: 'female' },
       { id: 'Algieba', name: 'US Male Narrator', language: 'en', gender: 'male' },
@@ -1222,7 +1223,7 @@ export const DEFAULT_TTS_MODELS: Record<TTSProviderId, string> = {
   'hf-tts': 'hexgrad/Kokoro-82M',
   'fish-tts': 'fishaudio/s2-pro',
   'browser-native-tts': '',
-  'gemini-tts': 'gemini-2.5-flash-lite-preview-tts',
+  'gemini-tts': 'gemini-2.5-flash-tts-preview',
 };
 
 /**
