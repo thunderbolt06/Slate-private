@@ -49,8 +49,10 @@ import { useCourseVideoExport } from '@/lib/export/use-course-video-export';
  */
 export function Stage({
   onRetryOutline,
+  isAdmin,
 }: {
   onRetryOutline?: (outlineId: string) => Promise<void>;
+  isAdmin?: boolean;
 }) {
   const { t } = useI18n();
   const router = useRouter();
@@ -1055,6 +1057,7 @@ export function Stage({
             }
             onHome={handleHome}
             slideRef={slideRef}
+            isAdmin={isAdmin}
             onExportVideo={mode === 'playback' ? startExport : undefined}
             onAbortExport={mode === 'playback' ? abortExport : undefined}
             isExporting={isExporting}
@@ -1207,6 +1210,7 @@ export function Stage({
               captionsCollapsed={captionsCollapsed}
               onToggleCaptions={() => setCaptionsCollapsed(!captionsCollapsed)}
               onHome={handleHome}
+              isAdmin={isAdmin}
               onExportVideo={startExport}
               onAbortExport={abortExport}
               isExporting={isExporting}

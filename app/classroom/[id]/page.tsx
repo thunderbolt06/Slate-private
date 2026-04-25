@@ -5,7 +5,7 @@ import { ThemeProvider } from '@/lib/hooks/use-theme';
 import { useStageStore } from '@/lib/store';
 import { loadImageMapping } from '@/lib/utils/image-storage';
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { useSceneGenerator } from '@/lib/hooks/use-scene-generator';
 import { useMediaGenerationStore } from '@/lib/store/media-generation';
 import { useWhiteboardHistoryStore } from '@/lib/store/whiteboard-history';
@@ -203,7 +203,9 @@ function shouldUpdateFromRemote(localScene: Scene, remoteScene: Scene): boolean 
 
 export default function ClassroomDetailPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const classroomId = params?.id as string;
+  const isAdmin = searchParams.get('admin') === 'true';
 
   useAnalytics(classroomId);
 
@@ -661,7 +663,7 @@ export default function ClassroomDetailPage() {
             </div>
           ) : (
             <>
-            <Stage onRetryOutline={retrySingleOutline} />
+            <Stage onRetryOutline={retrySingleOutline} isAdmin={isAdmin} />
             </>
           )}
         </div>

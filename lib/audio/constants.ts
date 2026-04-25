@@ -1197,7 +1197,7 @@ export function getTTSProvider(providerId: TTSProviderId): TTSProviderConfig | u
  * Default voice for each TTS provider.
  * Used when switching providers or testing a non-active provider.
  */
-export const DEFAULT_TTS_PROVIDER: TTSProviderId = 'gemini-tts';
+export const DEFAULT_TTS_PROVIDER: TTSProviderId = 'smallest-tts';
 
 export const DEFAULT_TTS_VOICES: Record<TTSProviderId, string> = {
   'smallest-tts': 'ethan',

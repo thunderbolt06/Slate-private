@@ -96,6 +96,7 @@ interface RoundtableProps {
   readonly captionsCollapsed?: boolean;
   readonly onToggleCaptions?: () => void;
   readonly onHome?: () => void;
+  readonly isAdmin?: boolean;
   // Video export
   readonly onExportVideo?: () => void;
   readonly onAbortExport?: () => void;
@@ -189,6 +190,7 @@ export function Roundtable({
   captionsCollapsed = true,
   onToggleCaptions,
   onHome,
+  isAdmin,
   onExportVideo,
   onAbortExport,
   isExporting,
@@ -202,8 +204,6 @@ export function Roundtable({
   const chatAreaWidth = useSettingsStore((s) => s.chatAreaWidth);
   const ttsVolume = useSettingsStore((s) => s.ttsVolume);
   const setTTSVolume = useSettingsStore((s) => s.setTTSVolume);
-  const autoPlayLecture = useSettingsStore((s) => s.autoPlayLecture);
-  const setAutoPlayLecture = useSettingsStore((s) => s.setAutoPlayLecture);
   const playbackSpeed = useSettingsStore((s) => s.playbackSpeed);
   const setPlaybackSpeed = useSettingsStore((s) => s.setPlaybackSpeed);
   const [isInputOpen, setIsInputOpen] = useState(false);
@@ -634,7 +634,7 @@ export function Roundtable({
     isProcessing;
   const toolbar = (
     <CanvasToolbar
-      className="shrink-0 h-8 px-3 border-b border-gray-100/40 dark:border-gray-700/30"
+      className="shrink-0 h-10 sm:h-8 px-3 border-b border-gray-100/40 dark:border-gray-700/30"
       currentSceneIndex={currentSceneIndex}
       scenesCount={scenesCount}
       engineState={
@@ -663,11 +663,10 @@ export function Roundtable({
       ttsVolume={ttsVolume}
       onToggleMute={() => ttsEnabled && setTTSMuted(!ttsMuted)}
       onVolumeChange={(v) => setTTSVolume(v)}
-      autoPlayLecture={autoPlayLecture}
-      onToggleAutoPlay={() => setAutoPlayLecture(!autoPlayLecture)}
       playbackSpeed={playbackSpeed}
       onCycleSpeed={handleCycleSpeed}
       onHome={onHome}
+      isAdmin={isAdmin}
       onExportVideo={onExportVideo}
       onAbortExport={onAbortExport}
       isExporting={isExporting}

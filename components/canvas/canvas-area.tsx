@@ -24,6 +24,7 @@ interface CanvasAreaProps extends CanvasToolbarProps {
   /** Ref attached to the slide container div — used by the video export hook */
   readonly slideRef?: RefObject<HTMLDivElement | null>;
   /** Export props forwarded to toolbar */
+  readonly isAdmin?: boolean;
   readonly onExportVideo?: () => void;
   readonly onAbortExport?: () => void;
   readonly isExporting?: boolean;
@@ -56,6 +57,7 @@ export function CanvasArea({
   onRetryGeneration,
   onHome,
   slideRef,
+  isAdmin,
   onExportVideo,
   onAbortExport,
   isExporting,
@@ -257,7 +259,7 @@ export function CanvasArea({
       {!hideToolbar && (
         <CanvasToolbar
           className={cn(
-            'shrink-0 h-9 px-2',
+            'shrink-0 h-10 sm:h-9 px-2',
             'bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl',
             'border-t border-gray-200/40 dark:border-gray-700/40',
           )}
@@ -279,6 +281,7 @@ export function CanvasArea({
           showStopDiscussion={showStopDiscussion}
           onStopDiscussion={onStopDiscussion}
           onHome={onHome}
+          isAdmin={isAdmin}
           onExportVideo={onExportVideo}
           onAbortExport={onAbortExport}
           isExporting={isExporting}
