@@ -4,6 +4,7 @@ import {
   setHandler,
   executeChild,
   workflowInfo,
+  ParentClosePolicy,
 } from '@temporalio/workflow';
 import type {
   SetupResult,
@@ -223,6 +224,7 @@ export async function classroomGenerationWorkflow(
     void executeChild(insertCourseAndGenerateTagsWorkflow, {
       workflowId: `catalog-${stage.id}`,
       taskQueue: TASK_QUEUE,
+      parentClosePolicy: ParentClosePolicy.PARENT_CLOSE_POLICY_ABANDON,
       args: [catalogParams],
     });
 

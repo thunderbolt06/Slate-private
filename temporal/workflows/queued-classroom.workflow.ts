@@ -3,6 +3,7 @@ import {
   defineQuery,
   setHandler,
   executeChild,
+  ParentClosePolicy,
 } from '@temporalio/workflow';
 import type {
   SetupResult,
@@ -180,6 +181,7 @@ export async function queuedClassroomGenerationWorkflow(
     void executeChild(insertCourseAndGenerateTagsWorkflow, {
       workflowId: `catalog-${stage.id}`,
       taskQueue: TASK_QUEUE,
+      parentClosePolicy: ParentClosePolicy.PARENT_CLOSE_POLICY_ABANDON,
       args: [{
         stage,
         outlines,

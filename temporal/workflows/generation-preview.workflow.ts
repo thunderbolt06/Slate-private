@@ -6,7 +6,7 @@
  * media assets to Supabase Storage so the course is playable on any device.
  */
 
-import { proxyActivities, defineQuery, setHandler, executeChild } from '@temporalio/workflow';
+import { proxyActivities, defineQuery, setHandler, executeChild, ParentClosePolicy } from '@temporalio/workflow';
 import type {
   GenerateSingleSceneParams,
   PushSceneToSupabaseParams,
@@ -286,6 +286,7 @@ export async function generateRemainingWorkflow(
     void executeChild(insertCourseAndGenerateTagsWorkflow, {
       workflowId: `catalog-${stage.id}`,
       taskQueue: TASK_QUEUE,
+      parentClosePolicy: ParentClosePolicy.PARENT_CLOSE_POLICY_ABANDON,
       args: [catalogParams],
     });
 
