@@ -52,6 +52,8 @@ const LLM_ENV_MAP: Record<string, string> = {
 };
 
 const TTS_ENV_MAP: Record<string, string> = {
+  TTS_GEMINI: 'gemini-tts',
+  GOOGLE: 'gemini-tts',
   TTS_SMALLEST: 'smallest-tts',
   TTS_OPENAI: 'openai-tts',
   TTS_AZURE: 'azure-tts',
@@ -62,9 +64,6 @@ const TTS_ENV_MAP: Record<string, string> = {
   TTS_MINIMAX: 'minimax-tts',
   TTS_HF: 'hf-tts',
   TTS_FISH: 'fish-tts',
-  // GOOGLE_API_KEY is the base fallback for Gemini TTS; TTS_GEMINI_API_KEY takes priority (listed last = overwrites)
-  GOOGLE: 'gemini-tts',
-  TTS_GEMINI: 'gemini-tts',
 };
 
 const ASR_ENV_MAP: Record<string, string> = {

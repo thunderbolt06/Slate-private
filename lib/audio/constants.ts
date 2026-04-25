@@ -51,6 +51,25 @@ export const MINIMAX_TTS_MODELS = [
 ] as const;
 
 export const TTS_PROVIDERS: Record<TTSProviderId, TTSProviderConfig> = {
+  'gemini-tts': {
+    id: 'gemini-tts',
+    name: 'Gemini TTS',
+    requiresApiKey: true,
+    defaultBaseUrl: 'https://generativelanguage.googleapis.com',
+    icon: '/logos/google.svg',
+    models: [
+      { id: 'gemini-2.5-flash-preview-tts', name: 'Flash' },
+      // { id: 'gemini-2.5-pro-preview-tts', name: 'Pro' },
+    ],
+    defaultModelId: 'gemini-2.5-flash-preview-tts',
+    voices: [
+      { id: 'Aoede', name: 'US Female Narrator', language: 'en', gender: 'female' },
+      { id: 'Algieba', name: 'US Male Narrator', language: 'en', gender: 'male' },
+    ],
+    supportedFormats: ['mp3', 'wav', 'ogg'],
+    speedRange: { min: 0.25, max: 4.0, default: 1.0 },
+  },
+  
   'smallest-tts': {
     id: 'smallest-tts',
     name: 'Smallest AI (Waves)',
@@ -940,24 +959,6 @@ export const TTS_PROVIDERS: Record<TTSProviderId, TTSProviderConfig> = {
     speedRange: { min: 0.1, max: 10.0, default: 1.0 },
   },
 
-  'gemini-tts': {
-    id: 'gemini-tts',
-    name: 'Gemini TTS',
-    requiresApiKey: true,
-    defaultBaseUrl: 'https://generativelanguage.googleapis.com',
-    icon: '/logos/google.svg',
-    models: [
-      { id: 'gemini-2.5-flash-preview-tts', name: 'Flash' },
-      // { id: 'gemini-2.5-pro-preview-tts', name: 'Pro' },
-    ],
-    defaultModelId: 'gemini-2.5-flash-preview-tts',
-    voices: [
-      { id: 'Aoede', name: 'US Female Narrator', language: 'en', gender: 'female' },
-      { id: 'Algieba', name: 'US Male Narrator', language: 'en', gender: 'male' },
-    ],
-    supportedFormats: ['mp3', 'wav', 'ogg'],
-    speedRange: { min: 0.25, max: 4.0, default: 1.0 },
-  },
 
   'fish-tts': {
     id: 'fish-tts',

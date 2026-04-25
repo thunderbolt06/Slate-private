@@ -12,7 +12,7 @@ const log = createLogger('IntroSSE');
 
 export const maxDuration = 300;
 
-const DEFAULT_PROVIDER: TTSProviderId = 'gemini-tts';
+const DEFAULT_TTS_PROVIDER: TTSProviderId = 'gemini-tts';
 
 /**
  * SSE Endpoint for prioritized course introduction.
@@ -45,10 +45,10 @@ export async function POST(req: NextRequest) {
 
         sendEvent('script', { text: script });
 
-        const voiceId = requestedVoiceId || DEFAULT_TTS_VOICES[DEFAULT_PROVIDER];
-        const apiKey = resolveTTSApiKey(DEFAULT_PROVIDER);
-        const baseUrl = resolveTTSBaseUrl(DEFAULT_PROVIDER);
-        const ttsConfig = { providerId: DEFAULT_PROVIDER, voice: voiceId, apiKey, baseUrl };
+        const voiceId = requestedVoiceId || DEFAULT_TTS_VOICES[DEFAULT_TTS_PROVIDER];
+        const apiKey = resolveTTSApiKey(DEFAULT_TTS_PROVIDER);
+        const baseUrl = resolveTTSBaseUrl(DEFAULT_TTS_PROVIDER);
+        const ttsConfig = { providerId: DEFAULT_TTS_PROVIDER, voice: voiceId, apiKey, baseUrl };
 
         // Gemini TTS has a 512-byte input limit per call — split at sentence
         // boundaries then concatenate the WAV chunks into a single buffer.
