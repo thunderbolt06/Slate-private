@@ -4,14 +4,12 @@ export type SubscriptionPeriod = 'monthly' | 'yearly' | null;
 export interface PlanLimits {
   coursesPerMonth: number; // for FREE: total lifetime cap
   isUnlimited: boolean;
-  /** Live-stream instant classroom (vs background standard generation). */
-  canInstantClassroom: boolean;
 }
 
 export const PLAN_LIMITS: Record<AccountType, PlanLimits> = {
-  FREE:  { coursesPerMonth: 2,     isUnlimited: false, canInstantClassroom: false },
-  PLUS:  { coursesPerMonth: 30,    isUnlimited: false, canInstantClassroom: true },
-  ADMIN: { coursesPerMonth: 99999, isUnlimited: true,  canInstantClassroom: true },
+  FREE:  { coursesPerMonth: 2,     isUnlimited: false },
+  PLUS:  { coursesPerMonth: 30,    isUnlimited: false },
+  ADMIN: { coursesPerMonth: 99999, isUnlimited: true  },
 };
 
 /** Standard + Instant Classrooms share one credit pool per month */

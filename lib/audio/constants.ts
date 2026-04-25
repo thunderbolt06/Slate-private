@@ -1209,7 +1209,7 @@ export const DEFAULT_TTS_VOICES: Record<TTSProviderId, string> = {
   'hf-tts': 'af_heart',
   'fish-tts': 'us-male-narrative',
   'browser-native-tts': 'default',
-  'gemini-tts': 'Kore',
+  'gemini-tts': 'Aoede',
 };
 
 export const DEFAULT_TTS_MODELS: Record<TTSProviderId, string> = {
