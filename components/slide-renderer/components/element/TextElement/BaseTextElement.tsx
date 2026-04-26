@@ -54,7 +54,7 @@ export function BaseTextElement({ elementInfo, target }: BaseTextElementProps) {
             outline={elementInfo.outline}
           />
           <div
-            className={`text ProseMirror-static relative ${target === 'thumbnail' ? 'pointer-events-none' : ''}`}
+            className={`text ProseMirror-static relative [&_p]:mt-0 [&_p]:mb-[var(--paragraphSpace)] ${target === 'thumbnail' ? 'pointer-events-none' : ''}`}
             dangerouslySetInnerHTML={{ __html: sanitizeTextElementContent(elementInfo.content) }}
           />
         </div>

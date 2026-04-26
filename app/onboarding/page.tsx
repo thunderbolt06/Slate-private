@@ -91,11 +91,15 @@ export default function OnboardingPage() {
   const showWelcome = useCallback(() => go(13), []);
 
   // Called from the Welcome screen (button or auto-redirect).
-  // After welcome, drop the user on the home dashboard. The demo classroom
-  // was already previewed inline earlier in the flow.
+  // Take the user straight into the classroom they picked during onboarding —
+  // landing on the dashboard root left the just-set-up classroom feeling lost
+  // for first-time users (NEW-006). Fall back to `/` only if we somehow have
+  // no demo selection (shouldn't happen — step 9 is required to advance).
   const goHome = useCallback(() => {
-    router.push('/');
-  }, [router]);
+    const picked = answers.demoPick;
+    const classroomId = picked ? getDemoCourse(picked)?.classroomId : undefined;
+    router.push(classroomId ? `/classroom/${classroomId}` : '/');
+  }, [router, answers.demoPick]);
 
   return (
     <>

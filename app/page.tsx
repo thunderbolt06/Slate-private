@@ -2552,8 +2552,14 @@ function DashboardPage() {
                   />
                 </motion.div>
               ) : (
+                // Constant key so the AnimatePresence "wait" exit/enter cycle
+                // only fires when toggling between the outline view and the
+                // tabs view — not when switching between sibling tabs. With a
+                // per-tab key, the previous tab's rendered output stayed in
+                // the DOM through the 200ms exit animation, which surfaced as
+                // a "one step behind" navigation bug (BUG-004).
                 <motion.div
-                  key={activeTab}
+                  key="tabs"
                   initial={{ opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -8 }}

@@ -67,6 +67,13 @@ export async function POST(request: NextRequest) {
       body.height = dims.height;
     }
 
+    // Append a hardening suffix to every prompt so the image model doesn't
+    // emit slide-template stock images with literal placeholder text like
+    // "[YOUR NAME/COMPANY]" or "TITLE HERE" baked into the picture (NEW-002).
+    // We append rather than prepend so the user's intent stays the leading
+    // signal; the suffix is short enough that it won't dominate the prompt.
+    body.prompt = `${body.prompt.trim()}. Do not include any placeholder text, template fields, fake company names, "[YOUR NAME]"/"[COMPANY]"/"TITLE HERE" labels, watermarks, or stock-template chrome — the image must be a finished standalone illustration with no editorial boilerplate.`;
+
     log.info(
       `Generating image: provider=${providerId}, model=${clientModel || 'default'}, ` +
         `prompt="${body.prompt.slice(0, 80)}...", size=${body.width ?? 'auto'}x${body.height ?? 'auto'}`,

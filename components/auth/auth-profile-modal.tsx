@@ -337,7 +337,10 @@ export function AuthProfileModal({ open, onClose }: AuthProfileModalProps) {
   const handleSignOut = async () => {
     await signOut();
     closeProfile();
-    window.location.href = '/';
+    // Send the user to the login page rather than `/`, which is the dashboard
+    // itself — landing back on `/` after sign-out left a freshly-signed-out
+    // user on the Create New Course screen with stale cached UI (NEW-001).
+    window.location.href = '/auth/login';
   };
 
   if (!user) return null;

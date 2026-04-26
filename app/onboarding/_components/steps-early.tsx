@@ -258,7 +258,7 @@ export const Step4Source = ({
       </>
     }
   >
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, maxWidth: 640, margin: '0 auto' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 12, maxWidth: 720, margin: '0 auto' }}>
       {SOURCES.map((s) => (
         <OptionCard
           key={s.key}
