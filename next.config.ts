@@ -24,6 +24,23 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  async redirects() {
+    // Sidebar tabs are state-based (single-page dashboard), so direct hits to
+    // /my-courses, /browse, /achievements would 404. Redirect them to the
+    // dashboard with the matching ?tab= so the URL stays meaningful and
+    // shareable links work.
+    return [
+      { source: '/my-courses', destination: '/?tab=my-courses', permanent: false },
+      { source: '/browse', destination: '/?tab=browse', permanent: false },
+      { source: '/browse-courses', destination: '/?tab=browse', permanent: false },
+      { source: '/achievements', destination: '/?tab=achievements', permanent: false },
+      // Convenience aliases for auth routes — the canonical path is /auth/login.
+      { source: '/login', destination: '/auth/login', permanent: false },
+      { source: '/signup', destination: '/auth/login', permanent: false },
+      { source: '/sign-in', destination: '/auth/login', permanent: false },
+      { source: '/sign-up', destination: '/auth/login', permanent: false },
+    ];
+  },
   skipTrailingSlashRedirect: true,
   async headers() {
     return [

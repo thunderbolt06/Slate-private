@@ -101,6 +101,40 @@ export async function retryMediaTask(elementId: string): Promise<void> {
 
 // ==================== Internal ====================
 
+// Auto-retry transient failures (network blips, provider 5xx) once before
+// surfacing the red error state to the user. Non-retryable errors carry an
+// errorCode (CONTENT_SENSITIVE, GENERATION_DISABLED) and bypass this.
+const AUTO_RETRY_ATTEMPTS = 1;
+const AUTO_RETRY_DELAY_MS = 1500;
+
+async function callMediaApiWithRetry(
+  req: MediaGenerationRequest,
+  abortSignal?: AbortSignal,
+): Promise<{ url: string; poster?: string }> {
+  let lastErr: unknown;
+  for (let attempt = 0; attempt <= AUTO_RETRY_ATTEMPTS; attempt++) {
+    if (abortSignal?.aborted) throw new Error('Aborted');
+    try {
+      if (req.type === 'image') {
+        const result = await callImageApi(req, abortSignal);
+        return { url: result.url };
+      }
+      const result = await callVideoApi(req, abortSignal);
+      return { url: result.url, poster: result.poster };
+    } catch (err) {
+      lastErr = err;
+      // Non-retryable: surface immediately
+      if (err instanceof MediaApiError && err.errorCode) throw err;
+      if (attempt < AUTO_RETRY_ATTEMPTS) {
+        log.warn(`Transient ${req.type} failure for ${req.elementId}, retrying once`);
+        await new Promise((r) => setTimeout(r, AUTO_RETRY_DELAY_MS));
+        continue;
+      }
+    }
+  }
+  throw lastErr;
+}
+
 async function generateSingleMedia(
   req: MediaGenerationRequest,
   stageId: string,
@@ -115,11 +149,11 @@ async function generateSingleMedia(
     let mimeType: string;
 
     if (req.type === 'image') {
-      const result = await callImageApi(req, abortSignal);
+      const result = await callMediaApiWithRetry(req, abortSignal);
       resultUrl = result.url;
       mimeType = 'image/png';
     } else {
-      const result = await callVideoApi(req, abortSignal);
+      const result = await callMediaApiWithRetry(req, abortSignal);
       resultUrl = result.url;
       posterUrl = result.poster;
       mimeType = 'video/mp4';

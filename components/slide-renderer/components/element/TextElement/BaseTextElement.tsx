@@ -3,6 +3,7 @@
 import type { PPTTextElement } from '@/lib/types/slides';
 import { useElementShadow } from '../hooks/useElementShadow';
 import { ElementOutline } from '../ElementOutline';
+import { sanitizeTextElementContent } from '@/lib/generation/text-content-sanitizer';
 
 export interface BaseTextElementProps {
   elementInfo: PPTTextElement;
@@ -54,7 +55,7 @@ export function BaseTextElement({ elementInfo, target }: BaseTextElementProps) {
           />
           <div
             className={`text ProseMirror-static relative ${target === 'thumbnail' ? 'pointer-events-none' : ''}`}
-            dangerouslySetInnerHTML={{ __html: elementInfo.content }}
+            dangerouslySetInnerHTML={{ __html: sanitizeTextElementContent(elementInfo.content) }}
           />
         </div>
       </div>
