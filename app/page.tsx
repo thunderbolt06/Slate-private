@@ -2526,14 +2526,25 @@ function DashboardPage() {
         <main className="flex-1 overflow-y-auto">
           <div className="max-w-7xl mx-auto px-6 py-8 max-lg:pt-20">
             <AnimatePresence mode="wait">
-              {outlineCourse ? (
-                <motion.div
-                  key="outline"
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  transition={{ duration: 0.2, ease: 'easeOut' }}
-                >
+              {/*
+                A single motion.div per render with a combined key. Previously
+                we had two separate motion.divs (one keyed "outline", one keyed
+                {activeTab}) inside a ternary — the AnimatePresence + ternary
+                + dynamic key combination caused a "one step behind" rendering
+                bug where the exiting branch and the entering branch could
+                resolve to the same `outlineCourse ? ... : ...` slot but with
+                different keys, leaving the new tab content blank for one
+                interaction. Folding everything into one keyed motion.div with
+                the children evaluated from current state avoids the issue.
+              */}
+              <motion.div
+                key={outlineCourse ? 'outline' : activeTab}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.2, ease: 'easeOut' }}
+              >
+                {outlineCourse ? (
                   <CourseOutlinePage
                     title={outlineCourse.source === 'my' ? outlineCourse.item.name : outlineCourse.item.title}
                     description={outlineCourse.source === 'my' ? outlineCourse.item.description : outlineCourse.item.description}
@@ -2550,46 +2561,37 @@ function DashboardPage() {
                     onEnterClassroom={handleOutlineEnterClassroom}
                     onSaveCourse={handleSaveCourse}
                   />
-                </motion.div>
-              ) : (
-                <motion.div
-                  key={activeTab}
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  transition={{ duration: 0.2, ease: 'easeOut' }}
-                >
-                  {activeTab === 'new-course' && (
-                    <NewCourseTab
-                      form={form}
-                      updateForm={updateForm}
-                      handleGenerate={handleGenerate}
-                      handleCreateClassroom={handleCreateClassroom}
-                      enterClassroomLoading={enterClassroomLoading}
-                      createClassroomLoading={createClassroomLoading}
-                      canGenerate={canGenerate}
-                      error={error}
-                      settingsOpen={settingsOpen}
-                      setSettingsOpen={setSettingsOpen}
-                    />
-                  )}
-                  {activeTab === 'my-courses' && (
-                    <MyCoursesTab
-                      classrooms={classrooms}
-                      thumbnails={thumbnails}
-                      onSelectCourse={handleMyOutlineOpen}
-                      onDeleteCourse={handleDelete}
-                      onRenameCourse={handleRename}
-                      pendingDeleteId={pendingDeleteId}
-                      onConfirmDelete={confirmDelete}
-                      onCancelDelete={() => setPendingDeleteId(null)}
-                      loading={coursesLoading}
-                    />
-                  )}
-                  {activeTab === 'browse' && <BrowseCoursesTab onSelectCourse={handleBrowseOutlineOpen} />}
-                  {activeTab === 'achievements' && <AchievementsTab />}
-                </motion.div>
-              )}
+                ) : activeTab === 'new-course' ? (
+                  <NewCourseTab
+                    form={form}
+                    updateForm={updateForm}
+                    handleGenerate={handleGenerate}
+                    handleCreateClassroom={handleCreateClassroom}
+                    enterClassroomLoading={enterClassroomLoading}
+                    createClassroomLoading={createClassroomLoading}
+                    canGenerate={canGenerate}
+                    error={error}
+                    settingsOpen={settingsOpen}
+                    setSettingsOpen={setSettingsOpen}
+                  />
+                ) : activeTab === 'my-courses' ? (
+                  <MyCoursesTab
+                    classrooms={classrooms}
+                    thumbnails={thumbnails}
+                    onSelectCourse={handleMyOutlineOpen}
+                    onDeleteCourse={handleDelete}
+                    onRenameCourse={handleRename}
+                    pendingDeleteId={pendingDeleteId}
+                    onConfirmDelete={confirmDelete}
+                    onCancelDelete={() => setPendingDeleteId(null)}
+                    loading={coursesLoading}
+                  />
+                ) : activeTab === 'browse' ? (
+                  <BrowseCoursesTab onSelectCourse={handleBrowseOutlineOpen} />
+                ) : activeTab === 'achievements' ? (
+                  <AchievementsTab />
+                ) : null}
+              </motion.div>
             </AnimatePresence>
           </div>
         </main>

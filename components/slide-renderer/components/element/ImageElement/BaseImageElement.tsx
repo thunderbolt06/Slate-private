@@ -12,10 +12,24 @@ import { useMediaStageId } from '@/lib/contexts/media-stage-context';
 import { retryMediaTask } from '@/lib/media/media-orchestrator';
 import { RotateCcw, Paintbrush, ShieldAlert, ImageOff } from 'lucide-react';
 import { useI18n } from '@/lib/hooks/use-i18n';
+import { useEffect, useState } from 'react';
 
 export interface BaseImageElementProps {
   elementInfo: PPTImageElement;
 }
+
+// After this long with no observable progress on a placeholder, treat the image
+// as broken and show an actionable error UI instead of a forever-skeleton.
+// NEW-005 surfaced classrooms where the original generation never completed —
+// the slide ships with a `gen_img_N` placeholder, no task is ever enqueued
+// (the course is loaded fresh from storage, not from a generation flow), so
+// the skeleton spins indefinitely. This timeout converts that into an
+// "image unavailable" state the user can dismiss or retry.
+const PLACEHOLDER_STUCK_TIMEOUT_MS = 30_000;
+
+// Same idea for resolved URLs that 404 / fail to load (e.g. expired blob storage
+// URLs for older courses) — see NEW-005.
+type ImgLoadStatus = 'pending' | 'loaded' | 'errored';
 
 /**
  * Base image element component for read-only display
@@ -42,12 +56,51 @@ export function BaseImageElement({ elementInfo }: BaseImageElementProps) {
   const imageGenerationEnabled = useSettingsStore((s) => s.imageGenerationEnabled);
   // Resolve actual src: use objectUrl from store if available, otherwise original src
   const resolvedSrc = task?.status === 'done' && task.objectUrl ? task.objectUrl : elementInfo.src;
+
+  // Track whether a placeholder skeleton has been spinning longer than the
+  // stuck-timeout. We only arm the timer for "no task at all" placeholders,
+  // since active generations report progress via task.status transitions.
+  // The `lastStuckKey` / derived-state pattern resets `stuck` when the
+  // placeholder identity changes without setState-in-effect.
+  const placeholderHasNoTask = isPlaceholder && !task;
+  const stuckKey = `${placeholderHasNoTask ? 'p' : '_'}::${elementInfo.src}`;
+  const [stuck, setStuck] = useState(false);
+  const [lastStuckKey, setLastStuckKey] = useState(stuckKey);
+  if (lastStuckKey !== stuckKey) {
+    setLastStuckKey(stuckKey);
+    setStuck(false);
+  }
+  useEffect(() => {
+    if (!placeholderHasNoTask) return;
+    const id = setTimeout(() => setStuck(true), PLACEHOLDER_STUCK_TIMEOUT_MS);
+    return () => clearTimeout(id);
+  }, [placeholderHasNoTask, elementInfo.src]);
+
+  // Track <img> load failures (e.g. expired storage URLs). Same derived-state
+  // pattern: when the src changes, reset the load status synchronously in
+  // render rather than via an effect.
+  const [imgLoadStatus, setImgLoadStatus] = useState<ImgLoadStatus>('pending');
+  const [lastImgSrc, setLastImgSrc] = useState<string>(resolvedSrc);
+  if (lastImgSrc !== resolvedSrc) {
+    setLastImgSrc(resolvedSrc);
+    setImgLoadStatus('pending');
+  }
+
   const showDisabled = isPlaceholder && !task && !imageGenerationEnabled;
+  // A placeholder that hasn't been claimed by any task and has been spinning
+  // long enough to be considered broken: treat as error so the user gets a
+  // retry / dismiss option rather than an infinite skeleton.
+  const showStuckPlaceholder =
+    isPlaceholder && !task && imageGenerationEnabled && stuck;
   const showSkeleton =
     isPlaceholder &&
     !showDisabled &&
+    !showStuckPlaceholder &&
     (!task || task.status === 'pending' || task.status === 'generating');
-  const showError = isPlaceholder && task?.status === 'failed';
+  const showTaskError = isPlaceholder && task?.status === 'failed';
+  // For non-placeholder srcs (already-resolved URLs), surface load failures.
+  const showUrlError = !isPlaceholder && imgLoadStatus === 'errored' && !!resolvedSrc;
+  const showError = showTaskError || showStuckPlaceholder || showUrlError;
 
   return (
     <div
@@ -110,6 +163,15 @@ export function BaseImageElement({ elementInfo }: BaseImageElementProps) {
                     <ImageOff className="w-3 h-3 shrink-0" />
                     <span>{t('settings.mediaGenerationDisabled')}</span>
                   </div>
+                ) : showStuckPlaceholder || showUrlError ? (
+                  // No live task to retry (NEW-005: old course with a
+                  // never-completed placeholder, or an expired URL). Surface
+                  // a clear "image unavailable" state instead of a button
+                  // that would do nothing.
+                  <div className="flex items-center gap-1 px-2 py-1 text-[10px] font-medium text-red-600 dark:text-red-400">
+                    <ImageOff className="w-3 h-3 shrink-0" />
+                    <span>{t('settings.mediaUnavailable')}</span>
+                  </div>
                 ) : (
                   <button
                     onClick={(e) => {
@@ -139,6 +201,8 @@ export function BaseImageElement({ elementInfo }: BaseImageElementProps) {
                   }}
                   alt=""
                   onDragStart={(e) => e.preventDefault()}
+                  onLoad={() => setImgLoadStatus('loaded')}
+                  onError={() => setImgLoadStatus('errored')}
                 />
                 {elementInfo.colorMask && (
                   <div

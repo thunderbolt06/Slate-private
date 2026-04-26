@@ -335,9 +335,24 @@ export function AuthProfileModal({ open, onClose }: AuthProfileModalProps) {
   }, [open, closeProfile]);
 
   const handleSignOut = async () => {
-    await signOut();
+    try {
+      await signOut();
+    } catch {
+      /* fall through — we still want to redirect even if the network call fails */
+    }
     closeProfile();
-    window.location.href = '/';
+    // Clear any cached course data so the previous user's content doesn't
+    // briefly flash on the next page. IndexedDB stores per-user courses,
+    // and stale entries make sign-out look like it didn't take effect.
+    try {
+      sessionStorage.clear();
+    } catch {
+      /* ignore */
+    }
+    // Navigate to /auth/login (not '/') so the sign-out is visibly different
+    // from the logged-in dashboard. /auth/login is unauthenticated UX, which
+    // is the correct landing for a just-signed-out user.
+    window.location.href = '/auth/login';
   };
 
   if (!user) return null;

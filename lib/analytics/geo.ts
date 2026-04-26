@@ -112,12 +112,22 @@ export interface GeoInfo {
 }
 
 /**
- * Extracts country info from common cloud provider headers
+ * Extracts country info from common cloud provider headers, with a couple of
+ * fallback signals for environments where the geo headers are stripped.
+ *
+ * Order:
+ *   1. x-vercel-ip-country         (Vercel edge)
+ *   2. cf-ipcountry                (Cloudflare)
+ *   3. x-country-code              (custom proxy convention)
+ *   4. accept-language region tag  (e.g. "en-IN", "hi-IN" → IN). Weakest
+ *      signal — browser language is often "en-US" regardless of location —
+ *      but a regional tag is far better than defaulting to "XX/Unknown" and
+ *      forcing every Indian user onto USD pricing (NEW-004).
  */
 export function getGeoInfo(headers: Headers): GeoInfo {
   // Vercel
   const vercelCountry = headers.get('x-vercel-ip-country');
-  if (vercelCountry) {
+  if (vercelCountry && vercelCountry !== 'XX') {
     return {
       countryCode: vercelCountry.toUpperCase(),
       countryName: COUNTRY_NAMES[vercelCountry.toUpperCase()] || 'Unknown Country'
@@ -131,6 +141,30 @@ export function getGeoInfo(headers: Headers): GeoInfo {
       countryCode: cfCountry.toUpperCase(),
       countryName: COUNTRY_NAMES[cfCountry.toUpperCase()] || 'Unknown Country'
     };
+  }
+
+  // Custom proxy / nginx
+  const proxyCountry = headers.get('x-country-code');
+  if (proxyCountry && proxyCountry !== 'XX') {
+    return {
+      countryCode: proxyCountry.toUpperCase(),
+      countryName: COUNTRY_NAMES[proxyCountry.toUpperCase()] || 'Unknown Country'
+    };
+  }
+
+  // Last-resort: parse a region tag out of Accept-Language. Best-effort only.
+  const acceptLanguage = headers.get('accept-language');
+  if (acceptLanguage) {
+    const regionMatch = acceptLanguage.match(/[a-z]{2,3}-([A-Z]{2})\b/);
+    if (regionMatch) {
+      const code = regionMatch[1].toUpperCase();
+      if (COUNTRY_NAMES[code]) {
+        return {
+          countryCode: code,
+          countryName: COUNTRY_NAMES[code]
+        };
+      }
+    }
   }
 
   // Fallback for local dev or missing headers
