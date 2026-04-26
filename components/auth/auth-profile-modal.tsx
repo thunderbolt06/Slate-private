@@ -340,7 +340,11 @@ export function AuthProfileModal({ open, onClose }: AuthProfileModalProps) {
     // NEW-001: After sign out, push the user to the auth screen rather than
     // dropping them back on `/`. The dashboard renders cached UI even when
     // signed out, which made it look like sign-out had silently failed.
-    window.location.href = '/auth/login';
+    // `replace` avoids putting the now-orphaned dashboard URL into history,
+    // and going through `window.location` forces a full reload that drops
+    // any in-memory caches (zustand stores, react-query, etc.) tied to the
+    // signed-out user.
+    window.location.replace('/auth/login');
   };
 
   if (!user) return null;
