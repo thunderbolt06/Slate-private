@@ -101,6 +101,12 @@ export function BaseShapeElement({ elementInfo }: BaseShapeElementProps) {
             style={{
               lineHeight: text.lineHeight,
               letterSpacing: `${text.wordSpace || 0}px`,
+              // NEW-008: Long unbroken tokens (chemical equations like
+              // `Mg+O₂→MgO` or pasted formulas) extend past the right edge of
+              // the panel and get clipped. Allow word-internal breaking so the
+              // content reflows inside the shape.
+              overflowWrap: 'anywhere',
+              wordBreak: 'break-word',
             }}
           >
             <div

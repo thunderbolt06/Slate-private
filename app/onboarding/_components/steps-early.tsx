@@ -258,7 +258,11 @@ export const Step4Source = ({
       </>
     }
   >
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, maxWidth: 640, margin: '0 auto' }}>
+    {/* NEW-007: minmax was 140px which left only ~50px for the text label
+        next to the 44px emoji block; single words like "Instagram" /
+        "YouTube" / "Podcast" overflowed and got clipped. Bump the floor so
+        each tile has room for its full label. */}
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(176px, 1fr))', gap: 12, maxWidth: 640, margin: '0 auto' }}>
       {SOURCES.map((s) => (
         <OptionCard
           key={s.key}

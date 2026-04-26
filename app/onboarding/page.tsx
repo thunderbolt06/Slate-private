@@ -94,14 +94,12 @@ export default function OnboardingPage() {
   // NEW-006: Land directly in the demo classroom that was just generated and
   // previewed during onboarding, rather than dumping the user on the dashboard
   // root where their freshly-generated course was orphaned in the sidebar.
-  // Falls back to the dashboard if (somehow) no demo was picked.
+  // Use `replace` so the back button doesn't return to the welcome screen,
+  // and fall back to the dashboard only if (somehow) no demo was picked.
   const goHome = useCallback(() => {
     const demo = answers.demoPick ? getDemoCourse(answers.demoPick) : undefined;
-    if (demo?.classroomId) {
-      router.push(`/classroom/${demo.classroomId}`);
-    } else {
-      router.push('/');
-    }
+    const target = demo?.classroomId ? `/classroom/${demo.classroomId}` : '/';
+    router.replace(target);
   }, [router, answers.demoPick]);
 
   return (

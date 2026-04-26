@@ -17,6 +17,7 @@
 
 import { NextRequest } from 'next/server';
 import { generateImage, aspectRatioToDimensions } from '@/lib/media/image-providers';
+import { sanitizeImagePrompt } from '@/lib/media/image-prompt-sanitizer';
 import { resolveImageApiKey, resolveImageBaseUrl } from '@/lib/server/provider-config';
 import type { ImageProviderId, ImageGenerationOptions } from '@/lib/media/types';
 import { createLogger } from '@/lib/logger';
@@ -34,6 +35,12 @@ export async function POST(request: NextRequest) {
     if (!body.prompt) {
       return apiError('MISSING_REQUIRED_FIELD', 400, 'Missing prompt');
     }
+
+    // NEW-002: scrub stock-template / placeholder-text fragments before they
+    // reach the image model. Even with strict outline-AI instructions the
+    // prompt occasionally still contains "[YOUR NAME/COMPANY]" boilerplate
+    // that the image model renders verbatim.
+    body.prompt = sanitizeImagePrompt(body.prompt);
 
     const providerId = (request.headers.get('x-image-provider') || 'seedream') as ImageProviderId;
     const clientApiKey = request.headers.get('x-api-key') || undefined;

@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import type { PPTImageElement } from '@/lib/types/slides';
 import { useElementShadow } from '../hooks/useElementShadow';
 import { useElementFlip } from '../hooks/useElementFlip';
@@ -12,6 +13,15 @@ import { useMediaStageId } from '@/lib/contexts/media-stage-context';
 import { retryMediaTask } from '@/lib/media/media-orchestrator';
 import { RotateCcw, Paintbrush, ShieldAlert, ImageOff } from 'lucide-react';
 import { useI18n } from '@/lib/hooks/use-i18n';
+
+// NEW-005: Old courses can land in this component with a `gen_img_xxx`
+// placeholder src and no associated task in the in-memory store (the original
+// generation finished long ago and the result URL is no longer reachable, or
+// the task was cleared). The skeleton paintbrush UI is otherwise shown
+// indefinitely. After this many ms with no task progress we switch to a
+// clearer "image unavailable" state so the slide doesn't look perpetually
+// stuck mid-generation.
+const STALE_PLACEHOLDER_MS = 12_000;
 
 export interface BaseImageElementProps {
   elementInfo: PPTImageElement;
@@ -43,11 +53,45 @@ export function BaseImageElement({ elementInfo }: BaseImageElementProps) {
   // Resolve actual src: use objectUrl from store if available, otherwise original src
   const resolvedSrc = task?.status === 'done' && task.objectUrl ? task.objectUrl : elementInfo.src;
   const showDisabled = isPlaceholder && !task && !imageGenerationEnabled;
+
+  // NEW-005: track an "orphaned placeholder" — the slide carries a
+  // gen_img_xxx src but no task ever appears in the store (old course where
+  // the original image is gone). Flip to a stale state after a grace period
+  // so we render an "Image unavailable" treatment instead of the indefinite
+  // paintbrush skeleton.
+  const noTaskYet = isPlaceholder && !task && !showDisabled && imageGenerationEnabled;
+  const [staleOrphan, setStaleOrphan] = useState(false);
+  // React-blessed "reset state on prop change" pattern: when the source or
+  // task-presence changes, drop the stale flag synchronously during render
+  // so the timer below restarts from a clean slate. Setting state during
+  // render with the same value is bailed out, so this is cheap.
+  const orphanKey = `${elementInfo.src}|${noTaskYet}`;
+  const [trackedOrphanKey, setTrackedOrphanKey] = useState(orphanKey);
+  if (trackedOrphanKey !== orphanKey) {
+    setTrackedOrphanKey(orphanKey);
+    setStaleOrphan(false);
+  }
+  useEffect(() => {
+    if (!noTaskYet) return undefined;
+    const timer = setTimeout(() => setStaleOrphan(true), STALE_PLACEHOLDER_MS);
+    return () => clearTimeout(timer);
+  }, [noTaskYet, elementInfo.src]);
+
   const showSkeleton =
     isPlaceholder &&
     !showDisabled &&
+    !staleOrphan &&
     (!task || task.status === 'pending' || task.status === 'generating');
-  const showError = isPlaceholder && task?.status === 'failed';
+  const showError = (isPlaceholder && task?.status === 'failed') || staleOrphan;
+  // BUG-002: track the first paint of a real image src so we can show a
+  // subtle skeleton instead of a blank gap during the 5-10s URL fetch.
+  const [imgLoaded, setImgLoaded] = useState(false);
+  const [trackedSrc, setTrackedSrc] = useState(resolvedSrc);
+  if (trackedSrc !== resolvedSrc) {
+    setTrackedSrc(resolvedSrc);
+    setImgLoaded(false);
+  }
+  const showImgLoadingOverlay = !!resolvedSrc && !isPlaceholder && !imgLoaded;
 
   return (
     <div
@@ -110,6 +154,14 @@ export function BaseImageElement({ elementInfo }: BaseImageElementProps) {
                     <ImageOff className="w-3 h-3 shrink-0" />
                     <span>{t('settings.mediaGenerationDisabled')}</span>
                   </div>
+                ) : staleOrphan && !task ? (
+                  // NEW-005: orphaned placeholder with no recoverable task.
+                  // Surface a clear "image unavailable" message rather than
+                  // the indefinite paintbrush.
+                  <div className="flex items-center gap-1 px-2 py-1 text-[10px] font-medium text-gray-500 dark:text-gray-400">
+                    <ImageOff className="w-3 h-3 shrink-0" />
+                    <span>Image unavailable</span>
+                  </div>
                 ) : (
                   <button
                     onClick={(e) => {
@@ -126,9 +178,15 @@ export function BaseImageElement({ elementInfo }: BaseImageElementProps) {
               </div>
             ) : resolvedSrc ? (
               <>
+                {/* BUG-002: subtle pulse while the real URL is being
+                    fetched (5-10s on first paint), instead of a blank box. */}
+                {showImgLoadingOverlay && (
+                  <div className="absolute inset-0 bg-gradient-to-br from-amber-50/80 via-orange-50/50 to-yellow-50/70 dark:from-amber-950/30 dark:via-orange-950/20 dark:to-yellow-950/15 animate-pulse" />
+                )}
                 <img
                   src={resolvedSrc}
                   draggable={false}
+                  loading="lazy"
                   style={{
                     position: 'absolute',
                     top: imgPosition.top,
@@ -136,8 +194,12 @@ export function BaseImageElement({ elementInfo }: BaseImageElementProps) {
                     width: imgPosition.width,
                     height: imgPosition.height,
                     filter,
+                    opacity: showImgLoadingOverlay ? 0 : 1,
+                    transition: 'opacity 200ms ease-out',
                   }}
                   alt=""
+                  onLoad={() => setImgLoaded(true)}
+                  onError={() => setImgLoaded(true)}
                   onDragStart={(e) => e.preventDefault()}
                 />
                 {elementInfo.colorMask && (

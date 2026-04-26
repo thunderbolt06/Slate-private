@@ -44,6 +44,11 @@ export function BaseTextElement({ elementInfo, target }: BaseTextElementProps) {
             color: elementInfo.defaultColor,
             fontFamily: elementInfo.defaultFontName,
             writingMode: elementInfo.vertical ? 'vertical-rl' : 'horizontal-tb',
+            // NEW-008: Force long unbroken tokens (chemistry equations,
+            // formulas, URLs) to wrap inside the element box rather than
+            // overflow past its right edge.
+            overflowWrap: 'anywhere',
+            wordBreak: 'break-word',
             // @ts-expect-error - CSS custom property
             '--paragraphSpace': `${elementInfo.paragraphSpace === undefined ? 5 : elementInfo.paragraphSpace}px`,
           }}

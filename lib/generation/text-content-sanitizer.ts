@@ -112,10 +112,68 @@ const LATEX_COMMAND_RE = new RegExp(
   'g',
 );
 
+// A subset of commands that are NOT English words (or any plausible
+// identifier) and so are safe to replace even when the AI dropped the leading
+// backslash. JSON parsing of poorly-escaped AI output sometimes strips the
+// backslash entirely, leaving e.g. `Mg + O₂longrightarrowMgO` on screen with
+// no `\` to anchor the regex. The arrow-command names below are
+// unambiguous — they only ever come from LaTeX — so we strip them anywhere
+// they appear. We deliberately exclude short/ambiguous names like `to`, `in`,
+// `pi`, `mu`, `div`, `times`, `cup`, `cap` which collide with English.
+const BARE_COMMAND_NAMES = [
+  'Longleftrightarrow',
+  'longleftrightarrow',
+  'Longrightarrow',
+  'Longleftarrow',
+  'longrightarrow',
+  'longleftarrow',
+  'leftrightarrow',
+  'Leftrightarrow',
+  'rightarrow',
+  'leftarrow',
+  'Rightarrow',
+  'Leftarrow',
+  'mapsto',
+];
+const BARE_COMMAND_RE = new RegExp(`(${BARE_COMMAND_NAMES.join('|')})`, 'g');
+
 function replaceInlineLatexCommands(html: string): string {
-  return html.replace(LATEX_COMMAND_RE, (_match, name: string) => {
+  let out = html.replace(LATEX_COMMAND_RE, (_match, name: string) => {
     return LATEX_COMMAND_REPLACEMENTS[name] ?? _match;
   });
+  out = out.replace(BARE_COMMAND_RE, (_match, name: string) => {
+    return LATEX_COMMAND_REPLACEMENTS[name] ?? _match;
+  });
+  return out;
+}
+
+/**
+ * Join `<p>...</p><p>...</p>` pairs when the first paragraph does not end
+ * with sentence-terminating punctuation. The AI sometimes splits a single
+ * sentence across two paragraph tags ("...synthesize" / "food."), and the
+ * default <p> margin makes the gap look like an unintentional break in the
+ * middle of a thought.
+ *
+ * We loop until stable so a chain of three or more <p> tags collapses too.
+ */
+function mergeContinuationParagraphs(html: string): string {
+  const SENTENCE_END = /[.!?:;,)\]"’”…»>]$/;
+  const PAIR_RE = /<p\b([^>]*)>([\s\S]*?)<\/p>\s*<p\b[^>]*>/i;
+  let out = html;
+  for (let i = 0; i < 8; i++) {
+    let changed = false;
+    out = out.replace(PAIR_RE, (match, attrs1: string, inner: string) => {
+      const trimmed = inner.replace(/\s+$/, '');
+      if (!trimmed) return match;
+      if (SENTENCE_END.test(trimmed)) return match;
+      changed = true;
+      // Drop the `</p><p ...>` boundary, leaving a single space so the two
+      // text fragments reflow as one paragraph.
+      return `<p${attrs1}>${trimmed} `;
+    });
+    if (!changed) break;
+  }
+  return out;
 }
 
 /**
@@ -136,5 +194,6 @@ export function sanitizeTextElementContent(content: string): string {
   let out = content;
   out = replaceInlineLatexCommands(out);
   out = collapseNewlinesInsideTextNodes(out);
+  out = mergeContinuationParagraphs(out);
   return out;
 }
