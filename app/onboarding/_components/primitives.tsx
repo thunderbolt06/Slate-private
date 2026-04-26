@@ -180,6 +180,11 @@ export const OptionCard = ({
             fontSize: 16,
             color: INK,
             lineHeight: 1.2,
+            // Allow long single-word labels (e.g. "Instagram", "YouTube",
+            // "Podcast") to wrap to a second line instead of being clipped
+            // mid-word by the parent grid cell — NEW-007.
+            overflowWrap: 'anywhere',
+            wordBreak: 'break-word',
           }}
         >
           {label}

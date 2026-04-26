@@ -16,16 +16,32 @@ describe('sanitizeTextElementContent', () => {
     expect(out).toBe('<p>→ ⇒ α β ≤ ≥ ≠</p>');
   });
 
+  it('replaces bare longrightarrow even without a backslash (BUG-001 legacy data)', () => {
+    // Older courses lost the backslash during JSON parsing, so the rendered
+    // text was "Mg+O₂longrightarrowMg" — we recover by recognising the bare
+    // command name and inserting spacing so the equation can wrap.
+    const out = sanitizeTextElementContent('<p>Mg+O₂longrightarrowMg</p>');
+    expect(out).toContain('→');
+    expect(out).not.toContain('longrightarrow');
+    expect(out).toBe('<p>Mg+O₂ → Mg</p>');
+  });
+
   it('does not replace text fragments that just happen to contain a name', () => {
-    // No backslash, no replacement.
+    // No backslash, no replacement. Common-English-word names (pi, alpha,
+    // to, in, etc.) are deliberately not in the bare-name fallback list.
     const out = sanitizeTextElementContent('<p>The pi day was alpha-tested.</p>');
     expect(out).toBe('<p>The pi day was alpha-tested.</p>');
   });
 
   it('does not partially match longer identifiers', () => {
-    // \alphabetic should not be rewritten to "αbetic".
+    // \alphabetical should not be rewritten to "αbetical".
     const out = sanitizeTextElementContent('<p>\\alphabetical</p>');
     expect(out).toBe('<p>\\alphabetical</p>');
+  });
+
+  it('inserts spaces around operators when jammed against alphanumerics (NEW-008)', () => {
+    const out = sanitizeTextElementContent('<p>5\\leq10 and 3\\geq2</p>');
+    expect(out).toBe('<p>5 ≤ 10 and 3 ≥ 2</p>');
   });
 
   it('collapses stray newlines inside paragraph text (BUG-003)', () => {
