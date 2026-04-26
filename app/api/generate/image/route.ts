@@ -19,6 +19,7 @@ import { NextRequest } from 'next/server';
 import { generateImage, aspectRatioToDimensions } from '@/lib/media/image-providers';
 import { resolveImageApiKey, resolveImageBaseUrl } from '@/lib/server/provider-config';
 import type { ImageProviderId, ImageGenerationOptions } from '@/lib/media/types';
+import { sanitizeImagePrompt, withDefaultNegativePrompt } from '@/lib/media/image-prompt-sanitizer';
 import { createLogger } from '@/lib/logger';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { validateUrlForSSRF } from '@/lib/server/ssrf-guard';
@@ -66,6 +67,13 @@ export async function POST(request: NextRequest) {
       body.width = dims.width;
       body.height = dims.height;
     }
+
+    // NEW-002: Strip slide-template framing words and append a no-placeholder
+    // guard. Adapters that support a separate negative prompt (qwen, minimax)
+    // also get a hardened default to keep "[YOUR NAME/COMPANY]" out of the
+    // rendered image.
+    body.prompt = sanitizeImagePrompt(body.prompt);
+    body.negativePrompt = withDefaultNegativePrompt(body.negativePrompt);
 
     log.info(
       `Generating image: provider=${providerId}, model=${clientModel || 'default'}, ` +

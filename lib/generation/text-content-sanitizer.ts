@@ -7,7 +7,10 @@
  *    but it still slips in commands like `\longrightarrow` which then render
  *    as the literal string "longrightarrow" because TextElement is plain HTML
  *    rendered via dangerouslySetInnerHTML, not KaTeX. We swap a curated set of
- *    common math commands for their Unicode equivalents.
+ *    common math commands for their Unicode equivalents. We also handle the
+ *    bare form (no leading backslash) for unambiguous arrow commands, because
+ *    invalid JSON escapes like `\l` get silently stripped during repair, which
+ *    persists slide content in the form "Mg + O₂longrightarrowMgO".
  *
  * 2. Stray `\n\n` and `\n` inside paragraph text. The AI sometimes emits literal
  *    newlines in the middle of a sentence, and the prompt also encourages it to
@@ -112,10 +115,47 @@ const LATEX_COMMAND_RE = new RegExp(
   'g',
 );
 
+// Subset of commands whose names are unambiguous identifiers — they are not
+// English words and would not appear in normal slide text by accident. We also
+// match these *without* a leading backslash. JSON parsing in some pipeline
+// steps (jsonrepair as a fallback for invalid `\l` escapes) silently drops
+// the backslash, so already-persisted slide content can contain the bare name
+// like "Mg + O₂longrightarrowMgO". Without this fallback, the render-time
+// sanitizer cannot recover those slides.
+const BARE_COMMAND_REPLACEMENTS: Record<string, string> = {
+  longrightarrow: '→',
+  longleftarrow: '←',
+  longleftrightarrow: '↔',
+  Longrightarrow: '⇒',
+  Longleftarrow: '⇐',
+  Longleftrightarrow: '⇔',
+  rightarrow: '→',
+  leftarrow: '←',
+  leftrightarrow: '↔',
+  Rightarrow: '⇒',
+  Leftarrow: '⇐',
+  Leftrightarrow: '⇔',
+  mapsto: '↦',
+};
+const BARE_COMMAND_NAMES = Object.keys(BARE_COMMAND_REPLACEMENTS).sort(
+  (a, b) => b.length - a.length,
+);
+// Match the bare name only when the preceding char is NOT a letter (so we
+// don't munge a real word that happens to end in "to"). Trailing letters are
+// allowed — chemistry equations like "longrightarrowMg" are the whole reason.
+const BARE_COMMAND_RE = new RegExp(
+  `(^|[^A-Za-z\\\\])(${BARE_COMMAND_NAMES.join('|')})`,
+  'g',
+);
+
 function replaceInlineLatexCommands(html: string): string {
-  return html.replace(LATEX_COMMAND_RE, (_match, name: string) => {
+  let out = html.replace(LATEX_COMMAND_RE, (_match, name: string) => {
     return LATEX_COMMAND_REPLACEMENTS[name] ?? _match;
   });
+  out = out.replace(BARE_COMMAND_RE, (_match, prefix: string, name: string) => {
+    return `${prefix}${BARE_COMMAND_REPLACEMENTS[name] ?? name}`;
+  });
+  return out;
 }
 
 /**

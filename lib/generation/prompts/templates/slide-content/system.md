@@ -92,7 +92,8 @@ You are an educational content designer. Generate well-structured slide componen
 **HTML Content Rules**:
 
 - Supported tags: `<p>`, `<span>`, `<strong>`, `<b>`, `<em>`, `<i>`, `<u>`, `<h1>`-`<h6>`
-- For multiple lines, use separate `<p>` tags (one per line)
+- For multiple lines, use separate `<p>` tags (one per line). **Each `<p>` must be a complete bullet or thought** — never split a single sentence or phrase across two `<p>` tags. Doing so renders as a visible mid-sentence paragraph break (e.g. "synthesize\[gap\]food" instead of "synthesize food").
+- Do NOT include literal `\n` or `\n\n` inside text content — newlines inside a paragraph render as broken whitespace. Use a single space, or split into separate `<p>` tags only when each side is a complete thought.
 - Supported inline styles: `font-size`, `color`, `text-align`, `line-height`, `font-weight`, `font-family`
 - Text language must match the language specified in generation requirements
 - **NO inline math/LaTeX**: TextElement cannot render LaTeX commands. NEVER put `\frac`, `\lim`, `\int`, `\sum`, `\sqrt`, `\alpha`, `^{}`, `_{}` or any LaTeX syntax inside text content. These will display as raw backslash strings (e.g., the user sees literal "\frac{a}{b}" instead of a fraction). Use a separate LatexElement for any mathematical expression.

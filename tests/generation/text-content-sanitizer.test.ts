@@ -36,6 +36,22 @@ describe('sanitizeTextElementContent', () => {
     expect(out).toBe('<p>Mg + O₂→MgO</p>');
   });
 
+  it('replaces bare longrightarrow without a backslash (BUG-001)', () => {
+    // jsonrepair drops invalid `\l` escapes during JSON parse recovery, so
+    // some persisted slides contain "longrightarrow" with no backslash. The
+    // bare-form fallback recovers these.
+    const out = sanitizeTextElementContent('<p>Mg + O₂longrightarrowMgO</p>');
+    expect(out).toBe('<p>Mg + O₂→MgO</p>');
+  });
+
+  it('does not break a real word that ends in a bare command name', () => {
+    // "auto" ends in "to" but is not a LaTeX arrow. The bare-form regex
+    // requires the preceding char to be non-letter — "auto" should pass
+    // through untouched. ("to" is not in the bare list anyway.)
+    const out = sanitizeTextElementContent('<p>auto and longrightarrow</p>');
+    expect(out).toBe('<p>auto and →</p>');
+  });
+
   it('collapses stray newlines inside paragraph text (BUG-003)', () => {
     const out = sanitizeTextElementContent(
       '<p>Harnessing light energy to synthesize\n\nfood.</p>',

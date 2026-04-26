@@ -130,7 +130,14 @@ export const OptionCard = ({
   style?: React.CSSProperties;
 }) => {
   const [h, setH] = useState(false);
-  const pad = size === 'sm' ? '14px 16px' : '18px 20px';
+  const isSm = size === 'sm';
+  const pad = isSm ? '12px 14px' : '18px 20px';
+  const emojiBox = isSm ? 36 : 44;
+  const emojiFont = isSm ? 18 : 22;
+  const labelFont = isSm ? 15 : 16;
+  const checkBox = isSm ? 18 : 22;
+  const checkFont = isSm ? 10 : 12;
+  const gap = isSm ? 10 : 14;
   return (
     <button
       onClick={onClick}
@@ -147,7 +154,7 @@ export const OptionCard = ({
         transform: h || selected ? 'translate(-1px,-1px)' : 'translate(0,0)',
         transition: 'transform .14s ease, box-shadow .14s ease, background .14s ease',
         display: 'flex',
-        gap: 14,
+        gap,
         alignItems: 'center',
         width: '100%',
         fontFamily: FREDOKA,
@@ -157,16 +164,16 @@ export const OptionCard = ({
       {emoji && (
         <div
           style={{
-            width: 44,
-            height: 44,
-            minWidth: 44,
+            width: emojiBox,
+            height: emojiBox,
+            minWidth: emojiBox,
             borderRadius: 12,
             background: color,
             border: `2.5px solid ${INK}`,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontSize: 22,
+            fontSize: emojiFont,
           }}
         >
           {emoji}
@@ -177,15 +184,13 @@ export const OptionCard = ({
           style={{
             fontFamily: FREDOKA,
             fontWeight: 700,
-            fontSize: 16,
+            fontSize: labelFont,
             color: INK,
             lineHeight: 1.2,
-            // NEW-007: Without these, single long words like "Instagram" /
-            // "YouTube" / "Podcast" overflow narrow tiles on the
-            // "How did you find us?" step and get clipped with an ellipsis.
-            // Allow them to break onto a second line instead.
-            overflowWrap: 'anywhere',
-            wordBreak: 'break-word',
+            // NEW-007: Use `break-word` (only break when no other option), not
+            // `anywhere` / `wordBreak: break-word` which broke long labels like
+            // "Instagram" character-by-character on narrow tiles.
+            overflowWrap: 'break-word',
           }}
         >
           {label}
@@ -207,8 +212,8 @@ export const OptionCard = ({
       </div>
       <div
         style={{
-          width: 22,
-          height: 22,
+          width: checkBox,
+          height: checkBox,
           borderRadius: '50%',
           border: `2.5px solid ${INK}`,
           background: selected ? INK : '#fff',
@@ -216,7 +221,7 @@ export const OptionCard = ({
           alignItems: 'center',
           justifyContent: 'center',
           color: '#fff',
-          fontSize: 12,
+          fontSize: checkFont,
           flexShrink: 0,
         }}
       >
