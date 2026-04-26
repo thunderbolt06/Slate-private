@@ -26,6 +26,7 @@ import { buildPrompt, PROMPT_IDS } from './prompts';
 import { postProcessInteractiveHtml } from './interactive-post-processor';
 import { parseActionsFromStructuredOutput } from './action-parser';
 import { parseJsonResponse } from './json-repair';
+import { sanitizeTextElementContent } from './text-content-sanitizer';
 import {
   buildCourseContext,
   formatAgentsForPrompt,
@@ -414,6 +415,8 @@ function fixElementDefaults(
       }
       if (!textEl.content) {
         textEl.content = '';
+      } else if (typeof textEl.content === 'string') {
+        textEl.content = sanitizeTextElementContent(textEl.content);
       }
 
       return textEl as typeof el;

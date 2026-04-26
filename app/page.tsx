@@ -116,6 +116,12 @@ export interface StageListItem extends LocalStageListItem {
 
 type Tab = 'new-course' | 'my-courses' | 'browse' | 'achievements';
 
+const TAB_VALUES: Tab[] = ['new-course', 'my-courses', 'browse', 'achievements'];
+
+function isValidTab(value: string | null): value is Tab {
+  return value !== null && (TAB_VALUES as string[]).includes(value);
+}
+
 interface FormState {
   pdfFile: File | null;
   requirement: string;
@@ -2099,8 +2105,32 @@ function DashboardPage() {
   const searchParams = useSearchParams();
 
   const isAdmin = searchParams.get('admin') === 'true';
-  const [activeTab, setActiveTab] = useState<Tab>('new-course');
+  const tabParam = searchParams.get('tab');
+  const initialTab: Tab = isValidTab(tabParam) ? tabParam : 'new-course';
+  const [activeTab, setActiveTabState] = useState<Tab>(initialTab);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+
+  // Keep ?tab= in the URL in sync with the in-memory tab state. Direct
+  // navigations (e.g. /my-courses) are redirected to /?tab=my-courses by
+  // next.config.ts; this hook handles back/forward and shareable links.
+  useEffect(() => {
+    if (isValidTab(tabParam) && tabParam !== activeTab) {
+      setActiveTabState(tabParam);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tabParam]);
+
+  const setActiveTab = (next: Tab) => {
+    setActiveTabState(next);
+    const params = new URLSearchParams(searchParams.toString());
+    if (next === 'new-course') {
+      params.delete('tab');
+    } else {
+      params.set('tab', next);
+    }
+    const qs = params.toString();
+    router.replace(qs ? `/?${qs}` : '/', { scroll: false });
+  };
 
   const pendingGeneration = searchParams.get('pending_generation');
   const pendingHandled = useRef(false);
