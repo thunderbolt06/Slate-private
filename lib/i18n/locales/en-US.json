@@ -828,6 +828,7 @@
     "mediaRetry": "Retry",
     "mediaContentSensitive": "Sorry, this content triggered a safety check.",
     "mediaGenerationDisabled": "Generation disabled in settings",
+    "mediaUnavailable": "Image unavailable",
     "singleAgent": "Single Agent",
     "multiAgent": "Multi-Agent",
     "selectAgents": "Select Agents",

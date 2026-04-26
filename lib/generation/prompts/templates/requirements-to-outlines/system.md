@@ -113,6 +113,13 @@ When a slide scene needs an image or video but no suitable PDF image exists, mar
 - Prefer abstract, diagrammatic, infographic, or icon-based styles for educational illustrations
 - Keep all prompts academic and education-oriented in tone
 
+**Avoid placeholder/template language in prompts** (the image model takes prompts literally and will bake placeholders into the image):
+
+- Do NOT include bracketed placeholder phrases such as `[YOUR NAME]`, `[COMPANY]`, `[BRAND NAME]`, `<YOUR LOGO>`, or `{{TITLE}}`
+- Do NOT include "stock template" phrasing such as `(e.g., QUANTUM TECH)` or "lorem ipsum"
+- Describe the actual content the image should show — never instruct the model to add a slot for the user to fill in later
+- For diagrams that need a label, write the label out (e.g. "labelled 'Photosynthesis'") rather than leaving a placeholder
+
 **When to use video vs image**:
 
 - Use **video** for content that benefits from motion/animation: physical processes, step-by-step demonstrations, biological movements, chemical reactions, mechanical operations
