@@ -335,9 +335,31 @@ export function AuthProfileModal({ open, onClose }: AuthProfileModalProps) {
   }, [open, closeProfile]);
 
   const handleSignOut = async () => {
-    await signOut();
+    // Best-effort: tear down server session and clear IndexedDB caches before
+    // we leave. If anything throws, we still hard-navigate so the user is
+    // never stuck on a logged-in-looking screen with cached course data
+    // (NEW-001).
+    try {
+      await signOut();
+    } catch {
+      /* ignore — full-page nav below will reset client state regardless */
+    }
+    try {
+      const { db } = await import('@/lib/utils/database');
+      // Wipe per-user local caches; the next user (or fresh login) starts clean.
+      await Promise.all([
+        db.stages.clear(),
+        db.scenes.clear(),
+        db.mediaFiles.clear(),
+      ]).catch(() => undefined);
+    } catch {
+      /* ignore */
+    }
     closeProfile();
-    window.location.href = '/';
+    // Hard navigation guarantees React state, service worker caches, and any
+    // in-flight queries are torn down. /auth/login is reachable without a
+    // session and shows a clear next step instead of the dashboard shell.
+    window.location.replace('/auth/login');
   };
 
   if (!user) return null;

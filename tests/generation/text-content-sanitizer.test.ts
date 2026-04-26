@@ -46,6 +46,27 @@ describe('sanitizeTextElementContent', () => {
     expect(out).toContain('<p>line two');
   });
 
+  it('strips a math-mode wrapper around a known command (BUG-001)', () => {
+    const out = sanitizeTextElementContent('<p>Mg + O₂ \\(\\longrightarrow\\) MgO</p>');
+    expect(out).toContain('→');
+    expect(out).not.toContain('longrightarrow');
+    expect(out).not.toContain('\\(');
+    expect(out).not.toContain('\\)');
+  });
+
+  it('handles a double-escaped backslash command (BUG-001)', () => {
+    const out = sanitizeTextElementContent('<p>Mg + O₂ \\\\longrightarrow MgO</p>');
+    expect(out).toContain('→');
+    expect(out).not.toContain('longrightarrow');
+  });
+
+  it('strips dollar-delimited inline math around a known command (BUG-001)', () => {
+    const out = sanitizeTextElementContent('<p>$\\alpha$ + $\\beta$ = γ</p>');
+    expect(out).toContain('α');
+    expect(out).toContain('β');
+    expect(out).not.toContain('$');
+  });
+
   it('handles empty and non-string content gracefully', () => {
     expect(sanitizeTextElementContent('')).toBe('');
     // @ts-expect-error — runtime guard for non-string input

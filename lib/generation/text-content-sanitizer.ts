@@ -103,15 +103,30 @@ const LATEX_COMMAND_REPLACEMENTS: Record<string, string> = {
 const COMMAND_NAMES = Object.keys(LATEX_COMMAND_REPLACEMENTS).sort(
   (a, b) => b.length - a.length,
 );
+// Match the command optionally preceded by a math-mode delimiter (`\(`, `\[`, `$`)
+// and optionally followed by the closing delimiter, so the entire math wrapper
+// disappears alongside the swap. This handles cases where the AI emits
+// `\(\longrightarrow\)` instead of a bare `\longrightarrow`.
 const LATEX_COMMAND_RE = new RegExp(
-  `\\\\(${COMMAND_NAMES.join('|')})(?![A-Za-z])`,
+  `(?:\\\\\\(\\s*|\\\\\\[\\s*|\\$\\s*)?\\\\(${COMMAND_NAMES.join('|')})(?![A-Za-z])(?:\\s*\\\\\\)|\\s*\\\\\\]|\\s*\\$)?`,
+  'g',
+);
+// Fallback for double-escaped backslashes (`\\longrightarrow`) — happens when
+// the AI emits an already-JSON-escaped string and the unescape pass treats one
+// of the two slashes as the literal character.
+const LATEX_DOUBLE_ESCAPE_RE = new RegExp(
+  `\\\\\\\\(${COMMAND_NAMES.join('|')})(?![A-Za-z])`,
   'g',
 );
 
 function replaceInlineLatexCommands(html: string): string {
-  return html.replace(LATEX_COMMAND_RE, (_match, name: string) => {
-    return LATEX_COMMAND_REPLACEMENTS[name] ?? _match;
-  });
+  return html
+    .replace(LATEX_DOUBLE_ESCAPE_RE, (_match, name: string) => {
+      return LATEX_COMMAND_REPLACEMENTS[name] ?? _match;
+    })
+    .replace(LATEX_COMMAND_RE, (_match, name: string) => {
+      return LATEX_COMMAND_REPLACEMENTS[name] ?? _match;
+    });
 }
 
 /**

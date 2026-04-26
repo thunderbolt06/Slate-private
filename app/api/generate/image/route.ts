@@ -22,6 +22,7 @@ import type { ImageProviderId, ImageGenerationOptions } from '@/lib/media/types'
 import { createLogger } from '@/lib/logger';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { validateUrlForSSRF } from '@/lib/server/ssrf-guard';
+import { sanitizeImagePrompt } from '@/lib/media/image-prompt-sanitizer';
 
 const log = createLogger('ImageGeneration API');
 
@@ -34,6 +35,11 @@ export async function POST(request: NextRequest) {
     if (!body.prompt) {
       return apiError('MISSING_REQUIRED_FIELD', 400, 'Missing prompt');
     }
+
+    // Strip template-style placeholder text the LLM occasionally embeds in
+    // the prompt (e.g. "[YOUR NAME]", "(e.g., QUANTUM TECH)") so the image
+    // model doesn't render those literally onto the canvas (NEW-002).
+    body.prompt = sanitizeImagePrompt(body.prompt);
 
     const providerId = (request.headers.get('x-image-provider') || 'seedream') as ImageProviderId;
     const clientApiKey = request.headers.get('x-api-key') || undefined;
