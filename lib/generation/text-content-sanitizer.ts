@@ -97,14 +97,18 @@ const LATEX_COMMAND_REPLACEMENTS: Record<string, string> = {
   Omega: 'Ω',
 };
 
-// Word-boundary on the right so `\alpha2` doesn't match. Sorted longest-first
-// to avoid `\to` swallowing `\torrent`-style false positives — the (?![A-Za-z])
-// guard already handles that, but ordering keeps the regex deterministic.
+// Sorted longest-first so `\longrightarrow` is matched before `\to` (alternation
+// is greedy with the longer alternatives listed first). The lookahead is
+// `(?![a-z])` rather than `(?![A-Za-z])` — we still want to skip continuations
+// like `\alphabetical` (lowercase letter follows) but DO want to match cases
+// where a chemical element symbol immediately follows the command, e.g.
+// `\longrightarrowMg` in `Mg + O₂\longrightarrowMgO`. Without this, the
+// chemistry equation rendered as literal text "longrightarrowMg".
 const COMMAND_NAMES = Object.keys(LATEX_COMMAND_REPLACEMENTS).sort(
   (a, b) => b.length - a.length,
 );
 const LATEX_COMMAND_RE = new RegExp(
-  `\\\\(${COMMAND_NAMES.join('|')})(?![A-Za-z])`,
+  `\\\\(${COMMAND_NAMES.join('|')})(?![a-z])`,
   'g',
 );
 

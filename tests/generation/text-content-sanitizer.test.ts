@@ -28,6 +28,14 @@ describe('sanitizeTextElementContent', () => {
     expect(out).toBe('<p>\\alphabetical</p>');
   });
 
+  it('replaces \\longrightarrow when an uppercase element symbol follows (BUG-001)', () => {
+    // Chemistry equations like `Mg + O₂\longrightarrowMgO` previously
+    // rendered as "longrightarrow" because the lookahead rejected any
+    // following letter. Capital letters are now allowed.
+    const out = sanitizeTextElementContent('<p>Mg + O₂\\longrightarrowMgO</p>');
+    expect(out).toBe('<p>Mg + O₂→MgO</p>');
+  });
+
   it('collapses stray newlines inside paragraph text (BUG-003)', () => {
     const out = sanitizeTextElementContent(
       '<p>Harnessing light energy to synthesize\n\nfood.</p>',
