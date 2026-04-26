@@ -180,6 +180,12 @@ export const OptionCard = ({
             fontSize: 16,
             color: INK,
             lineHeight: 1.2,
+            // NEW-007: Without these, single long words like "Instagram" /
+            // "YouTube" / "Podcast" overflow narrow tiles on the
+            // "How did you find us?" step and get clipped with an ellipsis.
+            // Allow them to break onto a second line instead.
+            overflowWrap: 'anywhere',
+            wordBreak: 'break-word',
           }}
         >
           {label}

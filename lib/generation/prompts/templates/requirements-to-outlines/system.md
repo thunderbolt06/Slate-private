@@ -113,6 +113,14 @@ When a slide scene needs an image or video but no suitable PDF image exists, mar
 - Prefer abstract, diagrammatic, infographic, or icon-based styles for educational illustrations
 - Keep all prompts academic and education-oriented in tone
 
+**Avoid stock-template / placeholder-text imagery** (NEW-002):
+
+- Do NOT describe the image as a "presentation slide", "title slide", "PowerPoint slide", "stock photo", "template", "cover slide", "business slide", or anything that nudges the generation model toward boilerplate corporate-template visuals
+- Do NOT request images with placeholder copy like "[YOUR NAME]", "[YOUR COMPANY]", "Lorem ipsum", "Title here", "Subtitle here", "Click to add", or any text that looks like an unfilled template — even as an example
+- Educational images should depict the *subject matter itself* (a diagram, a labelled illustration, a scene). They should NOT look like a slide deck wrapper.
+- If the image needs labels or callouts, describe each label's actual text explicitly (e.g. "label the parts: nucleus, cytoplasm, cell membrane"), never as "[Label 1]" or generic placeholder text
+- Prefer "clean illustration on a plain background, no surrounding slide chrome, no header/footer text" framing for static educational images
+
 **When to use video vs image**:
 
 - Use **video** for content that benefits from motion/animation: physical processes, step-by-step demonstrations, biological movements, chemical reactions, mechanical operations

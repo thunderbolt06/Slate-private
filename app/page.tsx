@@ -2525,8 +2525,17 @@ function DashboardPage() {
         {/* Scrollable content area */}
         <main className="flex-1 overflow-y-auto">
           <div className="max-w-7xl mx-auto px-6 py-8 max-lg:pt-20">
-            <AnimatePresence mode="wait">
-              {outlineCourse ? (
+            {/*
+              BUG-004: Tab switches were wrapped in AnimatePresence mode="wait"
+              with `key={activeTab}`. AnimatePresence kept the previous tab's
+              motion.div (and its captured children) mounted during the exit
+              animation, so clicking a new tab visibly displayed the previous
+              tab's content for ~200ms — repeatedly reported as "one step
+              behind". The outline open/close still animates; tab swaps now
+              happen instantly with the correct content.
+            */}
+            {outlineCourse ? (
+              <AnimatePresence mode="wait">
                 <motion.div
                   key="outline"
                   initial={{ opacity: 0, y: 12 }}
@@ -2551,46 +2560,40 @@ function DashboardPage() {
                     onSaveCourse={handleSaveCourse}
                   />
                 </motion.div>
-              ) : (
-                <motion.div
-                  key={activeTab}
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  transition={{ duration: 0.2, ease: 'easeOut' }}
-                >
-                  {activeTab === 'new-course' && (
-                    <NewCourseTab
-                      form={form}
-                      updateForm={updateForm}
-                      handleGenerate={handleGenerate}
-                      handleCreateClassroom={handleCreateClassroom}
-                      enterClassroomLoading={enterClassroomLoading}
-                      createClassroomLoading={createClassroomLoading}
-                      canGenerate={canGenerate}
-                      error={error}
-                      settingsOpen={settingsOpen}
-                      setSettingsOpen={setSettingsOpen}
-                    />
-                  )}
-                  {activeTab === 'my-courses' && (
-                    <MyCoursesTab
-                      classrooms={classrooms}
-                      thumbnails={thumbnails}
-                      onSelectCourse={handleMyOutlineOpen}
-                      onDeleteCourse={handleDelete}
-                      onRenameCourse={handleRename}
-                      pendingDeleteId={pendingDeleteId}
-                      onConfirmDelete={confirmDelete}
-                      onCancelDelete={() => setPendingDeleteId(null)}
-                      loading={coursesLoading}
-                    />
-                  )}
-                  {activeTab === 'browse' && <BrowseCoursesTab onSelectCourse={handleBrowseOutlineOpen} />}
-                  {activeTab === 'achievements' && <AchievementsTab />}
-                </motion.div>
-              )}
-            </AnimatePresence>
+              </AnimatePresence>
+            ) : (
+              <div>
+                {activeTab === 'new-course' && (
+                  <NewCourseTab
+                    form={form}
+                    updateForm={updateForm}
+                    handleGenerate={handleGenerate}
+                    handleCreateClassroom={handleCreateClassroom}
+                    enterClassroomLoading={enterClassroomLoading}
+                    createClassroomLoading={createClassroomLoading}
+                    canGenerate={canGenerate}
+                    error={error}
+                    settingsOpen={settingsOpen}
+                    setSettingsOpen={setSettingsOpen}
+                  />
+                )}
+                {activeTab === 'my-courses' && (
+                  <MyCoursesTab
+                    classrooms={classrooms}
+                    thumbnails={thumbnails}
+                    onSelectCourse={handleMyOutlineOpen}
+                    onDeleteCourse={handleDelete}
+                    onRenameCourse={handleRename}
+                    pendingDeleteId={pendingDeleteId}
+                    onConfirmDelete={confirmDelete}
+                    onCancelDelete={() => setPendingDeleteId(null)}
+                    loading={coursesLoading}
+                  />
+                )}
+                {activeTab === 'browse' && <BrowseCoursesTab onSelectCourse={handleBrowseOutlineOpen} />}
+                {activeTab === 'achievements' && <AchievementsTab />}
+              </div>
+            )}
           </div>
         </main>
       </div>
