@@ -120,6 +120,20 @@ export async function testImageConnectivity(
   }
 }
 
+// NEW-002: Even when the outline-generation prompt is told to avoid
+// "presentation slide" / "[YOUR NAME/COMPANY]" framings, the underlying image
+// models still default to corporate-template visuals on certain prompts and
+// stamp visible placeholder copy ("PRESENTATION BY [YOUR NAME/COMPANY]") onto
+// the image. This appended guard nudges every provider away from that style
+// at the call site, regardless of which upstream code built the prompt.
+const IMAGE_PROMPT_NO_TEMPLATE_SUFFIX =
+  ' Style: clean editorial illustration on a plain background, no slide-deck chrome, no header or footer bar, no company name, no logo, and no placeholder copy such as "[Your Name]", "[Your Company]", "Lorem ipsum", "Title here", or "Subtitle here".';
+
+function applyImagePromptGuards(prompt: string): string {
+  if (!prompt) return prompt;
+  return prompt.trimEnd() + IMAGE_PROMPT_NO_TEMPLATE_SUFFIX;
+}
+
 export async function generateImage(
   config: ImageGenerationConfig,
   options: ImageGenerationOptions,
@@ -130,17 +144,22 @@ export async function generateImage(
     usage: 1,
   });
 
+  const guardedOptions: ImageGenerationOptions = {
+    ...options,
+    prompt: applyImagePromptGuards(options.prompt),
+  };
+
   switch (config.providerId) {
     case 'seedream':
-      return generateWithSeedream(config, options);
+      return generateWithSeedream(config, guardedOptions);
     case 'qwen-image':
-      return generateWithQwenImage(config, options);
+      return generateWithQwenImage(config, guardedOptions);
     case 'nano-banana':
-      return generateWithNanoBanana(config, options);
+      return generateWithNanoBanana(config, guardedOptions);
     case 'minimax-image':
-      return generateWithMiniMaxImage(config, options);
+      return generateWithMiniMaxImage(config, guardedOptions);
     case 'grok-image':
-      return generateWithGrokImage(config, options);
+      return generateWithGrokImage(config, guardedOptions);
     default:
       throw new Error(`Unsupported image provider: ${config.providerId}`);
   }

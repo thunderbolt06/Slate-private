@@ -91,7 +91,7 @@ export function BaseShapeElement({ elementInfo }: BaseShapeElementProps) {
           </svg>
 
           <div
-            className={`shape-text flex flex-col px-2.5 py-2.5 leading-relaxed break-words absolute inset-0 ${
+            className={`shape-text flex flex-col px-2.5 py-2.5 leading-relaxed break-words [overflow-wrap:anywhere] absolute inset-0 ${
               text.align === 'top'
                 ? 'justify-start'
                 : text.align === 'bottom'
