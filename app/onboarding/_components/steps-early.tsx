@@ -258,7 +258,15 @@ export const Step4Source = ({
       </>
     }
   >
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, maxWidth: 640, margin: '0 auto' }}>
+    {/*
+      NEW-007: minmax used to be 140px, which on the desktop "How did you find
+      us?" step left only ~30px of horizontal room for the label after the
+      emoji tile and the radio dot. Single-word labels like "Instagram",
+      "YouTube", "Podcast" got clipped. Bumping to 180px gives the label
+      enough room to render in one line at desktop sizes while still allowing
+      a graceful 2-column layout on narrower mobile viewports.
+    */}
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, maxWidth: 640, margin: '0 auto' }}>
       {SOURCES.map((s) => (
         <OptionCard
           key={s.key}

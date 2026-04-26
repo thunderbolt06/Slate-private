@@ -32,7 +32,7 @@ export function BaseTextElement({ elementInfo, target }: BaseTextElementProps) {
         style={{ transform: `rotate(${elementInfo.rotate}deg)` }}
       >
         <div
-          className="element-content relative p-[10px] leading-[1.5] break-words"
+          className="element-content relative p-[10px] leading-[1.5] break-words [overflow-wrap:anywhere]"
           style={{
             width: elementInfo.vertical ? 'auto' : `${elementInfo.width}px`,
             height: elementInfo.vertical ? `${elementInfo.height}px` : 'auto',

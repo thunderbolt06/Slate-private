@@ -43,10 +43,20 @@ export function BaseImageElement({ elementInfo }: BaseImageElementProps) {
   // Resolve actual src: use objectUrl from store if available, otherwise original src
   const resolvedSrc = task?.status === 'done' && task.objectUrl ? task.objectUrl : elementInfo.src;
   const showDisabled = isPlaceholder && !task && !imageGenerationEnabled;
+  // NEW-005: Distinguish "actively generating" from "orphaned placeholder".
+  // When a classroom is opened long after generation finished and no task is
+  // tracked for the element, the image src never got swapped to the real URL
+  // (or the URL expired). Previously this showed an indefinite paintbrush
+  // skeleton, which read as a permanent broken state. Now: skeleton is only
+  // shown while a task is actively running; orphaned placeholders fall through
+  // to a quiet "image unavailable" badge.
   const showSkeleton =
     isPlaceholder &&
     !showDisabled &&
-    (!task || task.status === 'pending' || task.status === 'generating');
+    !!task &&
+    (task.status === 'pending' || task.status === 'generating');
+  const showOrphanedPlaceholder =
+    isPlaceholder && !showDisabled && !task && imageGenerationEnabled;
   const showError = isPlaceholder && task?.status === 'failed';
 
   return (
@@ -96,6 +106,13 @@ export function BaseImageElement({ elementInfo }: BaseImageElementProps) {
                     className="absolute inset-0 m-auto w-5 h-5 text-amber-400/80 dark:text-amber-500/70"
                     strokeWidth={1.5}
                   />
+                </div>
+              </div>
+            ) : showOrphanedPlaceholder ? (
+              <div className="w-full h-full bg-gray-50 dark:bg-gray-900/30 flex items-center justify-center">
+                <div className="flex items-center gap-1 px-2 py-1 text-[10px] font-medium text-gray-500 dark:text-gray-400">
+                  <ImageOff className="w-3 h-3 shrink-0" />
+                  <span>{t('settings.mediaImageUnavailable')}</span>
                 </div>
               </div>
             ) : showError ? (
