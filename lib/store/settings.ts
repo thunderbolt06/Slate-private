@@ -576,7 +576,7 @@ const migrateFromOldStorage = () => {
   }
 
   // Parse other settings
-  let ttsModel = 'openai-tts';
+  let ttsModel = DEFAULT_TTS_MODELS[DEFAULT_TTS_PROVIDER];
   if (oldTtsModel) ttsModel = oldTtsModel;
 
   let selectedAgentIds = ['default-1', 'default-2', 'default-3'];
@@ -620,7 +620,7 @@ export const useSettingsStore = create<SettingsState>()(
         providerId: migratedData?.providerId || 'google',
         modelId: migratedData?.modelId || 'gemini-3.1-flash-lite-preview',
         providersConfig: migratedData?.providersConfig || getDefaultProvidersConfig(),
-        ttsModel: migratedData?.ttsModel || 'openai-tts',
+        ttsModel: migratedData?.ttsModel || DEFAULT_TTS_MODELS[DEFAULT_TTS_PROVIDER],
         selectedAgentIds: migratedData?.selectedAgentIds || [
           'default-1',
           'default-2',
@@ -1345,13 +1345,7 @@ export const useSettingsStore = create<SettingsState>()(
         // Migrate from old ttsModel to new ttsProviderId
         if (state.ttsModel && !state.ttsProviderId) {
           // Map old ttsModel values to new ttsProviderId
-          if (state.ttsModel === 'openai-tts') {
-            state.ttsProviderId = 'openai-tts';
-          } else if (state.ttsModel === 'azure-tts') {
-            state.ttsProviderId = 'azure-tts';
-          } else {
-            state.ttsProviderId = DEFAULT_TTS_PROVIDER;
-          }
+          state.ttsProviderId = DEFAULT_TTS_PROVIDER;
         }
 
         // Add default audio config if missing

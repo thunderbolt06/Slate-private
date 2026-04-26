@@ -16,7 +16,7 @@ export interface DemoCourse {
 export const DEMO_COURSES: DemoCourse[] = [
   {
     key: 'llm',
-    classroomId: 'p3bINmqhzu',
+    classroomId: 'GRdV6A2Y7F',
     title: 'How AI Actually Thinks',
     description: 'From tokens to transformers. Understand what really happens when you chat with an LLM.',
     emoji: '🧠',
@@ -27,7 +27,7 @@ export const DEMO_COURSES: DemoCourse[] = [
   },
   {
     key: 'rome',
-    classroomId: '08OQ3Y771G',
+    classroomId: 'nUdmcfleoS',
     title: 'Why Empires Rise and Fall',
     description: 'A whirlwind tour through Rome. The moments that made it, and the ones that broke it.',
     emoji: '🏛️',
@@ -38,7 +38,7 @@ export const DEMO_COURSES: DemoCourse[] = [
   },
   {
     key: 'habits',
-    classroomId: 'QQOoVwD1L5',
+    classroomId: 'fHJKrhdF5r',
     title: 'The Science of Building Habits',
     description: 'Cue, craving, response, reward. The loop your brain runs, and how to hack it.',
     emoji: '🔥',
@@ -49,7 +49,7 @@ export const DEMO_COURSES: DemoCourse[] = [
   },
   {
     key: 'money',
-    classroomId: '_heqMfg6B-',
+    classroomId: 'jjDk0LGZWu',
     title: 'Money Basics Nobody Taught You',
     description: 'Compound interest, index funds, tax brackets. What you wish you knew at 18.',
     emoji: '💸',
@@ -60,7 +60,7 @@ export const DEMO_COURSES: DemoCourse[] = [
   },
   {
     key: 'cook',
-    classroomId: 'IC7T2b7g9h',
+    classroomId: 'TFe7w5ff24',
     title: 'Cook Five Things Really Well',
     description: 'Master five core techniques. Suddenly every cookbook unlocks, not just the one you bought.',
     emoji: '🍳',
@@ -71,7 +71,7 @@ export const DEMO_COURSES: DemoCourse[] = [
   },
   {
     key: 'space',
-    classroomId: 'dHTWhlt1E-',
+    classroomId: 'Lh7x4lBDGs',
     title: 'Is There Life Out There?',
     description: 'Drake, Fermi, exoplanets, biosignatures. How we actually look, and what we might find.',
     emoji: '🛸',
