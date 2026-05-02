@@ -20,8 +20,9 @@ import { useI18n } from '@/lib/hooks/use-i18n';
 // the task was cleared). The skeleton paintbrush UI is otherwise shown
 // indefinitely. After this many ms with no task progress we switch to a
 // clearer "image unavailable" state so the slide doesn't look perpetually
-// stuck mid-generation.
-const STALE_PLACEHOLDER_MS = 12_000;
+// stuck mid-generation. 4s is enough time for legitimate in-progress tasks
+// to register while keeping the wait short for orphaned/broken URLs.
+const STALE_PLACEHOLDER_MS = 4_000;
 
 export interface BaseImageElementProps {
   elementInfo: PPTImageElement;
@@ -86,12 +87,17 @@ export function BaseImageElement({ elementInfo }: BaseImageElementProps) {
   // BUG-002: track the first paint of a real image src so we can show a
   // subtle skeleton instead of a blank gap during the 5-10s URL fetch.
   const [imgLoaded, setImgLoaded] = useState(false);
+  // NEW-005: track load failures for real (non-placeholder) URLs — e.g. a
+  // truncated Supabase URL that returns nothing. Show "Image unavailable"
+  // instead of an invisible broken-image icon.
+  const [imgError, setImgError] = useState(false);
   const [trackedSrc, setTrackedSrc] = useState(resolvedSrc);
   if (trackedSrc !== resolvedSrc) {
     setTrackedSrc(resolvedSrc);
     setImgLoaded(false);
+    setImgError(false);
   }
-  const showImgLoadingOverlay = !!resolvedSrc && !isPlaceholder && !imgLoaded;
+  const showImgLoadingOverlay = !!resolvedSrc && !isPlaceholder && !imgLoaded && !imgError;
 
   return (
     <div
@@ -176,7 +182,7 @@ export function BaseImageElement({ elementInfo }: BaseImageElementProps) {
                   </button>
                 )}
               </div>
-            ) : resolvedSrc ? (
+            ) : resolvedSrc && !imgError ? (
               <>
                 {/* BUG-002: subtle pulse while the real URL is being
                     fetched (5-10s on first paint), instead of a blank box. */}
@@ -199,7 +205,7 @@ export function BaseImageElement({ elementInfo }: BaseImageElementProps) {
                   }}
                   alt=""
                   onLoad={() => setImgLoaded(true)}
-                  onError={() => setImgLoaded(true)}
+                  onError={() => { setImgLoaded(true); setImgError(true); }}
                   onDragStart={(e) => e.preventDefault()}
                 />
                 {elementInfo.colorMask && (
@@ -209,6 +215,14 @@ export function BaseImageElement({ elementInfo }: BaseImageElementProps) {
                   />
                 )}
               </>
+            ) : imgError ? (
+              // NEW-005: real URL failed to load (e.g. truncated Supabase URL)
+              <div className="w-full h-full bg-gray-50 dark:bg-gray-900/30 flex items-center justify-center">
+                <div className="flex items-center gap-1 px-2 py-1 text-[10px] font-medium text-gray-500 dark:text-gray-400">
+                  <ImageOff className="w-3 h-3 shrink-0" />
+                  <span>Image unavailable</span>
+                </div>
+              </div>
             ) : null}
           </div>
         </div>
