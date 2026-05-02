@@ -18,7 +18,11 @@ const TEMPLATE_PHRASES: Array<RegExp> = [
   /\[\s*(?:title|subtitle|company|brand|logo|name)\s+here\s*\]/gi,
   /\[\s*click\s+to\s+(?:add|edit)[^\]]*\]/gi,
   /\[\s*lorem\s+ipsum[^\]]*\]/gi,
+  // Catch remaining ALL-CAPS bracketed tokens like [COMPANY NAME], [YOUR TEXT]
+  /\[\s*[A-Z][A-Z\s/]{2,}\s*\]/g,
   /\(\s*e\.?g\.?,?\s*(?:quantum\s+tech|acme|company\s+name|your\s+brand)[^)]*\)/gi,
+  // NEW-002: "PRESENTATION BY [YOUR NAME/COMPANY] (e.g., QUANTUM TECH)" — strip the full phrase
+  /\bpresenta?(?:tion|ted)\s+by\b[^.!?\n]*/gi,
   /\bplaceholder\s+(?:text|copy|name|title)\b/gi,
   /\blorem\s+ipsum\b/gi,
 ];

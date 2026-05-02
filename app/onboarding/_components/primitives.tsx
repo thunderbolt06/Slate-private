@@ -183,8 +183,10 @@ export const OptionCard = ({
             // NEW-007: Without these, single long words like "Instagram" /
             // "YouTube" / "Podcast" overflow narrow tiles on the
             // "How did you find us?" step and get clipped with an ellipsis.
-            // Allow them to break onto a second line instead.
-            overflowWrap: 'anywhere',
+            // Use break-word (not 'anywhere') so mid-word breaks only happen
+            // when the word itself is wider than the container — prevents
+            // "Somewhere" from splitting as "Somewhe / re else".
+            overflowWrap: 'break-word',
             wordBreak: 'break-word',
           }}
         >

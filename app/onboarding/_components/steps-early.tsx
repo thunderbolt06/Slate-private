@@ -260,9 +260,10 @@ export const Step4Source = ({
   >
     {/* NEW-007: minmax was 140px which left only ~50px for the text label
         next to the 44px emoji block; single words like "Instagram" /
-        "YouTube" / "Podcast" overflowed and got clipped. Bump the floor so
-        each tile has room for its full label. */}
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(176px, 1fr))', gap: 12, maxWidth: 640, margin: '0 auto' }}>
+        "YouTube" / "Podcast" overflowed and got clipped. At 176px the word
+        "Somewhere" (9 chars) still broke mid-word; bumped to 200px so the
+        ~88px text area fits the longest single word without breaking. */}
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12, maxWidth: 640, margin: '0 auto' }}>
       {SOURCES.map((s) => (
         <OptionCard
           key={s.key}
