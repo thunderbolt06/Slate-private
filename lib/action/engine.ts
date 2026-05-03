@@ -1,12 +1,12 @@
 /**
- * ActionEngine — Unified execution layer for all agent actions.
+ * ActionEngine - Unified execution layer for all agent actions.
  *
  * Replaces the 28 Vercel AI SDK tools in ai-tools.ts with a single engine
  * that both online (streaming) and offline (playback) paths share.
  *
  * Two execution modes:
- * - Fire-and-forget: spotlight, laser — dispatch and return immediately
- * - Synchronous: speech, whiteboard, discussion — await completion
+ * - Fire-and-forget: spotlight, laser - dispatch and return immediately
+ * - Synchronous: speech, whiteboard, discussion - await completion
  */
 
 import type { StageStore } from '@/lib/api/stage-api';
@@ -84,7 +84,7 @@ export class ActionEngine {
       case 'laser':
         this.executeLaser(action);
         return;
-      // Synchronous — Video
+      // Synchronous - Video
       case 'play_video':
         return this.executePlayVideo(action as PlayVideoAction);
 
@@ -136,7 +136,7 @@ export class ActionEngine {
     });
   }
 
-  // ==================== Synchronous — Speech ====================
+  // ==================== Synchronous - Speech ====================
 
   private async executeSpeech(action: SpeechAction): Promise<void> {
     if (!this.audioPlayer) return;
@@ -151,7 +151,7 @@ export class ActionEngine {
     });
   }
 
-  // ==================== Synchronous — Video ====================
+  // ==================== Synchronous - Video ====================
 
   private async executePlayVideo(action: PlayVideoAction): Promise<void> {
     // Resolve the video element's src to a media placeholder ID (e.g. gen_vid_1).
@@ -213,7 +213,7 @@ export class ActionEngine {
     });
   }
 
-  // ==================== Helpers — Media Resolution ====================
+  // ==================== Helpers - Media Resolution ====================
 
   /**
    * Look up a video/image element's src in the current stage's scenes.
@@ -246,7 +246,7 @@ export class ActionEngine {
     return null;
   }
 
-  // ==================== Synchronous — Whiteboard ====================
+  // ==================== Synchronous - Whiteboard ====================
 
   /** Auto-open the whiteboard if it's not already open */
   private async ensureWhiteboardOpen(): Promise<void> {
@@ -441,7 +441,7 @@ export class ActionEngine {
     const wb = this.stageAPI.whiteboard.get();
     if (!wb.success || !wb.data) return;
 
-    // Calculate bounding box — left/top is the minimum of start/end coordinates
+    // Calculate bounding box - left/top is the minimum of start/end coordinates
     const left = Math.min(action.startX, action.endX);
     const top = Math.min(action.startY, action.endY);
 

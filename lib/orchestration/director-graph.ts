@@ -1,5 +1,5 @@
 /**
- * Director Graph — LangGraph StateGraph for Multi-Agent Orchestration
+ * Director Graph - LangGraph StateGraph for Multi-Agent Orchestration
  *
  * Unified graph topology (same for single and multi-agent):
  *
@@ -79,7 +79,7 @@ type OrchestratorStateType = typeof OrchestratorState.State;
 
 /**
  * Look up an agent config: request-scoped overrides first, then global registry.
- * This keeps the server stateless — generated agent configs travel with the request.
+ * This keeps the server stateless - generated agent configs travel with the request.
  */
 function resolveAgent(state: OrchestratorStateType, agentId: string): AgentConfig | undefined {
   return state.agentConfigOverrides[agentId] ?? useAgentRegistry.getState().getAgent(agentId);
@@ -91,11 +91,11 @@ function resolveAgent(state: OrchestratorStateType, agentId: string): AgentConfi
  * Unified director: decides which agent speaks next.
  *
  * Strategy varies by agent count:
- *   Single agent — pure code logic, zero LLM calls:
+ *   Single agent - pure code logic, zero LLM calls:
  *     turn 0: dispatch the sole agent
  *     turn 1+: cue user to speak (keeps session active for follow-ups)
  *
- *   Multi agent — LLM-based with code fast-paths:
+ *   Multi agent - LLM-based with code fast-paths:
  *     turn 0 + triggerAgentId: dispatch trigger agent (skip LLM)
  *     otherwise: LLM decides next agent / USER / END
  */
@@ -434,7 +434,7 @@ async function runAgentGeneration(
 }
 
 /**
- * Agent generate node — runs one agent, then loops back to director.
+ * Agent generate node - runs one agent, then loops back to director.
  */
 async function agentGenerateNode(
   state: OrchestratorStateType,
@@ -505,7 +505,7 @@ export function buildInitialState(
   thinkingConfig?: ThinkingConfig,
 ): typeof OrchestratorState.State {
   // Build request-scoped agent config overrides for generated agents.
-  // These travel with each request — no server-side persistence needed.
+  // These travel with each request - no server-side persistence needed.
   const agentConfigOverrides: Record<string, AgentConfig> = {};
   if (request.config.agentConfigs?.length) {
     for (const cfg of request.config.agentConfigs) {

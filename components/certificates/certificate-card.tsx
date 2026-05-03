@@ -86,7 +86,7 @@ export function CertificateCard({
             </h3>
           </motion.div>
 
-          {/* Results: grade, mastery bar, breakdown — one grouped panel */}
+          {/* Results: grade, mastery bar, breakdown - one grouped panel */}
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}

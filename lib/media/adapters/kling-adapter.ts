@@ -121,7 +121,7 @@ function getDimensions(aspectRatio?: string): {
 }
 
 /**
- * Lightweight connectivity test — validates API key by generating a JWT
+ * Lightweight connectivity test - validates API key by generating a JWT
  * and making a GET request. 401/403 means key invalid.
  */
 export async function testKlingConnectivity(

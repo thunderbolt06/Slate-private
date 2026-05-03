@@ -23,7 +23,7 @@ export class ClassroomPage {
     await this.sidebarScenes.nth(index).click();
   }
 
-  /** Get scene title — it's the second span (first is the number badge) */
+  /** Get scene title - it's the second span (first is the number badge) */
   getSceneTitle(index: number) {
     return this.sidebarScenes.nth(index).locator('[data-testid="scene-title"]');
   }

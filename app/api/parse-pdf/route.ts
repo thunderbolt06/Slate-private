@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
       return apiError('MISSING_REQUIRED_FIELD', 400, 'No PDF file provided');
     }
 
-    // providerId is required from the client — no server-side store to fall back to
+    // providerId is required from the client - no server-side store to fall back to
     const effectiveProviderId = providerId || ('unpdf' as PDFProviderId);
     pdfFileName = pdfFile?.name;
     resolvedProviderId = effectiveProviderId;

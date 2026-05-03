@@ -3,7 +3,7 @@ import { createAdminClient } from '@/utils/supabase/admin';
 
 /**
  * GET /api/lifetime-slots
- * Public endpoint — returns how many lifetime plan spots are taken / available.
+ * Public endpoint - returns how many lifetime plan spots are taken / available.
  */
 export async function GET() {
   try {

@@ -101,7 +101,7 @@ function estimateDimensions(
  * Returns the task ID for polling.
  */
 /**
- * Lightweight connectivity test — validates API key by making a GET request
+ * Lightweight connectivity test - validates API key by making a GET request
  * to poll a non-existent task. If auth fails we get 401/403; if auth succeeds
  * we get 404 (task not found), confirming the key is valid.
  */

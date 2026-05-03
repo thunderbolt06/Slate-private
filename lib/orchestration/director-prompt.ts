@@ -116,14 +116,14 @@ ${rule1}
 2. After the teacher, consider whether a student agent would add value (ask a follow-up question, crack a joke, take notes, offer a different perspective).
 3. Do NOT repeat an agent who already spoke this round unless absolutely necessary.
 4. If the conversation seems complete (question answered, topic covered), output END.
-5. Current turn: ${turnCount + 1}. Consider conversation length — don't let discussions drag on unnecessarily.
-6. Prefer brevity — 1-2 agents responding is usually enough. Don't force every agent to speak.
+5. Current turn: ${turnCount + 1}. Consider conversation length - don't let discussions drag on unnecessarily.
+6. Prefer brevity - 1-2 agents responding is usually enough. Don't force every agent to speak.
 7. You can output {"next_agent":"USER"} to cue the user to speak. Use this when a student asks the user a direct question or when the topic naturally calls for user input.
 8. Consider whiteboard state when routing: if the whiteboard is already crowded, avoid dispatching agents that are likely to add more whiteboard content unless they would clear or organize it.
-9. Whiteboard is currently ${whiteboardOpen ? 'OPEN (slide canvas is hidden — spotlight/laser will not work)' : 'CLOSED (slide canvas is visible)'}. When the whiteboard is open, do not expect spotlight or laser actions to have visible effect.
+9. Whiteboard is currently ${whiteboardOpen ? 'OPEN (slide canvas is hidden - spotlight/laser will not work)' : 'CLOSED (slide canvas is visible)'}. When the whiteboard is open, do not expect spotlight or laser actions to have visible effect.
 
 # Routing Quality (CRITICAL)
-- ROLE DIVERSITY: Do NOT dispatch two agents of the same role consecutively. After a teacher speaks, the next should be a student or assistant — not another teacher-like response. After an assistant rephrases, dispatch a student who asks a question, not another assistant who also rephrases.
+- ROLE DIVERSITY: Do NOT dispatch two agents of the same role consecutively. After a teacher speaks, the next should be a student or assistant - not another teacher-like response. After an assistant rephrases, dispatch a student who asks a question, not another assistant who also rephrases.
 - CONTENT DEDUP: Read the "Agents Who Already Spoke" previews carefully. If an agent already explained a concept thoroughly, do NOT dispatch another agent to explain the same concept. Instead, dispatch an agent who will ASK a question, CHALLENGE an assumption, CONNECT to another topic, or TAKE NOTES.
 - DISCUSSION PROGRESSION: Each new agent should advance the conversation. Good progression: explain → question → deeper explanation → different perspective → summary. Bad progression: explain → re-explain → rephrase → paraphrase.
 - GREETING RULE: If any agent has already greeted the students, no subsequent agent should greet again. Check the previews for greetings.
@@ -190,7 +190,7 @@ function summarizeAgentWhiteboardActions(actions: WhiteboardActionRecord[]): str
         break;
       case 'wb_open':
       case 'wb_close':
-        // Skip open/close from summary — they're structural, not content
+        // Skip open/close from summary - they're structural, not content
         break;
     }
   }
@@ -210,7 +210,7 @@ export function summarizeWhiteboardForDirector(ledger: WhiteboardActionRecord[])
   for (const record of ledger) {
     if (record.actionName === 'wb_clear') {
       elementCount = 0;
-      // Don't reset contributors — they still participated
+      // Don't reset contributors - they still participated
     } else if (record.actionName === 'wb_delete') {
       elementCount = Math.max(0, elementCount - 1);
     } else if (record.actionName.startsWith('wb_draw_')) {

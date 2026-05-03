@@ -23,7 +23,7 @@ const DEFAULT_MODEL = 'grok-imagine-image';
 const DEFAULT_BASE_URL = 'https://api.x.ai/v1';
 
 /**
- * Lightweight connectivity test — validates API key by making a minimal
+ * Lightweight connectivity test - validates API key by making a minimal
  * request that triggers auth check. 401/403 means key invalid.
  */
 export async function testGrokImageConnectivity(

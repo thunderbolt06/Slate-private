@@ -8,12 +8,12 @@
  * Design decisions
  * ────────────────
  * • captureStream(STREAM_FPS) (not 0): the browser samples the canvas at a fixed
- *   rate. Manual requestFrame() with captureStream(0) proved unreliable in practice —
+ *   rate. Manual requestFrame() with captureStream(0) proved unreliable in practice -
  *   frames were silently dropped by the encoder.
  * • Double requestAnimationFrame before each html2canvas call: ensures React has
  *   committed and the browser has painted the current state before we snapshot.
  *   Without this the frame loop blocks React and the UI freezes.
- * • Static segments (speech + TTS): capture once (or twice), then hold — the stream
+ * • Static segments (speech + TTS): capture once (or twice), then hold - the stream
  *   repeats the last canvas pixels until the next capture.
  * • Pointer animations (spotlight / laser): captureFor uses wall-clock–synced slots
  *   at CAPTURE_FOR_TARGET_FPS so samples align with CSS animation time as well as
@@ -32,7 +32,7 @@ const VIDEO_HEIGHT = 1080;
 const STREAM_FPS = 60;
 
 /**
- * Target sample rate for spotlight / laser only — wall-clock slots so captures line
+ * Target sample rate for spotlight / laser only - wall-clock slots so captures line
  * up with animation time better than a fixed post-capture sleep.
  */
 const CAPTURE_FOR_TARGET_FPS = 12;
@@ -205,7 +205,7 @@ const INLINABLE_CSS_PROPS: readonly string[] = [
 
 /**
  * html2canvas 1.4.x rejects many CSS Color 4/5 functions (`lab`, `lch`, `oklab`, …).
- * Browsers often serialize `getComputedStyle()` as `lab()` / `lch()` — those must
+ * Browsers often serialize `getComputedStyle()` as `lab()` / `lch()` - those must
  * not be copied onto the clone or html2canvas throws before painting.
  */
 function cssValueSafeForHtml2Canvas(value: string): boolean {
@@ -307,7 +307,7 @@ export class CourseVideoRecorder {
   private cancelled = false;
 
   constructor() {
-    // Offscreen canvas — not attached to the DOM
+    // Offscreen canvas - not attached to the DOM
     this.canvas = document.createElement('canvas');
     this.canvas.width = VIDEO_WIDTH;
     this.canvas.height = VIDEO_HEIGHT;
@@ -323,7 +323,7 @@ export class CourseVideoRecorder {
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, VIDEO_WIDTH, VIDEO_HEIGHT);
 
-    // Auto-capture at STREAM_FPS — canvas updates from captureFrame(); the encoder samples the surface.
+    // Auto-capture at STREAM_FPS - canvas updates from captureFrame(); the encoder samples the surface.
     const videoStream = this.canvas.captureStream(STREAM_FPS);
 
     // Audio pipeline
@@ -416,7 +416,7 @@ export class CourseVideoRecorder {
       this.ctx.clearRect(0, 0, VIDEO_WIDTH, VIDEO_HEIGHT);
       this.ctx.drawImage(snapshot, 0, 0, VIDEO_WIDTH, VIDEO_HEIGHT);
     } catch (err) {
-      log.warn('html2canvas error — using last frame:', err);
+      log.warn('html2canvas error - using last frame:', err);
       // Leave whatever was already on the canvas rather than going black
     }
 
@@ -449,7 +449,7 @@ export class CourseVideoRecorder {
 
   /**
    * Play an audio blob through the AudioContext routed into the recording.
-   * Resolves when playback ends.  Audio is NOT sent to speakers — only to the
+   * Resolves when playback ends.  Audio is NOT sent to speakers - only to the
    * MediaRecorder's audio track.
    */
   async playAudio(blob: Blob): Promise<void> {
@@ -475,10 +475,10 @@ export class CourseVideoRecorder {
   stop(): Promise<Blob> {
     return new Promise((resolve, reject) => {
       this.mediaRecorder.onstop = () => {
-        // Output as webm even if the filename will be .mp4 — browsers handle it
+        // Output as webm even if the filename will be .mp4 - browsers handle it
         const mimeOut = this.mimeType || 'video/webm';
         const blob = new Blob(this.chunks, { type: mimeOut });
-        log.debug('Recording complete — size:', blob.size, 'type:', mimeOut);
+        log.debug('Recording complete - size:', blob.size, 'type:', mimeOut);
         this.audioCtx.close().catch(() => {});
         resolve(blob);
       };
@@ -539,7 +539,7 @@ function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-/** Yield one animation frame — lets React flush pending renders */
+/** Yield one animation frame - lets React flush pending renders */
 function raf(): Promise<void> {
   return new Promise((r) => requestAnimationFrame(() => r()));
 }

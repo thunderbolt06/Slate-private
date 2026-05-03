@@ -34,7 +34,7 @@ export function ClassroomGenerationStatus({ job, onReopen, onClear }: Props) {
           transition={{ duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
         >
           {job.phase === 'background' ? (
-            /* Generating pill — click to reopen modal */
+            /* Generating pill - click to reopen modal */
             <button
               type="button"
               onClick={onReopen}

@@ -5,7 +5,7 @@
 /**
  * Web Search Provider IDs
  */
-export type WebSearchProviderId = 'exa';
+export type WebSearchProviderId = 'exa' | 'tavily';
 
 /**
  * Web Search Provider Configuration

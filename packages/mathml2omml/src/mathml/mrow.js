@@ -23,7 +23,7 @@ export function mrow(element, targetParent, previousSibling, nextSibling, ancest
       // Mark fence operators so the walker child loop skips them
       first.skipInWalker = true
       last.skipInWalker = true
-      // Return <m:e> as target — inner children go here
+      // Return <m:e> as target - inner children go here
       return dNode.children[1]
     }
   }

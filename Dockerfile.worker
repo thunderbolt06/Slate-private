@@ -1,4 +1,4 @@
-# Temporal Worker — Debian-based (glibc required by Temporal's Rust core)
+# Temporal Worker - Debian-based (glibc required by Temporal's Rust core)
 # Alpine/musl is NOT supported by @temporalio/worker
 
 # ---- Stage 1: Install dependencies ----
@@ -40,7 +40,7 @@ ENV NODE_ENV=production
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/packages ./packages
 
-# Full source — activities import from @/lib/*, @/utils/*, etc.
+# Full source - activities import from @/lib/*, @/utils/*, etc.
 COPY . .
 
 CMD ["pnpm", "worker:prod"]

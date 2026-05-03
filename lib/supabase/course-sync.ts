@@ -142,11 +142,11 @@ async function persistCourseLocally(stage: Stage, scenes: Scene[]) {
  * Download full course content by stage_id (nanoid).
  *
  * Strategy:
- *  1. Fetch directly from Supabase Storage public URL — fast, no DB round-trip.
+ *  1. Fetch directly from Supabase Storage public URL - fast, no DB round-trip.
  *  2. Fall back to DB lookup via /api/courses?stageId= → /api/courses/[id]/content.
  */
 export async function downloadCourseByStageId(stageId: string): Promise<string | null> {
-  // 1. Try Storage first (public bucket, direct URL construction — most reliable)
+  // 1. Try Storage first (public bucket, direct URL construction - most reliable)
   try {
     const storageUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/courses/${stageId}/content.json`;
     const res = await fetch(storageUrl);
@@ -201,7 +201,7 @@ export async function downloadCourseFromSupabase(supabaseCourseId: string): Prom
           }
         }
       } catch {
-        // Storage unavailable — fall through to DB data below
+        // Storage unavailable - fall through to DB data below
       }
     }
 

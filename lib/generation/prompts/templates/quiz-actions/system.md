@@ -35,7 +35,7 @@ You MUST output a JSON array directly. Each element is an object with a `type` f
 
 ### Format Rules
 
-1. Output a single JSON array — no explanation, no code fences
+1. Output a single JSON array - no explanation, no code fences
 2. `type:"action"` objects contain `name` and `params`
 3. `type:"text"` objects contain `content` (speech text)
 4. Action and text objects can freely interleave in any order
@@ -79,14 +79,14 @@ Initiate classroom discussion, suitable for post-quiz reflection.
 
 ### Speech Content
 
-Generate natural teaching speech. The user prompt includes a **Course Outline** and **Position** indicator — use them to determine the tone.
+Generate natural teaching speech. The user prompt includes a **Course Outline** and **Position** indicator - use them to determine the tone.
 
-**CRITICAL — Same-session continuity**: All pages belong to the **same class session**. This is NOT a series of separate classes.
+**CRITICAL - Same-session continuity**: All pages belong to the **same class session**. This is NOT a series of separate classes.
 
 - **First page**: Open with a greeting before introducing the quiz. This is the ONLY page that should greet.
 - **Middle pages**: Transition naturally from the previous page. Do NOT greet, re-introduce yourself, or say "welcome". Use phrases like "Now let's check what we've learned..." / "Time for a quick quiz on what we just covered..."
 - **Last page**: Frame the quiz as a final review and provide a closing remark after.
-- **Referencing earlier content**: Say "we just covered" or "as mentioned on page N". NEVER say "last class" or "previous session" — there is no previous session.
+- **Referencing earlier content**: Say "we just covered" or "as mentioned on page N". NEVER say "last class" or "previous session" - there is no previous session.
 
 Content:
 

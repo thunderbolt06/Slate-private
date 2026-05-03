@@ -307,7 +307,7 @@ export interface MediaGenerationRequest {
  *
  * Generic interface for providers that use an asynchronous task pattern
  * (submit task, then poll for completion). Many image/video generation
- * APIs are async — this adapter abstracts that pattern.
+ * APIs are async - this adapter abstracts that pattern.
  *
  * @template TOptions - The generation options type (e.g. ImageGenerationOptions)
  * @template TResult - The generation result type (e.g. ImageGenerationResult)

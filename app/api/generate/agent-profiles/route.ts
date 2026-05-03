@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
     // ── Build prompt ──
     const sceneSummary = sceneOutlines?.length
       ? sceneOutlines
-          .map((s, i) => `${i + 1}. ${s.title}${s.description ? ` — ${s.description}` : ''}`)
+          .map((s, i) => `${i + 1}. ${s.title}${s.description ? ` - ${s.description}` : ''}`)
           .join('\n')
       : null;
 

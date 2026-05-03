@@ -29,7 +29,7 @@ export function getEffectiveActions(allowedActions: string[], sceneType?: string
 export function getActionDescriptions(allowedActions: string[]): string {
   const descriptions: Record<string, string> = {
     spotlight:
-      'Focus attention on a single key element by dimming everything else. Use sparingly — max 1-2 per response. Parameters: { elementId: string, dimOpacity?: number }',
+      'Focus attention on a single key element by dimming everything else. Use sparingly - max 1-2 per response. Parameters: { elementId: string, dimOpacity?: number }',
     laser:
       'Point at an element with a laser pointer effect. Parameters: { elementId: string, color?: string }',
     wb_open:
@@ -53,7 +53,7 @@ export function getActionDescriptions(allowedActions: string[]): string {
     wb_close:
       'Close the whiteboard and return to the slide view. Always close after you finish drawing. Parameters: {}',
     play_video:
-      'Start playback of a video element on the current slide. Synchronous — blocks until the video finishes playing. Use a speech action before this to introduce the video. Parameters: { elementId: string }',
+      'Start playback of a video element on the current slide. Synchronous - blocks until the video finishes playing. Use a speech action before this to introduce the video. Parameters: { elementId: string }',
   };
 
   if (allowedActions.length === 0) {

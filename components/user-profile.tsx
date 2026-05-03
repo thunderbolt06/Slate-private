@@ -103,7 +103,7 @@ export function UserProfileCard() {
 
   return (
     <Card className="p-5 !gap-0 shadow-xl border-muted/40 backdrop-blur-xl bg-white/80 dark:bg-slate-900/80">
-      {/* File input — sr-only keeps it in the flow but invisible; label triggers it */}
+      {/* File input - sr-only keeps it in the flow but invisible; label triggers it */}
       <input
         id={FILE_INPUT_ID}
         type="file"
@@ -114,7 +114,7 @@ export function UserProfileCard() {
 
       {/* Row 1: Avatar + Name */}
       <div className="flex items-center gap-3.5">
-        {/* Avatar — click to toggle picker */}
+        {/* Avatar - click to toggle picker */}
         <button
           onClick={() => setAvatarPickerOpen(!avatarPickerOpen)}
           className="shrink-0 group/avatar relative cursor-pointer"
@@ -169,7 +169,7 @@ export function UserProfileCard() {
         </div>
       </div>
 
-      {/* Avatar picker — collapsible */}
+      {/* Avatar picker - collapsible */}
       <AnimatePresence>
         {avatarPickerOpen && (
           <motion.div
@@ -197,7 +197,7 @@ export function UserProfileCard() {
                 </button>
               ))}
 
-              {/* Upload — uses <label htmlFor> to natively trigger the file input */}
+              {/* Upload - uses <label htmlFor> to natively trigger the file input */}
               <label
                 htmlFor={FILE_INPUT_ID}
                 className={cn(

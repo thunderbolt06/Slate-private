@@ -54,7 +54,7 @@ describe('sanitizeTextElementContent', () => {
 
   it('handles empty and non-string content gracefully', () => {
     expect(sanitizeTextElementContent('')).toBe('');
-    // @ts-expect-error — runtime guard for non-string input
+    // @ts-expect-error - runtime guard for non-string input
     expect(sanitizeTextElementContent(null)).toBe(null);
   });
 

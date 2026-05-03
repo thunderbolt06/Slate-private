@@ -31,7 +31,7 @@ export async function GET(
     return NextResponse.json({ error: 'Invalid classroom ID' }, { status: 400 });
   }
 
-  // Validate path segments — no traversal
+  // Validate path segments - no traversal
   const joined = pathSegments.join('/');
   if (joined.includes('..') || pathSegments.some((s) => s.includes('\0'))) {
     return NextResponse.json({ error: 'Invalid path' }, { status: 400 });

@@ -10,7 +10,7 @@ interface LaserOverlayProps {
 }
 
 /**
- * Laser pointer — percentage position (0–100) in the slide viewport.
+ * Laser pointer - percentage position (0–100) in the slide viewport.
  * Rendered at the target immediately (no fly-in) so playback and video export
  * see the dot on the first frame.
  */
@@ -27,7 +27,7 @@ export function LaserOverlay({
       style={{ left: `${centerX}%`, top: `${centerY}%` }}
     >
       <div className="relative">
-        {/* Expanding ring — pure CSS so snapshots / html2canvas see a stable dot */}
+        {/* Expanding ring - pure CSS so snapshots / html2canvas see a stable dot */}
         <span
           className="absolute left-1/2 top-1/2 size-6 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 opacity-50 motion-safe:animate-ping"
           style={{ borderColor: color }}

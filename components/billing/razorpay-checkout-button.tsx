@@ -131,7 +131,7 @@ export function RazorpayCheckoutButton({
         },
         modal: {
           ondismiss: () => {
-            toast.info('Payment cancelled — no charge was made.');
+            toast.info('Payment cancelled - no charge was made.');
             setLoading(false);
           },
         },

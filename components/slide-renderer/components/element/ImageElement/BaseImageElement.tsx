@@ -55,7 +55,7 @@ export function BaseImageElement({ elementInfo }: BaseImageElementProps) {
   const resolvedSrc = task?.status === 'done' && task.objectUrl ? task.objectUrl : elementInfo.src;
   const showDisabled = isPlaceholder && !task && !imageGenerationEnabled;
 
-  // NEW-005: track an "orphaned placeholder" — the slide carries a
+  // NEW-005: track an "orphaned placeholder" - the slide carries a
   // gen_img_xxx src but no task ever appears in the store (old course where
   // the original image is gone). Flip to a stale state after a grace period
   // so we render an "Image unavailable" treatment instead of the indefinite

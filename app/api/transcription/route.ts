@@ -1,10 +1,12 @@
 import { NextRequest } from 'next/server';
 import { transcribeAudio } from '@/lib/audio/asr-providers';
+import { ASR_FALLBACK_ORDER, ASR_PROVIDERS } from '@/lib/audio/constants';
 import { resolveASRApiKey, resolveASRBaseUrl } from '@/lib/server/provider-config';
 import type { ASRProviderId } from '@/lib/audio/types';
 import { createLogger } from '@/lib/logger';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { validateUrlForSSRF } from '@/lib/server/ssrf-guard';
+import { tryWithFallback, buildFallbackOrder } from '@/lib/utils/provider-fallback';
 const log = createLogger('Transcription');
 
 export const maxDuration = 60;
@@ -25,7 +27,7 @@ export async function POST(req: NextRequest) {
       return apiError('MISSING_REQUIRED_FIELD', 400, 'Audio file is required');
     }
 
-    // providerId is required from the client — no server-side store to fall back to
+    // providerId is required from the client - no server-side store to fall back to
     const effectiveProviderId = providerId || ('openai-whisper' as ASRProviderId);
     resolvedProviderId = effectiveProviderId;
     resolvedModelId = modelId ?? undefined;
@@ -38,21 +40,47 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const config = {
-      providerId: effectiveProviderId,
-      modelId: modelId || undefined,
-      language: language || 'auto',
-      apiKey: clientBaseUrl
-        ? apiKey || ''
-        : resolveASRApiKey(effectiveProviderId, apiKey || undefined),
-      baseUrl: clientBaseUrl
-        ? clientBaseUrl
-        : resolveASRBaseUrl(effectiveProviderId, baseUrl || undefined),
-    };
+    const fallbackOrder = buildFallbackOrder<ASRProviderId>(
+      effectiveProviderId,
+      ASR_FALLBACK_ORDER,
+      ['browser-native'],
+    );
 
-    // Transcribe using the provider system
-    // We pass the File object directly to preserve metadata (name, type)
-    const result = await transcribeAudio(config, audioFile);
+    const { result, usedProviderId } = await tryWithFallback(
+      fallbackOrder,
+      async (providerId) => {
+        const isPrimary = providerId === effectiveProviderId;
+        const resolvedKey =
+          isPrimary && clientBaseUrl
+            ? apiKey || ''
+            : resolveASRApiKey(providerId, isPrimary ? apiKey || undefined : undefined);
+
+        if (ASR_PROVIDERS[providerId as ASRProviderId]?.requiresApiKey && !resolvedKey) {
+          throw new Error(`No API key configured for ASR provider: ${providerId}`);
+        }
+
+        const resolvedBaseUrl =
+          isPrimary && clientBaseUrl
+            ? clientBaseUrl
+            : resolveASRBaseUrl(providerId, isPrimary ? baseUrl || undefined : undefined);
+
+        return transcribeAudio(
+          {
+            providerId: providerId as ASRProviderId,
+            modelId: isPrimary ? modelId || undefined : undefined,
+            language: language || 'auto',
+            apiKey: resolvedKey,
+            baseUrl: resolvedBaseUrl,
+          },
+          audioFile,
+        );
+      },
+      { category: 'asr' },
+    );
+
+    if (usedProviderId !== effectiveProviderId) {
+      log.warn(`ASR fell back from ${effectiveProviderId} to ${usedProviderId}`);
+    }
 
     return apiSuccess({ text: result.text });
   } catch (error) {

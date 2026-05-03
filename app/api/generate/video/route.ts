@@ -17,12 +17,17 @@
  */
 
 import { NextRequest } from 'next/server';
-import { generateVideo, normalizeVideoOptions } from '@/lib/media/video-providers';
+import {
+  generateVideo,
+  normalizeVideoOptions,
+  VIDEO_FALLBACK_ORDER,
+} from '@/lib/media/video-providers';
 import { resolveVideoApiKey, resolveVideoBaseUrl } from '@/lib/server/provider-config';
 import type { VideoProviderId, VideoGenerationOptions } from '@/lib/media/types';
 import { createLogger } from '@/lib/logger';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { validateUrlForSSRF } from '@/lib/server/ssrf-guard';
+import { tryWithFallback, buildFallbackOrder } from '@/lib/utils/provider-fallback';
 
 const log = createLogger('VideoGeneration API');
 
@@ -48,32 +53,54 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const apiKey = clientBaseUrl
-      ? clientApiKey || ''
-      : resolveVideoApiKey(providerId, clientApiKey);
-    if (!apiKey) {
-      return apiError(
-        'MISSING_API_KEY',
-        401,
-        `No API key configured for video provider: ${providerId}`,
-      );
-    }
-
-    const baseUrl = clientBaseUrl ? clientBaseUrl : resolveVideoBaseUrl(providerId, clientBaseUrl);
-
-    // Normalize options against provider capabilities
-    const options = normalizeVideoOptions(providerId, body);
-
     log.info(
       `Generating video: provider=${providerId}, model=${clientModel || 'default'}, ` +
-        `prompt="${body.prompt.slice(0, 80)}...", duration=${options.duration ?? 'auto'}, ` +
-        `aspect=${options.aspectRatio ?? 'auto'}, resolution=${options.resolution ?? 'auto'}`,
+        `prompt="${body.prompt.slice(0, 80)}..."`,
     );
 
-    const result = await generateVideo(
-      { providerId, apiKey, baseUrl, model: clientModel },
-      options,
+    const fallbackOrder = buildFallbackOrder<VideoProviderId>(providerId, VIDEO_FALLBACK_ORDER);
+
+    const { result, usedProviderId } = await tryWithFallback(
+      fallbackOrder,
+      async (id) => {
+        const isPrimary = id === providerId;
+        const resolvedKey =
+          isPrimary && clientBaseUrl
+            ? clientApiKey || ''
+            : resolveVideoApiKey(id, isPrimary ? clientApiKey : undefined);
+
+        if (!resolvedKey) {
+          throw new Error(`No API key configured for video provider: ${id}`);
+        }
+
+        const resolvedBaseUrl =
+          isPrimary && clientBaseUrl ? clientBaseUrl : resolveVideoBaseUrl(id, undefined);
+
+        // Capabilities differ across video providers - re-normalize per provider.
+        const options = normalizeVideoOptions(id as VideoProviderId, body);
+
+        return generateVideo(
+          {
+            providerId: id as VideoProviderId,
+            apiKey: resolvedKey,
+            baseUrl: resolvedBaseUrl,
+            model: isPrimary ? clientModel : undefined,
+          },
+          options,
+        );
+      },
+      {
+        category: 'video',
+        shouldFallback: (err) => {
+          const msg = err instanceof Error ? err.message : String(err);
+          return !(msg.includes('SensitiveContent') || msg.includes('sensitive information'));
+        },
+      },
     );
+
+    if (usedProviderId !== providerId) {
+      log.warn(`Video generation fell back from ${providerId} to ${usedProviderId}`);
+    }
 
     log.info(
       `Video generated: url=${result.url ? 'yes' : 'no'}, ${result.width}x${result.height}, ${result.duration}s`,

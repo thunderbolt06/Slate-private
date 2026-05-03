@@ -34,10 +34,10 @@ const AVATARS = {
 };
 
 /**
- * MessageBubble — renders one message as a single chat bubble.
+ * MessageBubble - renders one message as a single chat bubble.
  *
  * Text is already paced by the StreamBuffer (30ms / 1 char) before it reaches
- * React state. No UI-layer animation is needed — we render parts directly.
+ * React state. No UI-layer animation is needed - we render parts directly.
  * Action badges only appear once the buffer's tick loop reaches them (after
  * all preceding text is fully revealed).
  */
@@ -180,7 +180,7 @@ export function ChatSessionComponent({
     isAtBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 40;
   }, []);
 
-  // Auto-scroll: smooth scroll when a NEW message arrives — always (new agent bubble should be visible)
+  // Auto-scroll: smooth scroll when a NEW message arrives - always (new agent bubble should be visible)
   const msgCount = session.messages.length;
   useEffect(() => {
     if (bottomRef.current) {
@@ -189,7 +189,7 @@ export function ChatSessionComponent({
     }
   }, [msgCount]);
 
-  // Auto-scroll: rAF-throttled instant scroll as text grows — only when user is at bottom
+  // Auto-scroll: rAF-throttled instant scroll as text grows - only when user is at bottom
   const scrollRaf = useRef(0);
   useEffect(() => {
     if (!isAtBottomRef.current) return;

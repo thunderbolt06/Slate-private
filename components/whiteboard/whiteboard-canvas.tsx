@@ -172,7 +172,7 @@ const InteractiveWhiteboardCanvas = forwardRef<
     onViewModifiedChange?.(isViewModified);
   }, [isViewModified, onViewModifiedChange]);
 
-  // Always-on drag/pan — no toggle needed
+  // Always-on drag/pan - no toggle needed
   const handlePointerDown = useCallback(
     (e: React.PointerEvent) => {
       if (e.button !== 0) {
@@ -308,7 +308,7 @@ const InteractiveWhiteboardCanvas = forwardRef<
   const canvasTransform = `translate(${canvasScreenX}px, ${canvasScreenY}px) scale(${totalScale})`;
 
   return (
-    /* Viewport — fills workspace, handles pointer events, no clipping */
+    /* Viewport - fills workspace, handles pointer events, no clipping */
     <div
       ref={viewportRef}
       className="w-full h-full relative select-none"
@@ -321,7 +321,7 @@ const InteractiveWhiteboardCanvas = forwardRef<
       onPointerCancel={handlePointerUp}
       onDoubleClick={handleDoubleClick}
     >
-      {/* Bounded canvas — white background, positioned and scaled. No overflow-hidden so elements can spill into transparent space. */}
+      {/* Bounded canvas - white background, positioned and scaled. No overflow-hidden so elements can spill into transparent space. */}
       <div
         className="absolute bg-white shadow-2xl rounded-lg border border-gray-200 dark:border-gray-600"
         style={{
@@ -355,7 +355,7 @@ const InteractiveWhiteboardCanvas = forwardRef<
           )}
         </AnimatePresence>
 
-        {/* Content layer — elements rendered at their raw coordinates */}
+        {/* Content layer - elements rendered at their raw coordinates */}
         <div className="absolute inset-0">
           <AnimatePresence mode="popLayout">
             {elements.map((element, index) => (

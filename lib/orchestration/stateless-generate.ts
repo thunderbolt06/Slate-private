@@ -162,7 +162,7 @@ export function parseStructuredChunk(chunk: string, state: ParserState): ParseRe
   const trimmed = state.buffer.trimEnd();
   const isArrayClosed = trimmed.endsWith(']') && trimmed.length > 1;
 
-  // Step 3: Try incremental parse — jsonrepair first (fixes unescaped quotes), fallback to partial-json
+  // Step 3: Try incremental parse - jsonrepair first (fixes unescaped quotes), fallback to partial-json
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- partial-json returns any[]
   let parsed: any[];
   try {
@@ -257,7 +257,7 @@ export function parseStructuredChunk(chunk: string, state: ParserState): ParseRe
 /**
  * Finalize parsing after the stream ends.
  *
- * Handles the case where the model never produced a valid JSON array —
+ * Handles the case where the model never produced a valid JSON array -
  * e.g. it output plain text instead of the expected `[...]` format.
  * Emits whatever content is in the buffer as a single text item so the
  * frontend can still display something rather than showing nothing.
@@ -280,11 +280,11 @@ export function finalizeParser(state: ParserState): ParseResult {
   }
 
   if (!state.jsonStarted) {
-    // Model never output `[` — treat entire buffer as plain text
+    // Model never output `[` - treat entire buffer as plain text
     result.textChunks.push(content);
     result.ordered.push({ type: 'text', index: 0 });
   } else {
-    // JSON started but never closed — try one final parse
+    // JSON started but never closed - try one final parse
     const finalChunk = parseStructuredChunk('', state);
     result.textChunks.push(...finalChunk.textChunks);
     result.actions.push(...finalChunk.actions);

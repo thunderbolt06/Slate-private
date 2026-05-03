@@ -99,7 +99,7 @@ async function submitVideoGeneration(
     instances: [{ prompt: options.prompt }],
   };
 
-  // Parameters are optional — only include if we have values
+  // Parameters are optional - only include if we have values
   const parameters: Record<string, unknown> = {};
   if (options.aspectRatio) parameters.aspectRatio = options.aspectRatio;
   if (options.duration) parameters.durationSeconds = options.duration;
@@ -151,7 +151,7 @@ async function pollOperation(
 // ---------------------------------------------------------------------------
 
 /**
- * Lightweight connectivity test — validates API key by fetching model info.
+ * Lightweight connectivity test - validates API key by fetching model info.
  * Uses GET /v1beta/models/{model} which does not trigger generation.
  */
 export async function testVeoConnectivity(

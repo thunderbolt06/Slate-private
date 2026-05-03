@@ -180,7 +180,7 @@ export const useMediaGenerationStore = create<MediaGenerationState>()((set, get)
             stageId,
           };
         } else {
-          // Re-wrap blob with stored mimeType — IndexedDB may drop Blob.type
+          // Re-wrap blob with stored mimeType - IndexedDB may drop Blob.type
           const blob = rec.blob.type ? rec.blob : new Blob([rec.blob], { type: rec.mimeType });
           const objectUrl = URL.createObjectURL(blob);
           const poster = rec.poster ? URL.createObjectURL(rec.poster) : undefined;

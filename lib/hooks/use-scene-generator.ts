@@ -296,7 +296,7 @@ export function useSceneGenerator(options: UseSceneGeneratorOptions = {}) {
 
       store.getState().setGeneratingOutlines(pending);
 
-      // Launch media generation in parallel — does not block content/action generation
+      // Launch media generation in parallel - does not block content/action generation
       mediaAbortRef.current = new AbortController();
       generateMediaForOutlines(outlines, stage.id, mediaAbortRef.current.signal).catch((err) => {
         log.warn('Media generation error:', err);
@@ -312,7 +312,7 @@ export function useSceneGenerator(options: UseSceneGeneratorOptions = {}) {
           .map((a) => a.text);
       }
 
-      // Serial generation loop — two-step per outline
+      // Serial generation loop - two-step per outline
       try {
         let pausedByFailureOrAbort = false;
         for (const outline of pending) {
@@ -376,7 +376,7 @@ export function useSceneGenerator(options: UseSceneGeneratorOptions = {}) {
             const scene = actionsResult.scene;
             const settings = useSettingsStore.getState();
 
-            // TTS generation — failure means the whole scene fails
+            // TTS generation - failure means the whole scene fails
             if (settings.ttsEnabled && settings.ttsProviderId !== 'browser-native-tts') {
               const ttsResult = await generateTTSForScene(scene, signal);
               if (!ttsResult.success) {
@@ -392,7 +392,7 @@ export function useSceneGenerator(options: UseSceneGeneratorOptions = {}) {
               }
             }
 
-            // Epoch changed — stage switched, discard this scene
+            // Epoch changed - stage switched, discard this scene
             if (store.getState().generationEpoch !== startEpoch) {
               pausedByFailureOrAbort = true;
               break;
@@ -421,7 +421,7 @@ export function useSceneGenerator(options: UseSceneGeneratorOptions = {}) {
           options.onComplete?.();
         }
       } catch (err: unknown) {
-        // AbortError is expected when stop() is called — don't treat as failure
+        // AbortError is expected when stop() is called - don't treat as failure
         if (err instanceof DOMException && err.name === 'AbortError') {
           log.info('Generation aborted');
           store.getState().setGenerationStatus('paused');

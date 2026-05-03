@@ -100,7 +100,7 @@ export function ScreenCanvas() {
         {/* Spotlight overlay - covers the entire slide, positioned via DOM measurement */}
         <SpotlightOverlay />
 
-        {/* Laser: same full-slide box as spotlight — % coords match findElementGeometry (no padding inset) */}
+        {/* Laser: same full-slide box as spotlight - % coords match findElementGeometry (no padding inset) */}
         <div className="absolute inset-0 pointer-events-none z-[101]">
           {laserElementId && laserGeometry && (
             <LaserOverlay

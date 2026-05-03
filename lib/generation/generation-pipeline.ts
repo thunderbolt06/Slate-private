@@ -1,7 +1,7 @@
 /**
  * Two-Stage Generation Pipeline
  *
- * Barrel re-export — all symbols previously exported from this file
+ * Barrel re-export - all symbols previously exported from this file
  * are now spread across focused sub-modules.
  */
 

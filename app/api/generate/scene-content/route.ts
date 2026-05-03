@@ -3,7 +3,7 @@
  *
  * Generates scene content (slides/quiz/interactive/pbl) from an outline.
  * This is the first half of the two-step scene generation pipeline.
- * Does NOT generate actions — use /api/generate/scene-actions for that.
+ * Does NOT generate actions - use /api/generate/scene-actions for that.
  */
 
 import { NextRequest } from 'next/server';

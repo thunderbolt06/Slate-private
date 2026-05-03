@@ -8,7 +8,7 @@ import type { Action, SpeechAction, DiscussionAction } from '@/lib/types/action'
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/hooks/use-i18n';
 import { useStageStore } from '@/lib/store';
-import { PanelRightClose, BookOpen, MessageSquare } from 'lucide-react';
+import { PanelRightClose, BookOpen, MessageSquare, Send } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useChatSessions } from './use-chat-sessions';
 import { SessionList } from './session-list';
@@ -119,12 +119,26 @@ export const ChatArea = forwardRef<ChatAreaRef, ChatAreaProps>(
       shouldHoldAfterReveal,
     });
 
-    const [activeTab, setActiveTab] = useState<'lecture' | 'chat'>('lecture');
+    const [activeTab, setActiveTab] = useState<'lecture' | 'chat'>('chat');
+    const [chatInput, setChatInput] = useState('');
+    const [isSending, setIsSending] = useState(false);
     const isDraggingRef = useRef(false);
     const [isDragging, setIsDragging] = useState(false);
     const bottomRef = useRef<HTMLDivElement>(null);
 
-    // Derive lecture notes directly from scenes — updates reactively as scenes stream in
+    const handleSendChatInput = useCallback(async () => {
+      const trimmed = chatInput.trim();
+      if (!trimmed || isSending) return;
+      setIsSending(true);
+      try {
+        await sendMessage(trimmed);
+        setChatInput('');
+      } finally {
+        setIsSending(false);
+      }
+    }, [chatInput, isSending, sendMessage]);
+
+    // Derive lecture notes directly from scenes - updates reactively as scenes stream in
     // Preserves action order so spotlight/laser badges appear inline between speech texts
     const lectureNotes: LectureNoteEntry[] = useMemo(
       () =>
@@ -328,6 +342,37 @@ export const ChatArea = forwardRef<ChatAreaRef, ChatAreaProps>(
                     <div ref={bottomRef} />
                   </>
                 )}
+              </div>
+              <div className="shrink-0 border-t border-gray-100 dark:border-gray-800 p-2">
+                <div className="flex items-end gap-2 bg-gray-50 dark:bg-gray-800/60 rounded-2xl px-3 py-1.5 ring-1 ring-black/[0.04] dark:ring-white/[0.06]">
+                  <textarea
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
+                        e.preventDefault();
+                        handleSendChatInput();
+                      }
+                    }}
+                    placeholder={t('chat.startConversation')}
+                    rows={1}
+                    className="flex-1 min-w-0 resize-none bg-transparent border-none focus:ring-0 focus:outline-none outline-none shadow-none text-xs text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 py-1.5 max-h-24"
+                    style={{ fieldSizing: 'content' } as Record<string, string>}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleSendChatInput}
+                    disabled={isSending || !chatInput.trim()}
+                    className={cn(
+                      'shrink-0 w-7 h-7 rounded-full flex items-center justify-center transition-all active:scale-95',
+                      isSending || !chatInput.trim()
+                        ? 'bg-gray-200 dark:bg-gray-700 text-gray-400 cursor-not-allowed'
+                        : 'bg-purple-600 text-white hover:bg-purple-700',
+                    )}
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
             </TabsContent>
           </Tabs>

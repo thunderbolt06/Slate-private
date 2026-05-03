@@ -151,7 +151,7 @@ export async function POST(req: NextRequest) {
       .map((a) => a.text);
 
     log.info(
-      `Scene assembled successfully: "${outline.title}" — ${scene.actions?.length ?? 0} actions`,
+      `Scene assembled successfully: "${outline.title}" - ${scene.actions?.length ?? 0} actions`,
     );
 
     return apiSuccess({ scene, previousSpeeches: outputPreviousSpeeches });

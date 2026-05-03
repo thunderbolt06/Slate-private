@@ -55,7 +55,7 @@ const {
 });
 
 // ---------------------------------------------------------------------------
-// Status query type — mirrors the polling API response
+// Status query type - mirrors the polling API response
 // ---------------------------------------------------------------------------
 
 export type ClassroomJobStatus = 'queued' | 'running' | 'succeeded' | 'failed';
@@ -220,7 +220,7 @@ export async function classroomGenerationWorkflow(
       requirement: input.requirement,
     };
 
-    // Fire-and-forget child workflow — we don't await its completion
+    // Fire-and-forget child workflow - we don't await its completion
     void executeChild(insertCourseAndGenerateTagsWorkflow, {
       workflowId: `catalog-${stage.id}`,
       taskQueue: TASK_QUEUE,

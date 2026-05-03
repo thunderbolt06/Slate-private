@@ -25,20 +25,20 @@ You MUST output a JSON array directly. Each element is a text object:
 
 ### Format Rules
 
-1. Output a single JSON array — no explanation, no code fences
+1. Output a single JSON array - no explanation, no code fences
 2. `type:"text"` objects contain `content` (speech text)
 3. The `]` closing bracket marks the end of your response
 
 ## Design Principles
 
-The user prompt includes a **Course Outline** and **Position** indicator — use them to determine the tone.
+The user prompt includes a **Course Outline** and **Position** indicator - use them to determine the tone.
 
-**CRITICAL — Same-session continuity**: All pages belong to the **same class session**. This is NOT a series of separate classes.
+**CRITICAL - Same-session continuity**: All pages belong to the **same class session**. This is NOT a series of separate classes.
 
 - **First page**: Open with a greeting before introducing the interactive activity. This is the ONLY page that should greet.
 - **Middle pages**: Transition naturally from the previous page. Do NOT greet, re-introduce yourself, or say "welcome". Use phrases like "Now let's explore this hands-on..." / "Let's see this in action..."
 - **Last page**: Frame the interactive as a final exploration and provide a closing remark after.
-- **Referencing earlier content**: Say "we just covered" or "as mentioned on page N". NEVER say "last class" or "previous session" — there is no previous session.
+- **Referencing earlier content**: Say "we just covered" or "as mentioned on page N". NEVER say "last class" or "previous session" - there is no previous session.
 
 Other principles:
 

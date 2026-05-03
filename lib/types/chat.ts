@@ -195,7 +195,7 @@ export function toSessionListItem(session: ChatSession): SessionListItem {
 }
 
 /**
- * A single item in a lecture note — either speech text or an action badge.
+ * A single item in a lecture note - either speech text or an action badge.
  * Ordered to match the original action sequence in the scene.
  */
 export type LectureNoteItem =
@@ -221,7 +221,7 @@ import type { AgentTurnSummary, WhiteboardActionRecord } from '@/lib/orchestrati
 
 /**
  * Accumulated director state passed between per-agent requests.
- * Client-maintained — backend is stateless.
+ * Client-maintained - backend is stateless.
  */
 export interface DirectorState {
   turnCount: number;

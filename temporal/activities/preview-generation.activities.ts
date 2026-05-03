@@ -114,7 +114,7 @@ export async function generateSceneTTSToSupabaseActivity(
   const { scene, stageId } = params;
 
   if (!isSupabaseConfigured()) {
-    log.warn('Supabase not configured — skipping TTS upload');
+    log.warn('Supabase not configured - skipping TTS upload');
     return scene;
   }
 
@@ -122,14 +122,14 @@ export async function generateSceneTTSToSupabaseActivity(
     (id) => id !== 'browser-native-tts',
   );
   if (ttsProviderIds.length === 0) {
-    log.warn('No server TTS provider — skipping TTS for scene:', scene.title);
+    log.warn('No server TTS provider - skipping TTS for scene:', scene.title);
     return scene;
   }
 
   const providerId = ttsProviderIds[0] as TTSProviderId;
   const apiKey = resolveTTSApiKey(providerId);
   if (!apiKey) {
-    log.warn(`No API key for TTS provider "${providerId}" — skipping`);
+    log.warn(`No API key for TTS provider "${providerId}" - skipping`);
     return scene;
   }
 
@@ -213,7 +213,7 @@ export async function generateMediaToSupabaseActivity(
   const { scenes, outlines, stageId } = params;
 
   if (!isSupabaseConfigured()) {
-    log.warn('Supabase not configured — skipping media upload');
+    log.warn('Supabase not configured - skipping media upload');
     return scenes;
   }
 

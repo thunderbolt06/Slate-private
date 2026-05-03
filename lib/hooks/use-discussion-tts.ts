@@ -34,7 +34,7 @@ export function useDiscussionTTS({ enabled, agents, onAudioStateChange }: Discus
   const ttsMuted = useSettingsStore((s) => s.ttsMuted);
   const ttsVolume = useSettingsStore((s) => s.ttsVolume);
   const playbackSpeed = useSettingsStore((s) => s.playbackSpeed);
-  // Global lecture voice — used as fallback for teacher agent
+  // Global lecture voice - used as fallback for teacher agent
   const globalTtsProviderId = useSettingsStore((s) => s.ttsProviderId);
   const globalTtsVoice = useSettingsStore((s) => s.ttsVoice);
 
@@ -61,7 +61,7 @@ export function useDiscussionTTS({ enabled, agents, onAudioStateChange }: Discus
       isPlayingRef.current = false;
       segmentDoneCounterRef.current++;
       onAudioStateChangeRef.current?.(null, 'idle');
-      // Don't advance queue while paused — resume() will kick-start it
+      // Don't advance queue while paused - resume() will kick-start it
       if (!pausedRef.current) {
         processQueueRef.current();
       }
@@ -140,7 +140,7 @@ export function useDiscussionTTS({ enabled, agents, onAudioStateChange }: Discus
       return;
     }
 
-    // Server TTS — use the item's provider, not the global one
+    // Server TTS - use the item's provider, not the global one
     currentProviderRef.current = item.providerId;
     onAudioStateChangeRef.current?.(item.agentId, 'generating');
     const controller = new AbortController();
@@ -279,7 +279,7 @@ export function useDiscussionTTS({ enabled, agents, onAudioStateChange }: Discus
     } else if (audioRef.current && audioRef.current.paused) {
       audioRef.current.play();
     } else if (!isPlayingRef.current) {
-      // Audio finished while paused — kick-start the queue
+      // Audio finished while paused - kick-start the queue
       processQueueRef.current();
     }
   }, []);

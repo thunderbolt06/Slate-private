@@ -79,7 +79,7 @@ interface GrokVideoPollResponse {
 // ---------------------------------------------------------------------------
 
 /**
- * Lightweight connectivity test — validates API key by making a minimal
+ * Lightweight connectivity test - validates API key by making a minimal
  * request that triggers auth check. 401/403 means key invalid.
  */
 export async function testGrokVideoConnectivity(

@@ -6,7 +6,7 @@
  * Drives the course-to-WebM pipeline:
  *   • Iterates slide scenes only (skips quiz / interactive)
  *   • For speech actions: captures ONE fresh frame, then awaits TTS audio.
- *     The canvas capture stream repeats that frame while audio plays — no need to
+ *     The canvas capture stream repeats that frame while audio plays - no need to
  *     re-run html2canvas for static slides.
  *   • For speech without audio: one capture, then wall-clock hold for reading time.
  *   • For spotlight / laser: captureFor runs wall-clock–synced samples (~12 fps) for
@@ -39,7 +39,7 @@ const SCENE_SETTLE_MS = 500;
 /** Let VP9 ingest a few seconds of the first sharp frame (same pixels, encoder warm-up). */
 const ENCODER_WARMUP_HOLD_MS = 150;
 
-/** ~1.5 minutes per slide — mirrors ClassroomTimer */
+/** ~1.5 minutes per slide - mirrors ClassroomTimer */
 const MINUTES_PER_SLIDE = 1.5;
 
 export interface ExportProgress {
@@ -109,7 +109,7 @@ export function useCourseVideoExport(
           sceneTitle: scene.title ?? `Scene ${si + 1}`,
         });
 
-        // Navigate to scene — React re-renders on next tick
+        // Navigate to scene - React re-renders on next tick
         setCurrentSceneId(scene.id);
         // Wait for React to commit + browser to paint (SCENE_SETTLE_MS >> rAF)
         await sleep(SCENE_SETTLE_MS);
@@ -117,7 +117,7 @@ export function useCourseVideoExport(
 
         await awaitFontsReady();
 
-        // Time remaining label — mirrors ClassroomTimer which uses overall index
+        // Time remaining label - mirrors ClassroomTimer which uses overall index
         const overallIndex = allScenes.findIndex((s) => s.id === scene.id);
         const slidesRemaining = Math.max(0, allScenes.length - overallIndex);
         const minsLeft = Math.ceil(slidesRemaining * MINUTES_PER_SLIDE);
@@ -139,7 +139,7 @@ export function useCourseVideoExport(
             case 'speech': {
               const speechAction = action as SpeechAction;
 
-              // Capture one fresh frame — the slide content for this speech line
+              // Capture one fresh frame - the slide content for this speech line
               // may differ (e.g. previous spotlight was just cleared)
               await recorder.captureFrame(slideEl, timeLabel);
               if (cancelledRef.current) break;
@@ -149,7 +149,7 @@ export function useCourseVideoExport(
                 // Hold the captured frame while audio plays (stream repeats last canvas).
                 await recorder.playAudio(blob);
               } else if (!cancelledRef.current) {
-                // No pre-generated audio — static slide; one frame then reading-time hold
+                // No pre-generated audio - static slide; one frame then reading-time hold
                 await sleep(estimateReadingMs(speechAction.text));
               }
               break;
@@ -177,7 +177,7 @@ export function useCourseVideoExport(
             }
 
             case 'discussion':
-              // Skip — requires live AI responses
+              // Skip - requires live AI responses
               break;
 
             default:
@@ -188,7 +188,7 @@ export function useCourseVideoExport(
       }
     } catch (err) {
       log.error('Export loop error:', err);
-      // Hard-cancel on errors — nothing to save
+      // Hard-cancel on errors - nothing to save
       recorder.cancel();
       recorderRef.current = null;
       setIsExporting(false);
@@ -196,7 +196,7 @@ export function useCourseVideoExport(
       return;
     }
 
-    // ── Finalise — runs for both complete AND aborted exports ─────────────
+    // ── Finalise - runs for both complete AND aborted exports ─────────────
     const wasAborted = cancelledRef.current;
     try {
       const blob = await recorder.stop();
@@ -206,7 +206,7 @@ export function useCourseVideoExport(
         downloadBlob(blob, `${slugify(stageName)}${suffix}.webm`);
         log.debug(wasAborted ? 'Partial export saved.' : 'Full export saved.');
       } else {
-        log.warn('Recorder produced empty blob — nothing to download.');
+        log.warn('Recorder produced empty blob - nothing to download.');
       }
     } catch (err) {
       log.error('Failed to finalise recording:', err);

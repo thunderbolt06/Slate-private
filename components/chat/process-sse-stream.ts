@@ -5,7 +5,7 @@ import { createLogger } from '@/lib/logger';
 const log = createLogger('SSEStream');
 
 /**
- * Thin SSE parser — reads the /api/chat response stream and pushes
+ * Thin SSE parser - reads the /api/chat response stream and pushes
  * typed events into a StreamBuffer. All pacing, state management,
  * and UI updates are handled by the buffer's tick loop and callbacks.
  */

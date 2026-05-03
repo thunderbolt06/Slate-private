@@ -2,7 +2,7 @@
  * Media Generation Orchestrator
  *
  * Dispatches media generation API calls for all mediaGenerations across outlines.
- * Runs entirely on the frontend — calls /api/generate/image and /api/generate/video,
+ * Runs entirely on the frontend - calls /api/generate/image and /api/generate/video,
  * fetches result blobs, stores in IndexedDB, and updates the Zustand store.
  */
 
@@ -26,7 +26,7 @@ class MediaApiError extends Error {
 
 /**
  * Launch media generation for all mediaGenerations declared in outlines.
- * Runs in parallel with content/action generation — does not block.
+ * Runs in parallel with content/action generation - does not block.
  */
 export async function generateMediaForOutlines(
   outlines: SceneOutline[],
@@ -56,7 +56,7 @@ export async function generateMediaForOutlines(
   // Enqueue all as pending
   useMediaGenerationStore.getState().enqueueTasks(stageId, allRequests);
 
-  // Process requests serially — image/video APIs have limited concurrency
+  // Process requests serially - image/video APIs have limited concurrency
   for (const req of allRequests) {
     if (abortSignal?.aborted) break;
     await generateSingleMedia(req, stageId, abortSignal);

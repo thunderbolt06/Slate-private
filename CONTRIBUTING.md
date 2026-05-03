@@ -9,7 +9,7 @@ Thank you for your interest in contributing to OpenMAIC! This guide will help yo
 | **Bug fix** | Open a PR directly (link the issue if one exists) |
 | **Extending existing features** (e.g. adding a new model provider, new TTS engine) | Open a PR directly |
 | **New feature or architecture change** | Start a [GitHub Discussion](https://github.com/THU-MAIC/OpenMAIC/discussions) or ask in [Discord](https://discord.gg/uJRzqXuC) **before** opening a PR |
-| **Design / UI change** | Discuss in a GitHub Discussion or Discord first — include mockups or screenshots |
+| **Design / UI change** | Discuss in a GitHub Discussion or Discord first - include mockups or screenshots |
 | **Refactor-only PR** | Not accepted unless a maintainer explicitly requests it |
 | **Documentation** | Open a PR directly |
 | **Question** | Ask in [Discord](https://discord.gg/uJRzqXuC) |
@@ -19,14 +19,14 @@ Thank you for your interest in contributing to OpenMAIC! This guide will help yo
 To avoid duplicate effort, please **comment on an issue** to claim it before you start working. A maintainer will assign you.
 
 - If **no PR or meaningful update** (WIP commit, progress comment) appears within **1 day**, the issue may be reassigned to someone else.
-- If you see an issue already assigned, reach out to the assignee first to coordinate — you may be able to collaborate or split the work.
+- If you see an issue already assigned, reach out to the assignee first to coordinate - you may be able to collaborate or split the work.
 - If you can no longer work on a claimed issue, please leave a comment so others can pick it up.
 
 ## Prerequisites
 
 - [Node.js](https://nodejs.org/) >= 20.9.0
 - [pnpm](https://pnpm.io/) (latest)
-- A copy of `.env.local` — see [`.env.example`](.env.example) for reference
+- A copy of `.env.local` - see [`.env.example`](.env.example) for reference
 
 ## Getting Started
 
@@ -53,16 +53,16 @@ pnpm dev
    git checkout -b feat/your-feature main
    ```
 2. **Branch naming convention:**
-   - `feat/` — new features or enhancements
-   - `fix/` — bug fixes
-   - `docs/` — documentation changes
+   - `feat/` - new features or enhancements
+   - `fix/` - bug fixes
+   - `docs/` - documentation changes
 3. Make your changes and **test locally**.
 4. Run **all CI checks** before committing (see below).
 5. Open a **Pull Request** against `main`.
 
 ## Before You Submit a PR
 
-Run the following checks locally — CI will run them too, but catching issues early saves everyone time:
+Run the following checks locally - CI will run them too, but catching issues early saves everyone time:
 
 ```bash
 # 1. Format code
@@ -81,20 +81,20 @@ If formatting or lint auto-fixes produce changes, include them in your commit.
 
 Before marking a PR as **Ready for Review**, you **must**:
 
-1. **Verify your goal** — confirm that the PR achieves what it set out to do (bug is fixed, feature works as expected, etc.)
-2. **Regression test** — manually check that existing functionality is not broken by your changes (e.g. navigate key flows, verify related features still work)
+1. **Verify your goal** - confirm that the PR achieves what it set out to do (bug is fixed, feature works as expected, etc.)
+2. **Regression test** - manually check that existing functionality is not broken by your changes (e.g. navigate key flows, verify related features still work)
 3. **Run CI checks locally** (see above)
 
 If you have not completed local verification, keep your PR in **Draft** status. Only move it to Ready for Review once you are confident it works and does not regress other features.
 
 ### PR Guidelines
 
-- **Every PR must link to an issue** — use `Closes #123` or `Fixes #456` in the PR description. If no issue exists yet, create one first. PRs without a linked issue will not be reviewed.
-- **Keep PRs focused** — one concern per PR; do not mix unrelated changes
-- **Describe what and why** — fill out the [PR template](.github/pull_request_template.md)
-- **Include screenshots** — for UI changes, show before/after
+- **Every PR must link to an issue** - use `Closes #123` or `Fixes #456` in the PR description. If no issue exists yet, create one first. PRs without a linked issue will not be reviewed.
+- **Keep PRs focused** - one concern per PR; do not mix unrelated changes
+- **Describe what and why** - fill out the [PR template](.github/pull_request_template.md)
+- **Include screenshots** - for UI changes, show before/after
 - **Ensure CI passes** before requesting review
-- **All UI text must be internationalized (i18n)** — do not hardcode user-facing strings
+- **All UI text must be internationalized (i18n)** - do not hardcode user-facing strings
 
 ## Commit Message Convention
 
@@ -122,11 +122,11 @@ docs: add CONTRIBUTING.md
 
 PRs built with AI tools (Codex, Claude, Cursor, etc.) are welcome! We just ask for transparency and self-review:
 
-- **Mark it** — note in the PR title or description that the PR is AI-assisted
-- **AI-review your own code first** — before requesting maintainer review, run an AI code review (e.g. Claude, Codex, Copilot) on your changes and address the findings. This is **required** for AI-assisted PRs to avoid dumping large amounts of unreviewed generated code on maintainers.
-- **You are responsible for what you submit** — understand the code, not just the prompt.
+- **Mark it** - note in the PR title or description that the PR is AI-assisted
+- **AI-review your own code first** - before requesting maintainer review, run an AI code review (e.g. Claude, Codex, Copilot) on your changes and address the findings. This is **required** for AI-assisted PRs to avoid dumping large amounts of unreviewed generated code on maintainers.
+- **You are responsible for what you submit** - understand the code, not just the prompt.
 
-AI-assisted PRs are held to the same quality standard as any other PR. Community members are also encouraged to leave constructive feedback on any PR — peer review helps everyone improve.
+AI-assisted PRs are held to the same quality standard as any other PR. Community members are also encouraged to leave constructive feedback on any PR - peer review helps everyone improve.
 
 ## Project Structure
 

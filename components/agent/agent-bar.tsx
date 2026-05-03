@@ -266,7 +266,7 @@ function AgentVoicePill({
 }
 
 /**
- * Teacher voice pill — reads/writes global ttsProviderId + ttsVoice (single source of truth).
+ * Teacher voice pill - reads/writes global ttsProviderId + ttsVoice (single source of truth).
  * This ensures lecture and discussion use the same voice for the teacher.
  */
 function TeacherVoicePill({
@@ -755,7 +755,7 @@ export function AgentBar() {
             className="absolute right-0 top-full mt-1 z-50 w-96"
           >
             <div className="rounded-2xl bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm ring-1 ring-black/[0.04] dark:ring-white/[0.06] shadow-[0_1px_8px_-2px_rgba(0,0,0,0.06)] dark:shadow-[0_1px_8px_-2px_rgba(0,0,0,0.3)] px-2 py-1.5">
-              {/* Teacher — always visible */}
+              {/* Teacher - always visible */}
               {teacherAgent && (
                 <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-primary/5 mb-2">
                   <div
@@ -832,7 +832,7 @@ export function AgentBar() {
                 </div>
               )} */}
 
-              {/* Max turns — compact stepper */}
+              {/* Max turns - compact stepper */}
               {/* <div className="flex items-center gap-1.5 px-2 py-1 mt-1 border-t border-border/30">
                 <MessageSquare className="size-3 text-muted-foreground/40 shrink-0" />
                 <span className="text-[11px] text-muted-foreground/50 flex-1">

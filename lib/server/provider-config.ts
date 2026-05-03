@@ -2,7 +2,7 @@
  * Server-side Provider Configuration
  *
  * Loads provider configs from YAML (primary) + environment variables (fallback).
- * Keys never leave the server — only provider IDs and metadata are exposed via API.
+ * Keys never leave the server - only provider IDs and metadata are exposed via API.
  */
 
 import fs from 'fs';
@@ -95,6 +95,7 @@ const VIDEO_ENV_MAP: Record<string, string> = {
 
 const WEB_SEARCH_ENV_MAP: Record<string, string> = {
   EXA: 'exa',
+  TAVILY: 'tavily',
 };
 
 // ---------------------------------------------------------------------------
@@ -165,7 +166,7 @@ function loadEnvSection(
       : undefined;
 
     if (result[providerId]) {
-      // YAML entry exists — env vars override individual fields
+      // YAML entry exists - env vars override individual fields
       if (envApiKey) result[providerId].apiKey = envApiKey;
       if (envBaseUrl) result[providerId].baseUrl = envBaseUrl;
       if (envModels) result[providerId].models = envModels;
@@ -234,7 +235,7 @@ function getConfig(): ServerConfig {
 }
 
 // ---------------------------------------------------------------------------
-// Public API — LLM
+// Public API - LLM
 // ---------------------------------------------------------------------------
 
 /** Returns server-configured LLM providers (no apiKeys) */
@@ -267,7 +268,7 @@ export function resolveProxy(providerId: string): string | undefined {
 }
 
 // ---------------------------------------------------------------------------
-// Public API — TTS
+// Public API - TTS
 // ---------------------------------------------------------------------------
 
 export function getServerTTSProviders(): Record<string, { baseUrl?: string }> {
@@ -291,7 +292,7 @@ export function resolveTTSBaseUrl(providerId: string, clientBaseUrl?: string): s
 }
 
 // ---------------------------------------------------------------------------
-// Public API — ASR
+// Public API - ASR
 // ---------------------------------------------------------------------------
 
 export function getServerASRProviders(): Record<string, { baseUrl?: string }> {
@@ -315,7 +316,7 @@ export function resolveASRBaseUrl(providerId: string, clientBaseUrl?: string): s
 }
 
 // ---------------------------------------------------------------------------
-// Public API — PDF
+// Public API - PDF
 // ---------------------------------------------------------------------------
 
 export function getServerPDFProviders(): Record<string, { baseUrl?: string }> {
@@ -339,7 +340,7 @@ export function resolvePDFBaseUrl(providerId: string, clientBaseUrl?: string): s
 }
 
 // ---------------------------------------------------------------------------
-// Public API — Image Generation
+// Public API - Image Generation
 // ---------------------------------------------------------------------------
 
 export function getServerImageProviders(): Record<string, Record<string, never>> {
@@ -365,7 +366,7 @@ export function resolveImageBaseUrl(
 }
 
 // ---------------------------------------------------------------------------
-// Public API — Video Generation
+// Public API - Video Generation
 // ---------------------------------------------------------------------------
 
 export function getServerVideoProviders(): Record<string, Record<string, never>> {
@@ -391,7 +392,7 @@ export function resolveVideoBaseUrl(
 }
 
 // ---------------------------------------------------------------------------
-// Public API — Web Search (Exa)
+// Public API - Web Search (Exa)
 // ---------------------------------------------------------------------------
 
 /** Returns server-configured web search providers (no apiKeys exposed) */
@@ -411,4 +412,17 @@ export function resolveWebSearchApiKey(clientKey?: string): string {
   const serverKey = getConfig().webSearch.exa?.apiKey;
   if (serverKey) return serverKey;
   return process.env.EXA_API_KEY || '';
+}
+
+/**
+ * Resolve API key for any web-search provider (used by fallback chain).
+ * Falls through: client key > server YAML/env > empty.
+ */
+export function resolveWebSearchApiKeyById(providerId: string, clientKey?: string): string {
+  if (clientKey) return clientKey;
+  const serverKey = getConfig().webSearch[providerId]?.apiKey;
+  if (serverKey) return serverKey;
+  if (providerId === 'exa') return process.env.EXA_API_KEY || '';
+  if (providerId === 'tavily') return process.env.TAVILY_API_KEY || '';
+  return '';
 }

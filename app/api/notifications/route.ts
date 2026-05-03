@@ -8,7 +8,7 @@ import { createAdminClient } from '@/utils/supabase/admin';
  * Returns unread (and recent) notifications for the authenticated user.
  *
  * Query params:
- *   unread_only=true   (default true) — only return unread
+ *   unread_only=true   (default true) - only return unread
  *   limit=20           (default 20)
  */
 export async function GET(req: NextRequest) {

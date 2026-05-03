@@ -21,7 +21,7 @@ import { useDiscussionTTS } from '@/lib/hooks/use-discussion-tts';
 import type { AudioIndicatorState } from '@/components/roundtable/audio-indicator';
 import type { Action, DiscussionAction, SpeechAction } from '@/lib/types/action';
 import { cn } from '@/lib/utils';
-// Playback state persistence removed — refresh always starts from the beginning
+// Playback state persistence removed - refresh always starts from the beginning
 import { ChatArea, type ChatAreaRef } from '@/components/chat/chat-area';
 import { CongratulationsPopup } from './certificates/congratulations-popup';
 import { agentsToParticipants, useAgentRegistry } from '@/lib/orchestration/registry/store';
@@ -204,12 +204,12 @@ export function Stage({
   const discussionAbortRef = useRef<AbortController | null>(null);
   const presentationIdleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const stageRef = useRef<HTMLDivElement>(null);
-  /** Ref to the slide container div — used by the video export hook */
+  /** Ref to the slide container div - used by the video export hook */
   const slideRef = useRef<HTMLDivElement>(null);
 
   // Guard to prevent double flash when manual stop triggers onDiscussionEnd
   const manualStopRef = useRef(false);
-  // Monotonic counter incremented on each scene switch — used to discard stale SSE callbacks
+  // Monotonic counter incremented on each scene switch - used to discard stale SSE callbacks
   const sceneEpochRef = useRef(0);
   // When true, the next engine init will auto-start playback (for auto-play scene advance)
   const autoStartRef = useRef(false);
@@ -229,16 +229,16 @@ export function Stage({
    * The director picks the next agent to continue.
    */
   const doResumeTopic = useCallback(async () => {
-    // Clear old bubble immediately — no lingering on interrupted text
+    // Clear old bubble immediately - no lingering on interrupted text
     setIsTopicPending(false);
     setLiveSpeech(null);
     setSpeakingAgentId(null);
     setThinkingState({ stage: 'director' });
     setChatIsStreaming(true);
-    // Transition engine back to live — onInputActivate paused it when soft-pausing,
+    // Transition engine back to live - onInputActivate paused it when soft-pausing,
     // so we must explicitly resume to keep engine mode in sync with the chat loop.
     engineRef.current?.resume();
-    // Fire new chat round — SSE events will drive thinking → agent_start → speech
+    // Fire new chat round - SSE events will drive thinking → agent_start → speech
     await chatAreaRef.current?.resumeActiveSession();
   }, []);
 
@@ -255,7 +255,7 @@ export function Stage({
     setIsDiscussionPaused(false);
   }, []);
 
-  /** Full scene reset (scene switch) — resetLiveState + lecture/visual state */
+  /** Full scene reset (scene switch) - resetLiveState + lecture/visual state */
   const resetSceneState = useCallback(() => {
     resetLiveState();
     setPlaybackCompleted(false);
@@ -274,13 +274,13 @@ export function Stage({
   }, [resetLiveState]);
 
   /**
-   * Unified session cleanup — called by both roundtable stop button and chat area end button.
+   * Unified session cleanup - called by both roundtable stop button and chat area end button.
    * Handles: engine transition, flash, roundtable state clearing.
    */
   const doSessionCleanup = useCallback(() => {
     const activeType = chatSessionType;
 
-    // Engine cleanup — guard to avoid double flash from onDiscussionEnd
+    // Engine cleanup - guard to avoid double flash from onDiscussionEnd
     manualStopRef.current = true;
     engineRef.current?.handleEndDiscussion();
     manualStopRef.current = false;
@@ -402,7 +402,7 @@ export function Stage({
     // Bump epoch so any stale SSE callbacks from the previous scene are discarded
     sceneEpochRef.current++;
 
-    // End any active QA/discussion session — this synchronously aborts the SSE
+    // End any active QA/discussion session - this synchronously aborts the SSE
     // stream inside use-chat-sessions (abortControllerRef.abort()), preventing
     // stale onLiveSpeech callbacks from leaking into the new scene.
     chatAreaRef.current?.endActiveSession();
@@ -460,7 +460,7 @@ export function Stage({
         }
       },
       onSpeechEnd: () => {
-        // Don't clear lectureSpeech — let it persist until the next
+        // Don't clear lectureSpeech - let it persist until the next
         // onSpeechStart replaces it or the scene transitions.
         // Clearing here causes fallback to idleText (first sentence).
         setActiveBubbleId(null);
@@ -507,9 +507,9 @@ export function Stage({
         setDiscussionTrigger(null);
         // Stop any in-flight discussion TTS audio
         discussionTTS.cleanup();
-        // Clear roundtable state (idempotent — may already be cleared by doSessionCleanup)
+        // Clear roundtable state (idempotent - may already be cleared by doSessionCleanup)
         resetLiveState();
-        // Only show flash for engine-initiated ends (not manual stop — that's handled by doSessionCleanup)
+        // Only show flash for engine-initiated ends (not manual stop - that's handled by doSessionCleanup)
         if (!manualStopRef.current) {
           setEndFlashSessionType('discussion');
           setShowEndFlash(true);
@@ -531,7 +531,7 @@ export function Stage({
       },
       getPlaybackSpeed: () => useSettingsStore.getState().playbackSpeed || 1,
       onComplete: () => {
-        // lectureSpeech intentionally NOT cleared — last sentence stays visible
+        // lectureSpeech intentionally NOT cleared - last sentence stays visible
         // until scene transition (auto-play) or user restarts. Scene change
         // effect handles the reset.
         setPlaybackCompleted(true);
@@ -543,7 +543,7 @@ export function Stage({
         }
 
         // PlaybackEngine is built with [currentScene] only, so onComplete means
-        // "this slide's actions finished" — not the whole course. Only show the
+        // "this slide's actions finished" - not the whole course. Only show the
         // certificate flow on the final real slide when no outlines are still generating
         // (same conditions as handleNextScene's congratulations branch).
         const stageState = useStageStore.getState();
@@ -577,7 +577,7 @@ export function Stage({
               autoStartRef.current = true;
               stageState.setCurrentSceneId(allScenes[idx + 1].id);
             } else if (idx === allScenes.length - 1 && stageState.generatingOutlines.length > 0) {
-              // Last scene exhausted but next is still generating — go to pending page
+              // Last scene exhausted but next is still generating - go to pending page
               const currentScene = allScenes[idx];
               if (
                 currentScene.type === 'quiz' ||
@@ -652,7 +652,7 @@ export function Stage({
   }, [playbackSpeed]);
 
   /**
-   * Handle discussion SSE — POST /api/chat and push events to engine
+   * Handle discussion SSE - POST /api/chat and push events to engine
    */
   const handleDiscussionSSE = useCallback(
     async (topic: string, prompt?: string, agentId?: string) => {
@@ -724,7 +724,7 @@ export function Stage({
   const isTopicActive = playbackView.isTopicActive;
 
   /**
-   * Gated scene switch — if a topic is active, show AlertDialog before switching.
+   * Gated scene switch - if a topic is active, show AlertDialog before switching.
    * Returns true if the switch was immediate, false if gated (dialog shown).
    */
   const gatedSceneSwitch = useCallback(
@@ -820,7 +820,7 @@ export function Stage({
       // On last real scene → advance to pending page
       setCurrentSceneId(PENDING_SCENE_ID);
     } else {
-      // Last slide of a finished course — trigger congratulations instead of doing nothing
+      // Last slide of a finished course - trigger congratulations instead of doing nothing
       triggerCongratulations();
     }
   }, [currentSceneId, gatedSceneSwitch, hasNextPending, isPendingScene, scenes, setCurrentSceneId]);
@@ -882,7 +882,7 @@ export function Stage({
         case ' ':
         case 'Spacebar':
           // During active QA/discussion, Roundtable owns Space for
-          // buffer-level pause/resume — don't also fire engine play/pause.
+          // buffer-level pause/resume - don't also fire engine play/pause.
           if (chatSessionType === 'qa' || chatSessionType === 'discussion') break;
           event.preventDefault();
           handlePlayPause();
@@ -1105,28 +1105,28 @@ export function Stage({
               isCueUser={isCueUser}
               isTopicPending={isTopicPending}
               onMessageSend={async (msg) => {
-                // Always clear Level-1 pause state — the closure may hold a stale
+                // Always clear Level-1 pause state - the closure may hold a stale
                 // isDiscussionPaused value (e.g. voice input's onTranscription callback
                 // captures onMessageSend before React re-renders with the updated state).
                 setIsDiscussionPaused(false);
                 // Clear the sticky livePausedRef so the next agent-loop buffer
                 // starts unpaused. (pauseActiveLiveBuffer sets a ref that new
-                // buffers inherit — must be cleared before sendMessage creates one.)
+                // buffers inherit - must be cleared before sendMessage creates one.)
                 chatAreaRef.current?.resumeActiveLiveBuffer();
                 // Flush any buffered / in-flight TTS audio from the previous
                 // agent turn so it doesn't leak into the next round.
                 discussionTTS.cleanup();
-                // Clear soft-paused state — user is continuing the topic
+                // Clear soft-paused state - user is continuing the topic
                 if (isTopicPending) {
                   setIsTopicPending(false);
                   setLiveSpeech(null);
                   setSpeakingAgentId(null);
                 }
-                // User interrupts during playback — handleUserInterrupt triggers
+                // User interrupts during playback - handleUserInterrupt triggers
                 // onUserInterrupt callback which already calls sendMessage, so skip
                 // the direct sendMessage below to avoid sending twice.
                 // Include 'paused' because onInputActivate pauses the engine before
-                // the user finishes typing — without this the interrupt position
+                // the user finishes typing - without this the interrupt position
                 // would never be saved and resuming after QA skips to the next sentence.
                 if (
                   engineRef.current &&
@@ -1159,7 +1159,7 @@ export function Stage({
               onInputActivate={() => {
                 // Level-1 pause: freeze buffer tick + TTS audio while SSE keeps buffering.
                 // User resumes manually via Space / pause button after closing the input.
-                // No isDiscussionPaused guard — always attempt to pause the buffer.
+                // No isDiscussionPaused guard - always attempt to pause the buffer.
                 // The return value ensures UI state stays in sync with buffer state.
                 if (chatSessionType === 'qa' || chatSessionType === 'discussion') {
                   const paused = chatAreaRef.current?.pauseActiveLiveBuffer();
@@ -1231,11 +1231,11 @@ export function Stage({
         onActiveBubble={(id) => setActiveBubbleId(id)}
         currentSceneId={currentSceneId}
         onLiveSpeech={(text, agentId) => {
-          // Capture epoch at call time — discard if scene has changed since
+          // Capture epoch at call time - discard if scene has changed since
           const epoch = sceneEpochRef.current;
           // Use queueMicrotask to let any pending scene-switch reset settle first
           queueMicrotask(() => {
-            if (sceneEpochRef.current !== epoch) return; // stale — scene changed
+            if (sceneEpochRef.current !== epoch) return; // stale - scene changed
             setLiveSpeech(text);
             if (agentId !== undefined) {
               setSpeakingAgentId(agentId);
@@ -1246,7 +1246,7 @@ export function Stage({
               setIsTopicPending(false);
             } else if (text === null && agentId === null) {
               setChatIsStreaming(false);
-              // Don't clear chatSessionType here — it's needed by the stop
+              // Don't clear chatSessionType here - it's needed by the stop
               // button when director cues user (cue_user → done → liveSpeech null).
               // It gets properly cleared in doSessionCleanup and scene change.
             }

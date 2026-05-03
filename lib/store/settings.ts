@@ -364,6 +364,7 @@ const getDefaultWebSearchConfig = () => ({
   webSearchProviderId: 'exa' as WebSearchProviderId,
   webSearchProvidersConfig: {
     exa: { apiKey: '', baseUrl: '', enabled: true },
+    tavily: { apiKey: '', baseUrl: '', enabled: false },
   } as Record<WebSearchProviderId, { apiKey: string; baseUrl: string; enabled: boolean }>,
 });
 
@@ -1036,7 +1037,7 @@ export const useSettingsStore = create<SettingsState>()(
                 }
               }
 
-              // Merge Web Search config — reset all first, then mark server-configured
+              // Merge Web Search config - reset all first, then mark server-configured
               const newWebSearchConfig = { ...state.webSearchProvidersConfig };
               for (const key of Object.keys(newWebSearchConfig) as WebSearchProviderId[]) {
                 newWebSearchConfig[key] = {
@@ -1138,7 +1139,7 @@ export const useSettingsStore = create<SettingsState>()(
               const validImageModel = validImageProvider
                 ? recoveredImageModel ||
                 validateModel(state.imageModelId, imageModels) ||
-                // validateModel('', ...) returns '' — fallback to first model when modelId is empty
+                // validateModel('', ...) returns '' - fallback to first model when modelId is empty
                 imageModels[0]?.id ||
                 ''
                 : '';
@@ -1314,7 +1315,7 @@ export const useSettingsStore = create<SettingsState>()(
               };
             });
           } catch (e) {
-            // Silently fail — server providers are optional
+            // Silently fail - server providers are optional
             log.warn('Failed to fetch server providers:', e);
           }
         },
@@ -1422,7 +1423,7 @@ export const useSettingsStore = create<SettingsState>()(
           (state as Record<string, unknown>).asrEnabled = true;
         }
 
-        // Existing users already have their config set up — mark auto-config as done
+        // Existing users already have their config set up - mark auto-config as done
         if ((state as Record<string, unknown>).autoConfigApplied === undefined) {
           (state as Record<string, unknown>).autoConfigApplied = true;
         }

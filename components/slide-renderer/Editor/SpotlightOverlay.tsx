@@ -98,7 +98,7 @@ export function SpotlightOverlay() {
                 <mask id={`mask-${spotlightElementId}`}>
                   {/* White background = show mask layer (dimmed) */}
                   <rect x="0" y="0" width="100" height="100" fill="white" />
-                  {/* Black = cutout; use static rect — animated motion rects in masks can mis-composite. */}
+                  {/* Black = cutout; use static rect - animated motion rects in masks can mis-composite. */}
                   <rect
                     x={rect.x - 0.4}
                     y={rect.y - 0.6}

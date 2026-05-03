@@ -44,7 +44,7 @@ export function WhiteboardHistory({ isOpen, onClose }: WhiteboardHistoryProps) {
   }, [isOpen, onClose]);
 
   const handleRestore = (index: number) => {
-    // P1: Block restore while a clear animation is in flight — the pending
+    // P1: Block restore while a clear animation is in flight - the pending
     // delete/update would overwrite the restored content moments later.
     if (isClearing) {
       toast.error(t('whiteboard.restoreError'));
@@ -64,7 +64,7 @@ export function WhiteboardHistory({ isOpen, onClose }: WhiteboardHistoryProps) {
     }
     const whiteboardId = wbResult.data.id;
 
-    // P2a: Skip no-op restores — if the snapshot matches what's already
+    // P2a: Skip no-op restores - if the snapshot matches what's already
     // on screen, restoring would be a no-op.
     const restoredElementsKey = snapshot.fingerprint;
     const currentKey = elementFingerprint(wbResult.data.elements ?? []);

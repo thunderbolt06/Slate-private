@@ -55,7 +55,7 @@ export class MockApi {
     });
   }
 
-  /** Mock the server providers endpoint (returns empty — client-side config only) */
+  /** Mock the server providers endpoint (returns empty - client-side config only) */
   async mockServerProviders() {
     await this.page.route('**/api/server-providers', (route) => {
       route.fulfill({

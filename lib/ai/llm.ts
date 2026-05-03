@@ -5,10 +5,11 @@
  */
 
 import { generateText, streamText } from 'ai';
-import type { GenerateTextResult, StreamTextResult } from 'ai';
+import type { GenerateTextResult, LanguageModel, StreamTextResult } from 'ai';
 import { createLogger } from '@/lib/logger';
 import { PROVIDERS } from './providers';
 import { thinkingContext } from './thinking-context';
+import { tryWithFallback } from '@/lib/utils/provider-fallback';
 import type { ProviderType, ThinkingCapability, ThinkingConfig } from '@/lib/types/provider';
 const log = createLogger('LLM');
 
@@ -46,7 +47,7 @@ function getModelId(params: GenerateTextParams | StreamTextParams): string {
 // map a unified ThinkingConfig into provider-specific providerOptions.
 // Currently handles: openai (native), anthropic (native), google (native).
 // OpenAI-compatible providers (DeepSeek, Qwen, Kimi, GLM, etc.) are NOT
-// handled — their vendor-specific thinking params can't be reliably passed
+// handled - their vendor-specific thinking params can't be reliably passed
 // through Vercel AI SDK's createOpenAI.
 // ---------------------------------------------------------------------------
 
@@ -101,7 +102,7 @@ function buildDisableThinking(
       } else if (modelId.startsWith('o')) {
         effort = 'low';
       } else {
-        // Non-thinking OpenAI models (gpt-4o etc.) — no injection needed
+        // Non-thinking OpenAI models (gpt-4o etc.) - no injection needed
         return undefined;
       }
       if (!_thinking.toggleable && effort !== 'none') {
@@ -154,7 +155,7 @@ function buildEnableThinking(
   switch (providerType) {
     case 'openai':
       // OpenAI uses discrete effort levels, no token-based budget.
-      // Don't inject anything — let the model use its default effort.
+      // Don't inject anything - let the model use its default effort.
       return undefined;
 
     case 'anthropic': {
@@ -191,7 +192,7 @@ function buildEnableThinking(
           },
         };
       }
-      // No budget specified — let model use dynamic default
+      // No budget specified - let model use dynamic default
       return undefined;
     }
 
@@ -236,7 +237,7 @@ function getDefaultProviderOptions(modelId: string): ProviderOptions | undefined
  *
  * For native providers (OpenAI/Anthropic/Google), this sets providerOptions.
  * For OpenAI-compatible providers, providerOptions won't work (stripped by
- * zod schema) — those are handled by the custom fetch wrapper via thinkingContext.
+ * zod schema) - those are handled by the custom fetch wrapper via thinkingContext.
  *
  * Priority: caller's providerOptions > ThinkingConfig > model defaults
  */
@@ -253,7 +254,7 @@ function injectProviderOptions<T extends GenerateTextParams | StreamTextParams>(
     if (opts) return { ...params, providerOptions: opts };
   }
 
-  // No thinking config — use model defaults (backward compat)
+  // No thinking config - use model defaults (backward compat)
   const defaults = getDefaultProviderOptions(modelId);
   if (defaults) return { ...params, providerOptions: defaults };
 
@@ -362,9 +363,55 @@ export async function callLLM<T extends GenerateTextParams>(
     }
   }
 
-  // All attempts exhausted — return last result or throw last error
+  // All attempts exhausted - return last result or throw last error
   if (lastResult) return lastResult;
   throw lastError;
+}
+
+/**
+ * Call `callLLM` with automatic fallback across multiple language models.
+ *
+ * `models` is an ordered list (primary first) - usually built by
+ * `resolveLLMFallbackChain`. Each entry is tried in sequence; the first model
+ * that returns successfully wins. If every entry throws, the aggregated
+ * AllProvidersFailedError is thrown.
+ *
+ * The `params.model` field is overridden per attempt - pass any other
+ * generateText params (messages, system, tools, maxOutputTokens, etc.) as
+ * usual.
+ */
+export async function callLLMWithFallback(
+  models: ReadonlyArray<{ model: LanguageModel; modelString?: string }>,
+  params: Omit<GenerateTextParams, 'model'>,
+  source: string,
+  retryOptions?: LLMRetryOptions,
+  thinking?: ThinkingConfig,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+): Promise<GenerateTextResult<any, any>> {
+  if (models.length === 0) {
+    throw new Error(`callLLMWithFallback[${source}]: no models provided`);
+  }
+
+  const idFor = (m: { model: LanguageModel; modelString?: string }, i: number) =>
+    m.modelString ||
+    (typeof m.model === 'object' && m.model && 'modelId' in m.model
+      ? (m.model as { modelId: string }).modelId
+      : `model-${i}`);
+
+  const ids = models.map((m, i) => idFor(m, i));
+  const byId = new Map(models.map((m, i) => [ids[i], m]));
+
+  const { result } = await tryWithFallback(
+    ids,
+    async (id) => {
+      const entry = byId.get(id)!;
+      const fullParams = { ...params, model: entry.model } as GenerateTextParams;
+      return callLLM(fullParams, source, retryOptions, thinking);
+    },
+    { category: `llm:${source}` },
+  );
+
+  return result;
 }
 
 /**

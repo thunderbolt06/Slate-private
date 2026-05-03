@@ -44,7 +44,7 @@ export function TTSSettings({ selectedProviderId }: TTSSettingsProps) {
   const [testMessage, setTestMessage] = useState('');
   const { previewing: testingTTS, startPreview, stopPreview } = useTTSPreview();
 
-  // Doubao TTS uses compound "appId:accessKey" — split for separate UI fields
+  // Doubao TTS uses compound "appId:accessKey" - split for separate UI fields
   const isDoubao = selectedProviderId === 'doubao-tts';
   const rawApiKey = ttsProvidersConfig[selectedProviderId]?.apiKey || '';
   const doubaoColonIdx = rawApiKey.indexOf(':');

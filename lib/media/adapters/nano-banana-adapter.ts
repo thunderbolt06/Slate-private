@@ -5,9 +5,9 @@
  * Endpoint: https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent
  *
  * Supported models:
- * - gemini-3.1-flash-image-preview  (Nano Banana 2 — latest, fastest)
- * - gemini-3-pro-image-preview      (Nano Banana Pro — highest quality)
- * - gemini-2.5-flash-image          (Nano Banana — original)
+ * - gemini-3.1-flash-image-preview  (Nano Banana 2 - latest, fastest)
+ * - gemini-3-pro-image-preview      (Nano Banana Pro - highest quality)
+ * - gemini-2.5-flash-image          (Nano Banana - original)
  *
  * Authentication: x-goog-api-key header
  *
@@ -45,7 +45,7 @@ interface GeminiResponse {
 }
 
 /**
- * Lightweight connectivity test — validates API key by fetching model info.
+ * Lightweight connectivity test - validates API key by fetching model info.
  * Uses GET /v1beta/models/{model} which does not trigger generation.
  */
 export async function testNanoBananaConnectivity(

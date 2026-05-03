@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 
-// Mock fs — only intercept server-providers.yml; delegate everything else to real fs.
+// Mock fs - only intercept server-providers.yml; delegate everything else to real fs.
 // This prevents YAML config from leaking host-machine state into tests while keeping
 // the mock scoped to what provider-config actually reads.
 let yamlOverride: string | null = null;

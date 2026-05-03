@@ -98,6 +98,17 @@ export const IMAGE_PROVIDERS: Record<ImageProviderId, ImageProviderConfig> = {
   },
 };
 
+/**
+ * Default order for image-provider fallback.
+ */
+export const IMAGE_FALLBACK_ORDER: readonly ImageProviderId[] = [
+  'seedream',
+  'nano-banana',
+  'qwen-image',
+  'minimax-image',
+  'grok-image',
+];
+
 export async function testImageConnectivity(
   config: ImageGenerationConfig,
 ): Promise<{ success: boolean; message: string }> {

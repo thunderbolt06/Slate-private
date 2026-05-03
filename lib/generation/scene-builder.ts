@@ -1,6 +1,6 @@
 /**
  * Standalone scene building and element normalization.
- * Does NOT depend on store — returns complete Scene objects.
+ * Does NOT depend on store - returns complete Scene objects.
  */
 
 import { nanoid } from 'nanoid';

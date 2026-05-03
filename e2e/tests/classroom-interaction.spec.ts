@@ -14,7 +14,7 @@ async function seedDatabase(page: import('@playwright/test').Page) {
     localStorage.setItem('settings-storage', settings);
   }, SETTINGS_STORAGE);
 
-  // Navigate to home page first — this causes Dexie to open/create the DB at v8
+  // Navigate to home page first - this causes Dexie to open/create the DB at v8
   // with the correct schema. We wait for network idle to ensure Dexie is done.
   await page.goto('/', { waitUntil: 'networkidle' });
 
@@ -24,7 +24,7 @@ async function seedDatabase(page: import('@playwright/test').Page) {
   await page.evaluate(
     ({ stageId, theme }) => {
       return new Promise<void>((resolve, reject) => {
-        // Open without specifying version — uses current DB version, no upgrade event
+        // Open without specifying version - uses current DB version, no upgrade event
         const request = indexedDB.open('MAIC-Database');
 
         request.onsuccess = (event) => {
@@ -142,7 +142,7 @@ test.describe('Classroom Interaction', () => {
     // Click second scene
     await classroom.clickScene(1);
 
-    // Verify second scene is now active — heading in the top bar shows the current scene name
+    // Verify second scene is now active - heading in the top bar shows the current scene name
     await expect(page.getByRole('heading', { name: '' })).toBeVisible();
   });
 });

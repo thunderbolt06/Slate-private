@@ -8,7 +8,7 @@ type Fixtures = {
 export const test = base.extend<Fixtures>({
   mockApi: async ({ page }, use) => {
     const mockApi = new MockApi(page);
-    // Always mock server-providers — called on every page load by root layout
+    // Always mock server-providers - called on every page load by root layout
     await mockApi.mockServerProviders();
     await use(mockApi);
   },

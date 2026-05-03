@@ -32,7 +32,7 @@ export function AuthButton() {
     );
   }
 
-  // Not logged in — show Sign In button
+  // Not logged in - show Sign In button
   if (!user) {
     return (
       <motion.button
@@ -48,7 +48,7 @@ export function AuthButton() {
     );
   }
 
-  // Logged in — show avatar/profile button
+  // Logged in - show avatar/profile button
   const avatarUrl = user.user_metadata?.avatar_url || user.user_metadata?.picture;
   const fullName = user.user_metadata?.full_name || user.user_metadata?.name || '';
   const initials = fullName

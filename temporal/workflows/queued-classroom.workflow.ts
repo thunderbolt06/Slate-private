@@ -71,7 +71,7 @@ export interface QueuedClassroomWorkflowInput {
 }
 
 // ---------------------------------------------------------------------------
-// Workflow — same pipeline as classroomGenerationWorkflow but:
+// Workflow - same pipeline as classroomGenerationWorkflow but:
 //   • Uses an explicit TTS provider (default: gemini-tts, cheaper)
 //   • Sends a completion notification via sendCompletionNotificationActivity
 // ---------------------------------------------------------------------------

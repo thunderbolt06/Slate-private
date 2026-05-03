@@ -8,7 +8,10 @@
 import { NextRequest } from 'next/server';
 import { callLLM } from '@/lib/ai/llm';
 import { searchWithExa, formatSearchResultsAsContext } from '@/lib/web-search/exa';
-import { resolveWebSearchApiKey } from '@/lib/server/provider-config';
+import { searchWithTavily } from '@/lib/web-search/tavily';
+import { WEB_SEARCH_FALLBACK_ORDER } from '@/lib/web-search/constants';
+import type { WebSearchProviderId } from '@/lib/web-search/types';
+import { resolveWebSearchApiKeyById } from '@/lib/server/provider-config';
 import { createLogger } from '@/lib/logger';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import {
@@ -16,7 +19,9 @@ import {
   SEARCH_QUERY_REWRITE_EXCERPT_LENGTH,
 } from '@/lib/server/search-query-builder';
 import { resolveModelFromHeaders } from '@/lib/server/resolve-model';
+import { tryWithFallback, buildFallbackOrder } from '@/lib/utils/provider-fallback';
 import type { AICallFn } from '@/lib/generation/pipeline-types';
+import type { WebSearchResult } from '@/lib/types/web-search';
 
 const log = createLogger('WebSearch');
 
@@ -28,10 +33,12 @@ export async function POST(req: NextRequest) {
       query: requestQuery,
       pdfText,
       apiKey: clientApiKey,
+      providerId: requestedProvider,
     } = body as {
       query?: string;
       pdfText?: string;
       apiKey?: string;
+      providerId?: WebSearchProviderId;
     };
     query = requestQuery;
 
@@ -39,14 +46,7 @@ export async function POST(req: NextRequest) {
       return apiError('MISSING_REQUIRED_FIELD', 400, 'query is required');
     }
 
-    const apiKey = resolveWebSearchApiKey(clientApiKey);
-    if (!apiKey) {
-      return apiError(
-        'MISSING_API_KEY',
-        400,
-        'Exa API key is not configured. Set it in Settings → Web Search or set EXA_API_KEY env var.',
-      );
-    }
+    const primaryProvider: WebSearchProviderId = requestedProvider || 'exa';
 
     // Clamp rewrite input at the route boundary; framework body limits still apply to total request size.
     const boundedPdfText = pdfText?.slice(0, SEARCH_QUERY_REWRITE_EXCERPT_LENGTH);
@@ -81,7 +81,38 @@ export async function POST(req: NextRequest) {
       finalQueryLength: searchQuery.finalQueryLength,
     });
 
-    const result = await searchWithExa({ query: searchQuery.query, apiKey });
+    const fallbackOrder = buildFallbackOrder<WebSearchProviderId>(
+      primaryProvider,
+      WEB_SEARCH_FALLBACK_ORDER,
+    );
+
+    const { result: searchResult, usedProviderId } = await tryWithFallback<WebSearchResult>(
+      fallbackOrder,
+      async (providerId) => {
+        const isPrimary = providerId === primaryProvider;
+        const apiKey = resolveWebSearchApiKeyById(
+          providerId,
+          isPrimary ? clientApiKey : undefined,
+        );
+        if (!apiKey) {
+          throw new Error(`No API key configured for web search provider: ${providerId}`);
+        }
+        if (providerId === 'exa') {
+          return searchWithExa({ query: searchQuery.query, apiKey });
+        }
+        if (providerId === 'tavily') {
+          return searchWithTavily({ query: searchQuery.query, apiKey });
+        }
+        throw new Error(`Unsupported web search provider: ${providerId}`);
+      },
+      { category: 'web-search' },
+    );
+
+    if (usedProviderId !== primaryProvider) {
+      log.warn(`Web search fell back from ${primaryProvider} to ${usedProviderId}`);
+    }
+
+    const result = searchResult;
     const context = formatSearchResultsAsContext(result);
 
     return apiSuccess({

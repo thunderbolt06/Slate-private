@@ -21,7 +21,7 @@ export interface BaseVideoElementProps {
 /**
  * Base video element component for read-only/presentation display.
  * Controlled exclusively by the canvas store via the play_video action.
- * Videos never autoplay — they wait for an explicit play_video action.
+ * Videos never autoplay - they wait for an explicit play_video action.
  */
 export function BaseVideoElement({ elementInfo }: BaseVideoElementProps) {
   const { t } = useI18n();
@@ -49,7 +49,7 @@ export function BaseVideoElement({ elementInfo }: BaseVideoElementProps) {
   const showError = isPlaceholder && task?.status === 'failed';
   const isReady = !isPlaceholder || task?.status === 'done';
 
-  // Ensure video is paused on mount — prevents browser autoplay from user gesture context
+  // Ensure video is paused on mount - prevents browser autoplay from user gesture context
   useEffect(() => {
     const video = videoRef.current;
     if (video) {
@@ -66,7 +66,7 @@ export function BaseVideoElement({ elementInfo }: BaseVideoElementProps) {
     prevPlayingRef.current = playingVideoElementId;
 
     if (isMe && !wasMe) {
-      // "Tap" press animation — a deliberate, teacher-paced click feel
+      // "Tap" press animation - a deliberate, teacher-paced click feel
       animate(
         scope.current,
         { scale: [1, 1.035, 1] },

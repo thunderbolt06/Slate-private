@@ -19,14 +19,14 @@ export interface ActionBase {
 
 // ==================== Fire-and-forget actions ====================
 
-/** Spotlight — focus on a single element, dim everything else */
+/** Spotlight - focus on a single element, dim everything else */
 export interface SpotlightAction extends ActionBase {
   type: 'spotlight';
   elementId: string;
   dimOpacity?: number; // default 0.5
 }
 
-/** Laser — point at an element with a laser effect */
+/** Laser - point at an element with a laser effect */
 export interface LaserAction extends ActionBase {
   type: 'laser';
   elementId: string;
@@ -35,7 +35,7 @@ export interface LaserAction extends ActionBase {
 
 // ==================== Synchronous actions ====================
 
-/** Speech — teacher narration (wait for TTS to finish) */
+/** Speech - teacher narration (wait for TTS to finish) */
 export interface SpeechAction extends ActionBase {
   type: 'speech';
   text: string;
@@ -149,13 +149,13 @@ export interface WbCloseAction extends ActionBase {
   type: 'wb_close';
 }
 
-/** Play video — start playback of a video element on the slide */
+/** Play video - start playback of a video element on the slide */
 export interface PlayVideoAction extends ActionBase {
   type: 'play_video';
   elementId: string;
 }
 
-/** Discussion — trigger a roundtable discussion */
+/** Discussion - trigger a roundtable discussion */
 export interface DiscussionAction extends ActionBase {
   type: 'discussion';
   topic: string;

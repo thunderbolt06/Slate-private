@@ -231,7 +231,7 @@ async function transcribeOpenAIWhisper(
 
     return { text: result.text || '' };
   } catch (error: unknown) {
-    // Short/silent audio may cause the SDK to throw — treat as empty transcription
+    // Short/silent audio may cause the SDK to throw - treat as empty transcription
     const errMsg = error instanceof Error ? error.message : '';
     if (errMsg.includes('empty') || errMsg.includes('too short')) {
       return { text: '' };
@@ -299,7 +299,7 @@ async function transcribeQwenASR(
 
   if (!response.ok) {
     const errorText = await response.text().catch(() => response.statusText);
-    // "The audio is empty" — treat as no speech detected
+    // "The audio is empty" - treat as no speech detected
     if (errorText.includes('audio is empty') || errorText.includes('InvalidParameter')) {
       return { text: '' };
     }

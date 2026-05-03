@@ -14,7 +14,18 @@ export const WEB_SEARCH_PROVIDERS: Record<WebSearchProviderId, WebSearchProvider
     requiresApiKey: true,
     defaultBaseUrl: 'https://api.exa.ai',
   },
+  tavily: {
+    id: 'tavily',
+    name: 'Tavily',
+    requiresApiKey: true,
+    defaultBaseUrl: 'https://api.tavily.com',
+  },
 };
+
+/**
+ * Default order for web-search provider fallback.
+ */
+export const WEB_SEARCH_FALLBACK_ORDER: readonly WebSearchProviderId[] = ['exa', 'tavily'];
 
 /**
  * Get all available web search providers

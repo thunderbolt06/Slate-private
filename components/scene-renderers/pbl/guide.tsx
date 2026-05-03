@@ -36,7 +36,7 @@ export function PBLGuideInline() {
 }
 
 /**
- * Help button in workspace toolbar — hover to show guide popover.
+ * Help button in workspace toolbar - hover to show guide popover.
  */
 export function PBLGuidePanel() {
   const { t } = useI18n();

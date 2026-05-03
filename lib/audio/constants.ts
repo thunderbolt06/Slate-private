@@ -90,7 +90,7 @@ export const TTS_PROVIDERS: Record<TTSProviderId, TTSProviderConfig> = {
       { id: 'voice_ZPoOA6GhOT', name: 'Rahil', language: 'en', gender: 'male' },
     ],
     supportedFormats: ['wav'],
-    speedRange: { min: 0.5, max: 2.0, default: 1.25 },
+    speedRange: { min: 0.5, max: 2.0, default: 1.0 },
   },
   'openai-tts': {
     id: 'openai-tts',
@@ -1180,6 +1180,26 @@ export const ASR_PROVIDERS: Record<ASRProviderId, ASRProviderConfig> = {
 };
 
 /**
+ * Default order for TTS provider fallback.
+ *
+ * `browser-native-tts` is intentionally excluded - it runs client-side via Web Speech API
+ * and cannot be invoked from a server fallback chain.
+ */
+export const TTS_FALLBACK_ORDER: readonly TTSProviderId[] = [
+  'openai-tts',
+  'elevenlabs-tts',
+  'azure-tts',
+  'gemini-tts',
+  'minimax-tts',
+  'doubao-tts',
+  'qwen-tts',
+  'glm-tts',
+  'fish-tts',
+  'smallest-tts',
+  'hf-tts',
+];
+
+/**
  * Get all available TTS providers
  */
 export function getAllTTSProviders(): TTSProviderConfig[] {
@@ -1203,11 +1223,11 @@ export const DEFAULT_TTS_VOICES: Record<TTSProviderId, string> = {
   'smallest-tts': 'ethan',
   'gemini-tts': 'Aoede',
   'openai-tts': 'alloy',
+  'elevenlabs-tts': 'EXAVITQu4vr4xnSDxMaL',
   'azure-tts': 'zh-CN-XiaoxiaoNeural',
   'glm-tts': 'tongtong',
   'qwen-tts': 'Cherry',
   'doubao-tts': 'zh_female_vv_uranus_bigtts',
-  'elevenlabs-tts': 'EXAVITQu4vr4xnSDxMaL',
   'minimax-tts': 'female-yujie',
   'hf-tts': 'af_heart',
   'fish-tts': 'us-male-narrative',
@@ -1237,6 +1257,14 @@ export const DEFAULT_TTS_MODELS: Record<TTSProviderId, string> = {
 export function getTTSVoices(providerId: TTSProviderId): TTSVoiceInfo[] {
   return TTS_PROVIDERS[providerId]?.voices || [];
 }
+
+/**
+ * Default order for ASR provider fallback.
+ *
+ * `browser-native` is excluded - it runs client-side via Web Speech API and cannot
+ * participate in a server-side fallback chain.
+ */
+export const ASR_FALLBACK_ORDER: readonly ASRProviderId[] = ['openai-whisper', 'qwen-asr'];
 
 /**
  * Get all available ASR providers

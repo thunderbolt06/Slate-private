@@ -849,7 +849,7 @@ async function generateFishTTS(config: TTSModelConfig, text: string): Promise<TT
 /**
  * Gemini TTS implementation using the Gemini Developer API.
  * Uses generativelanguage.googleapis.com/v1beta/models/{model}:generateContent
- * Works with a standard Gemini API key — no Vertex AI / service account needed.
+ * Works with a standard Gemini API key - no Vertex AI / service account needed.
  */
 async function generateGeminiTTS(
   config: TTSModelConfig,
@@ -882,7 +882,7 @@ async function generateGeminiTTS(
   let fetchUrl = `${baseUrl}/v1beta/models/${modelName}:generateContent`;
   const reqHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
 
-  if (config.apiKey && config.apiKey.startsWith('AIza')) {
+  if (config.apiKey) {
     // Google API keys are passed as query params
     fetchUrl += `?key=${config.apiKey}`;
   } else if (config.apiKey) {
@@ -925,7 +925,7 @@ async function generateGeminiTTS(
   const mimeType: string = inlineData.mimeType || '';
   const mimeTypeLower = mimeType.toLowerCase();
 
-  // Check actual magic bytes — Gemini sometimes returns raw PCM even when
+  // Check actual magic bytes - Gemini sometimes returns raw PCM even when
   // mimeType says "audio/wav". WAV magic = R I F F (0x52 0x49 0x46 0x46)
   const hasWavHeader =
     audioBytes.length >= 4 &&
@@ -938,7 +938,7 @@ async function generateGeminiTTS(
     mimeTypeLower.startsWith('audio/raw');
 
   if (!hasWavHeader || isPcmByMime) {
-    // Raw PCM — extract sample rate from mimeType if present, default 24 kHz
+    // Raw PCM - extract sample rate from mimeType if present, default 24 kHz
     const sampleRate = parseInt(mimeType.match(/rate=(\d+)/i)?.[1] ?? '24000', 10);
     log.info(`Gemini TTS: wrapping PCM as WAV (mimeType=${mimeType}, hasWavHeader=${hasWavHeader})`);
     return { audio: geminiPcmToWav(new Uint8Array(audioBytes), sampleRate), format: 'wav' };

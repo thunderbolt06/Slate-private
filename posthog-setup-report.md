@@ -22,10 +22,10 @@ The wizard has completed a deep integration of PostHog analytics and LLM analyti
 
 ## Files created or modified
 
-- **`instrumentation-client.ts`** — PostHog `posthog-js` initialization appended alongside existing Sentry init
-- **`lib/posthog-server.ts`** — New server-side PostHog Node.js client singleton
-- **`next.config.ts`** — Added `/ingest/*` reverse proxy rewrites + `skipTrailingSlashRedirect: true`
-- **`.env.local`** — `NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN` and `NEXT_PUBLIC_POSTHOG_HOST` set
+- **`instrumentation-client.ts`** - PostHog `posthog-js` initialization appended alongside existing Sentry init
+- **`lib/posthog-server.ts`** - New server-side PostHog Node.js client singleton
+- **`next.config.ts`** - Added `/ingest/*` reverse proxy rewrites + `skipTrailingSlashRedirect: true`
+- **`.env.local`** - `NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN` and `NEXT_PUBLIC_POSTHOG_HOST` set
 
 ## LLM analytics integration
 
@@ -35,9 +35,9 @@ PostHog LLM analytics are instrumented via the **Vercel AI SDK + OpenTelemetry**
 
 Every `generateText` / `streamText` call in the app flows through the central `callLLM` / `streamLLM` wrappers in `lib/ai/llm.ts`. The integration adds two things:
 
-1. **`instrumentation.ts`** — `PostHogSpanProcessor` registered as an OpenTelemetry span processor via `@vercel/otel`'s `registerOTel`. It receives `gen_ai.*` OTEL spans and forwards them to PostHog as `$ai_generation` events automatically.
+1. **`instrumentation.ts`** - `PostHogSpanProcessor` registered as an OpenTelemetry span processor via `@vercel/otel`'s `registerOTel`. It receives `gen_ai.*` OTEL spans and forwards them to PostHog as `$ai_generation` events automatically.
 
-2. **`lib/ai/llm.ts`** — `injectTelemetry` helper injects `experimental_telemetry: { isEnabled: true, functionId: source }` into every Vercel AI SDK call, enabling span emission. The `functionId` maps to the `source` label (e.g. `quiz-grade`, `scene-stream`) so calls are distinguishable in PostHog traces.
+2. **`lib/ai/llm.ts`** - `injectTelemetry` helper injects `experimental_telemetry: { isEnabled: true, functionId: source }` into every Vercel AI SDK call, enabling span emission. The `functionId` maps to the `source` label (e.g. `quiz-grade`, `scene-stream`) so calls are distinguishable in PostHog traces.
 
 ### LLM properties captured per generation
 
@@ -56,7 +56,7 @@ Every `generateText` / `streamText` call in the app flows through the central `c
 
 We've built some insights and a dashboard for you to keep an eye on user behavior, based on the events we just instrumented:
 
-- **Dashboard — Analytics basics**: https://eu.posthog.com/project/164193/dashboard/636713
+- **Dashboard - Analytics basics**: https://eu.posthog.com/project/164193/dashboard/636713
 - **Signup & Login Trend**: https://eu.posthog.com/project/164193/insights/ey0KlfjS
 - **Checkout Conversion Funnel** (generation → checkout → activation): https://eu.posthog.com/project/164193/insights/f7Abhh7U
 - **Classroom Generations per Day**: https://eu.posthog.com/project/164193/insights/6uXq85uP
@@ -65,7 +65,7 @@ We've built some insights and a dashboard for you to keep an eye on user behavio
 
 ### LLM Analytics dashboard
 
-- **Dashboard — LLM Analytics**: https://eu.posthog.com/project/164193/dashboard/636719
+- **Dashboard - LLM Analytics**: https://eu.posthog.com/project/164193/dashboard/636719
 - **Total LLM Cost per Day (USD)**: https://eu.posthog.com/project/164193/insights/BhIahHsY
 - **LLM Generations by Model**: https://eu.posthog.com/project/164193/insights/bDZiGGrV
 - **Average LLM Latency by Function**: https://eu.posthog.com/project/164193/insights/Q8UQ8tJM

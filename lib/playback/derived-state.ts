@@ -27,7 +27,7 @@ export interface PlaybackRawState {
   idleText: string | null;
   /** Whether the speaking agent is a student (not teacher). Provided by caller. */
   speakingStudent: boolean;
-  /** Active session type — stays set between agent-loop turns (cleared only by doSessionCleanup). */
+  /** Active session type - stays set between agent-loop turns (cleared only by doSessionCleanup). */
   sessionType: string | null;
 }
 
@@ -48,7 +48,7 @@ export type PlaybackPhase =
 export type BubbleButtonState = 'bars' | 'play' | 'restart' | 'none';
 
 export interface PlaybackView {
-  /** High-level phase — "what is happening right now?" */
+  /** High-level phase - "what is happening right now?" */
   phase: PlaybackPhase;
 
   /** Text to display in the speech bubble (without userMessage overlay) */
@@ -124,12 +124,12 @@ export function computePlaybackView(raw: PlaybackRawState): PlaybackView {
     phase = 'idle';
   }
 
-  // ---- sourceText (without userMessage — Roundtable overlays that locally) ----
+  // ---- sourceText (without userMessage - Roundtable overlays that locally) ----
   let sourceText: string;
   if (liveSpeech) {
     sourceText = liveSpeech;
   } else if (isInLiveFlow) {
-    // In live flow but no text yet — show empty (loading dots handled by bubble)
+    // In live flow but no text yet - show empty (loading dots handled by bubble)
     sourceText = '';
   } else if (lectureSpeech) {
     sourceText = lectureSpeech;

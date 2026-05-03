@@ -24,6 +24,16 @@ import { useStageStore } from '@/lib/store';
 import { useI18n } from '@/lib/hooks/use-i18n';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { PLAYBACK_SPEEDS } from '@/lib/store/settings';
 
 export interface CanvasToolbarProps {
@@ -134,6 +144,9 @@ export function CanvasToolbar({
     (s) => s.stage?.whiteboard?.[0]?.elements?.length || 0,
   );
 
+  // Home confirmation dialog state
+  const [homeConfirmOpen, setHomeConfirmOpen] = useState(false);
+
   // Volume slider hover state
   const [volumeHover, setVolumeHover] = useState(false);
   const volumeTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -162,21 +175,44 @@ export function CanvasToolbar({
       {/* ── Left: sidebar toggle + page indicator ── */}
       <div className="flex items-center gap-1 shrink-0 pl-1">
         {onHome && (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  onClick={onHome}
-                  className={cn(ctrlBtn, 'text-gray-500 hover:text-purple-600')}
-                >
-                  <Home className="w-4 h-4 sm:w-4 sm:h-4" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="top">
-                <p className="text-xs">{t('common.home') || 'Home'}</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => setHomeConfirmOpen(true)}
+                    className={cn(ctrlBtn, 'text-gray-500 hover:text-purple-600')}
+                  >
+                    <Home className="w-4 h-4 sm:w-4 sm:h-4" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  <p className="text-xs">{t('common.home') || 'Home'}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            <AlertDialog open={homeConfirmOpen} onOpenChange={setHomeConfirmOpen}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>
+                    {t('classroom.leaveTitle') || 'Leave classroom?'}
+                  </AlertDialogTitle>
+                  <AlertDialogDescription>
+                    {t('classroom.leaveDescription') ||
+                      'You can return to the home page or continue your current classroom session.'}
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>
+                    {t('classroom.continueClassroom') || 'Continue classroom'}
+                  </AlertDialogCancel>
+                  <AlertDialogAction onClick={onHome}>
+                    {t('common.goHome') || 'Go home'}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </>
         )}
         {onToggleSidebar && (
           <button
@@ -210,7 +246,7 @@ export function CanvasToolbar({
           className={cn(
             'inline-flex items-center gap-0.5 px-1 h-8 sm:h-7',
             isPresenting
-              ? '' /* Single visual layer in fullscreen — buttons sit inside outer pill directly */
+              ? '' /* Single visual layer in fullscreen - buttons sit inside outer pill directly */
               : 'bg-gray-100/60 dark:bg-gray-800/60 rounded-lg',
           )}
         >
@@ -360,7 +396,7 @@ export function CanvasToolbar({
           <CtrlDivider />
         </div>
 
-        {/* Settings popover — speed, whiteboard, chat */}
+        {/* Settings popover - speed, whiteboard, chat */}
         {hasSettingsItems && (
           <Popover>
             <TooltipProvider delayDuration={0}>
@@ -413,42 +449,44 @@ export function CanvasToolbar({
               )}
 
               {/* Whiteboard */}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onWhiteboardClose();
-                }}
-                className={cn(
-                  'w-full flex items-center justify-between px-1 py-1 rounded-md',
-                  'text-xs transition-colors cursor-pointer',
-                  'hover:bg-gray-100 dark:hover:bg-gray-700',
-                  whiteboardOpen
-                    ? 'text-violet-600 dark:text-violet-400'
-                    : 'text-gray-600 dark:text-gray-300',
-                )}
-              >
-                <span className="flex items-center gap-2">
-                  <PencilLine className="w-3.5 h-3.5" />
-                  {t('whiteboard.open') || 'Whiteboard'}
-                </span>
-                <div className="relative">
-                  <div
-                    className={cn(
-                      'w-7 h-4 rounded-full transition-colors',
-                      whiteboardOpen ? 'bg-violet-500' : 'bg-gray-200 dark:bg-gray-600',
-                    )}
-                  />
-                  <div
-                    className={cn(
-                      'absolute top-0.5 w-3 h-3 rounded-full bg-white shadow-sm transition-transform',
-                      whiteboardOpen ? 'translate-x-3.5' : 'translate-x-0.5',
-                    )}
-                  />
-                  {!whiteboardOpen && whiteboardElementCount > 0 && (
-                    <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-violet-500 dark:bg-violet-400 rounded-full" />
+              {(whiteboardOpen || whiteboardElementCount > 0) && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onWhiteboardClose();
+                  }}
+                  className={cn(
+                    'w-full flex items-center justify-between px-1 py-1 rounded-md',
+                    'text-xs transition-colors cursor-pointer',
+                    'hover:bg-gray-100 dark:hover:bg-gray-700',
+                    whiteboardOpen
+                      ? 'text-violet-600 dark:text-violet-400'
+                      : 'text-gray-600 dark:text-gray-300',
                   )}
-                </div>
-              </button>
+                >
+                  <span className="flex items-center gap-2">
+                    <PencilLine className="w-3.5 h-3.5" />
+                    {t('whiteboard.open') || 'Whiteboard'}
+                  </span>
+                  <div className="relative">
+                    <div
+                      className={cn(
+                        'w-7 h-4 rounded-full transition-colors',
+                        whiteboardOpen ? 'bg-violet-500' : 'bg-gray-200 dark:bg-gray-600',
+                      )}
+                    />
+                    <div
+                      className={cn(
+                        'absolute top-0.5 w-3 h-3 rounded-full bg-white shadow-sm transition-transform',
+                        whiteboardOpen ? 'translate-x-3.5' : 'translate-x-0.5',
+                      )}
+                    />
+                    {!whiteboardOpen && whiteboardElementCount > 0 && (
+                      <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-violet-500 dark:bg-violet-400 rounded-full" />
+                    )}
+                  </div>
+                </button>
+              )}
 
               {/* Chat */}
               {onToggleChat && (
@@ -501,7 +539,7 @@ export function CanvasToolbar({
           </button>
         )}
 
-        {/* Export to MP4 / Stop & save — admin only */}
+        {/* Export to MP4 / Stop & save - admin only */}
         {isAdmin && (onExportVideo || onAbortExport) && (
           <>
             <CtrlDivider />
@@ -541,7 +579,7 @@ export function CanvasToolbar({
                 </TooltipTrigger>
                 <TooltipContent side="top" className="text-xs">
                   {isExporting && exportProgress
-                    ? `Exporting ${exportProgress.sceneIndex}/${exportProgress.sceneTotal} — click ■ to stop & save`
+                    ? `Exporting ${exportProgress.sceneIndex}/${exportProgress.sceneTotal} - click ■ to stop & save`
                     : 'Export to MP4'}
                 </TooltipContent>
               </Tooltip>

@@ -12,7 +12,7 @@ export const runtime = 'nodejs';
  * Receives Stripe events and keeps user_plans in sync.
  *
  * Required env vars:
- *   STRIPE_WEBHOOK_SECRET  — from `stripe listen --forward-to ...` or the Stripe dashboard
+ *   STRIPE_WEBHOOK_SECRET  - from `stripe listen --forward-to ...` or the Stripe dashboard
  */
 export async function POST(req: NextRequest) {
   const sig = req.headers.get('stripe-signature');

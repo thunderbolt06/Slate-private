@@ -61,12 +61,12 @@ export async function POST(req: NextRequest) {
       });
       log.info(`Started remaining-job workflow: ${jobId}`);
     } catch (err: unknown) {
-      // WorkflowExecutionAlreadyStartedError — workflow already running, that's fine
+      // WorkflowExecutionAlreadyStartedError - workflow already running, that's fine
       const code = (err as { code?: string })?.code;
       if (code !== 'WORKFLOW_EXECUTION_ALREADY_STARTED') {
         throw err;
       }
-      log.info(`Workflow already running for: ${jobId} — polling existing job`);
+      log.info(`Workflow already running for: ${jobId} - polling existing job`);
     }
 
     return apiSuccess({ jobId, pollUrl, pollIntervalMs: 4000 }, 202);

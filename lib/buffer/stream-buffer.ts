@@ -1,7 +1,7 @@
 import type { DirectorState } from '@/lib/types/chat';
 
 /**
- * StreamBuffer — unified presentation pacing layer.
+ * StreamBuffer - unified presentation pacing layer.
  *
  * Sits between data sources (SSE stream / PlaybackEngine) and React state.
  * Events are pushed into an ordered queue; a fixed-rate tick loop reveals
@@ -9,8 +9,8 @@ import type { DirectorState } from '@/lib/types/chat';
  * area and the Roundtable bubble consume identically-paced content.
  *
  * Key invariants:
- *   - ONE source of pacing (this tick loop) — no double typewriter.
- *   - pause() is O(1) instant — tick returns immediately.
+ *   - ONE source of pacing (this tick loop) - no double typewriter.
+ *   - pause() is O(1) instant - tick returns immediately.
  *   - Actions fire only when the tick cursor reaches them (after preceding text).
  *   - Roundtable sees only the current speech segment (resets on action / agent switch).
  */
@@ -36,9 +36,9 @@ export interface TextItem {
   kind: 'text';
   messageId: string;
   agentId: string;
-  /** Unique ID for this text part — distinguishes multiple text items within one message (e.g. lecture). */
+  /** Unique ID for this text part - distinguishes multiple text items within one message (e.g. lecture). */
   partId: string;
-  /** Growable — SSE deltas append here. */
+  /** Growable - SSE deltas append here. */
   text: string;
   /** When true, no more text will be appended. Tick can advance past once fully revealed. */
   sealed: boolean;
@@ -95,10 +95,10 @@ export interface StreamBufferCallbacks {
   onAgentEnd(data: AgentEndItem): void;
   /**
    * Fired each tick while a text item is being revealed.
-   * @param messageId  — which message to update
-   * @param partId     — unique ID for this text part (stable across ticks)
-   * @param revealedText — text visible so far (slice of full text)
-   * @param isComplete — true when this text item is fully revealed AND sealed
+   * @param messageId  - which message to update
+   * @param partId     - unique ID for this text part (stable across ticks)
+   * @param revealedText - text visible so far (slice of full text)
+   * @param isComplete - true when this text item is fully revealed AND sealed
    */
   onTextReveal(messageId: string, partId: string, revealedText: string, isComplete: boolean): void;
   /** Fired when tick reaches an action item. Callers should execute the effect + add badge. */
@@ -132,7 +132,7 @@ export interface StreamBufferCallbacks {
   ) => void;
   /**
    * When provided, called after a text item is fully revealed and sealed.
-   * If it returns true, the tick loop will NOT advance to the next item —
+   * If it returns true, the tick loop will NOT advance to the next item -
    * the bubble stays on the current text (e.g. waiting for TTS playback to finish).
    */
   shouldHoldAfterReveal?: () => { holding: boolean; segmentDone: number } | boolean;
@@ -235,7 +235,7 @@ export class StreamBuffer {
     }
   }
 
-  /** Mark the current (last) text item as complete — no more appends expected. */
+  /** Mark the current (last) text item as complete - no more appends expected. */
   sealText(messageId: string): void {
     if (this._disposed) return;
     for (let i = this.items.length - 1; i >= 0; i--) {
@@ -281,13 +281,13 @@ export class StreamBuffer {
 
   // ─── Control ─────────────────────────────────────────────────────
 
-  /** Start the tick loop. Idempotent — calling twice is safe. */
+  /** Start the tick loop. Idempotent - calling twice is safe. */
   start(): void {
     if (this._disposed || this.timer) return;
     this.timer = setInterval(() => this.tick(), this.tickMs);
   }
 
-  /** Instantly pause — tick becomes a no-op. */
+  /** Instantly pause - tick becomes a no-op. */
   pause(): void {
     this._paused = true;
   }
@@ -304,7 +304,7 @@ export class StreamBuffer {
    *
    * NOTE: This will block indefinitely while the buffer is paused, by design.
    * Buffer-level pause (see `livePausedRef` in use-chat-sessions) freezes ALL
-   * forward progress — the tick loop is a no-op while `_paused` is true, so
+   * forward progress - the tick loop is a no-op while `_paused` is true, so
    * no items are processed and drain never fires until resumed.
    */
   waitUntilDrained(): Promise<void> {
@@ -348,7 +348,7 @@ export class StreamBuffer {
         case 'agent_start':
           this.currentAgentId = item.agentId;
           this.currentSegmentText = '';
-          this.cb.onThinking(null); // Agent selected — clear thinking indicator
+          this.cb.onThinking(null); // Agent selected - clear thinking indicator
           this.cb.onAgentStart(item);
           this.cb.onLiveSpeech(null, item.agentId);
           break;
@@ -440,7 +440,7 @@ export class StreamBuffer {
     if (this._dwellTicksRemaining > 0) {
       this._dwellTicksRemaining--;
       if (this._dwellTicksRemaining === 0 && this._holdingForTTS) {
-        // Post-text delay just finished — fall through to the TTS hold check below
+        // Post-text delay just finished - fall through to the TTS hold check below
       } else {
         return;
       }
@@ -452,33 +452,33 @@ export class StreamBuffer {
       if (result) {
         if (typeof result === 'object') {
           if (!result.holding) {
-            // TTS queue empty — release
+            // TTS queue empty - release
             this._holdingForTTS = false;
             this._holdSegmentSnapshot = -1;
             this.advanceNonText();
             return;
           }
           if (result.segmentDone !== this._holdSegmentSnapshot) {
-            // A segment just finished — release even if next segment is starting
+            // A segment just finished - release even if next segment is starting
             this._holdingForTTS = false;
             this._holdSegmentSnapshot = -1;
             this.advanceNonText();
             return;
           }
-          return; // Same segment still playing — stay on current item
+          return; // Same segment still playing - stay on current item
         }
         // Boolean form (legacy): hold as long as true
         return;
       }
       this._holdingForTTS = false;
       this._holdSegmentSnapshot = -1;
-      // TTS done — continue to process next item
+      // TTS done - continue to process next item
       this.advanceNonText();
       return;
     }
 
     const item = this.items[this.readIndex];
-    if (!item) return; // Queue empty or caught up — wait
+    if (!item) return; // Queue empty or caught up - wait
 
     switch (item.kind) {
       case 'text': {
@@ -493,7 +493,7 @@ export class StreamBuffer {
 
         // Update roundtable (current segment only).
         // Use this.currentAgentId (set when tick processes agent_start) rather than
-        // item.agentId — push-time race means item.agentId can carry a stale value
+        // item.agentId - push-time race means item.agentId can carry a stale value
         // from the previous agent when SSE pushes outpace the tick loop.
         this.currentSegmentText = revealed;
         this.cb.onLiveSpeech(this.currentSegmentText, this.currentAgentId);
@@ -504,7 +504,7 @@ export class StreamBuffer {
           this.readIndex++;
           this.charCursor = 0;
 
-          // Fixed pause after text finishes — gives the reader a breathing gap
+          // Fixed pause after text finishes - gives the reader a breathing gap
           // before the next action or agent turn fires.
           if (this.postTextDelayTicks > 0) {
             this._dwellTicksRemaining = this.postTextDelayTicks;
@@ -517,13 +517,13 @@ export class StreamBuffer {
             return; // next tick will count down, then advanceNonText
           }
 
-          // No post-text delay — check TTS hold immediately
+          // No post-text delay - check TTS hold immediately
           {
             const result = this.cb.shouldHoldAfterReveal?.();
             if (result) {
               this._holdingForTTS = true;
               this._holdSegmentSnapshot = typeof result === 'object' ? result.segmentDone : -1;
-              return; // TTS still playing — hold here
+              return; // TTS still playing - hold here
             }
           }
 
@@ -539,7 +539,7 @@ export class StreamBuffer {
       case 'agent_start':
         this.currentAgentId = item.agentId;
         this.currentSegmentText = '';
-        this.cb.onThinking(null); // Agent selected — clear thinking indicator
+        this.cb.onThinking(null); // Agent selected - clear thinking indicator
         this.cb.onAgentStart(item);
         this.cb.onLiveSpeech(null, item.agentId);
         this.readIndex++;
@@ -589,7 +589,7 @@ export class StreamBuffer {
         this.cb.onDone(item);
         this.readIndex++;
         this.charCursor = 0;
-        // Stop the timer — nothing more to process
+        // Stop the timer - nothing more to process
         if (this.timer) {
           clearInterval(this.timer);
           this.timer = null;
@@ -612,7 +612,7 @@ export class StreamBuffer {
   /**
    * After processing a non-text item, keep advancing through consecutive
    * non-text items in the same tick. Stop when we hit a text item or
-   * the end of the queue — the next tick will handle the text item
+   * the end of the queue - the next tick will handle the text item
    * (so we don't skip the character-by-character reveal).
    *
    * Also stops when an action triggers a delay so its animation can play.
@@ -626,7 +626,7 @@ export class StreamBuffer {
         case 'agent_start':
           this.currentAgentId = next.agentId;
           this.currentSegmentText = '';
-          this.cb.onThinking(null); // Agent selected — clear thinking indicator
+          this.cb.onThinking(null); // Agent selected - clear thinking indicator
           this.cb.onAgentStart(next);
           this.cb.onLiveSpeech(null, next.agentId);
           break;
@@ -644,7 +644,7 @@ export class StreamBuffer {
             this._dwellTicksRemaining = this.actionDelayTicks;
             return; // resume on next tick after countdown
           }
-          continue; // no delay — keep advancing
+          continue; // no delay - keep advancing
         case 'thinking':
           this.cb.onThinking(next);
           break;
@@ -666,7 +666,7 @@ export class StreamBuffer {
           this._drainResolve?.();
           this._drainResolve = null;
           this._drainReject = null;
-          return; // done — stop advancing
+          return; // done - stop advancing
         case 'error':
           this.cb.onError(next.message);
           break;

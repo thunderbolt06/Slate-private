@@ -57,8 +57,8 @@ First check skill config for `accessCode`. If present, announce that a stored ac
 
 If no `accessCode` in config, ask the user how they want to use OpenMAIC:
 
-1. **Use hosted OpenMAIC** (recommended for quick start) — Requires an access code from open.maic.chat. No local setup needed.
-2. **Run locally** — Clone the repo, configure provider keys, and run on your machine.
+1. **Use hosted OpenMAIC** (recommended for quick start) - Requires an access code from open.maic.chat. No local setup needed.
+2. **Run locally** - Clone the repo, configure provider keys, and run on your machine.
 
 If the user chooses hosted mode, load [references/hosted-mode.md](references/hosted-mode.md) and skip phases 1–4.
 If the user chooses local mode, proceed to phase 1 as usual.
@@ -81,7 +81,7 @@ Load [references/provider-keys.md](references/provider-keys.md).
 
 Use this before starting classroom generation. Recommend a provider path and tell the user exactly which config file to edit themselves. If generation later fails due to provider/model/auth issues, return to this phase and direct the user to update the same server-side config files.
 
-After the core LLM key is configured, ask the user if they want to enable optional features (web search, image generation, video generation, TTS). Each requires its own provider key — see the "Optional Features" section in provider-keys.md.
+After the core LLM key is configured, ask the user if they want to enable optional features (web search, image generation, video generation, TTS). Each requires its own provider key - see the "Optional Features" section in provider-keys.md.
 
 ### 4. Start And Verify OpenMAIC
 

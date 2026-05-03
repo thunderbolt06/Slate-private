@@ -43,7 +43,7 @@ function resolveSeedreamSize(options: ImageGenerationOptions): string {
 }
 
 /**
- * Lightweight connectivity test — validates API key by making a minimal
+ * Lightweight connectivity test - validates API key by making a minimal
  * request that triggers auth check. 401/403 means key invalid.
  */
 export async function testSeedreamConnectivity(
@@ -51,7 +51,7 @@ export async function testSeedreamConnectivity(
 ): Promise<{ success: boolean; message: string }> {
   const baseUrl = config.baseUrl || DEFAULT_BASE_URL;
   try {
-    // Send a request with empty prompt — auth failure (401/403) means bad key,
+    // Send a request with empty prompt - auth failure (401/403) means bad key,
     // any other error (400) means key is valid but request is intentionally bad
     const response = await fetch(`${baseUrl}/api/v3/images/generations`, {
       method: 'POST',

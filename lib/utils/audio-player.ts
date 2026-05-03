@@ -78,7 +78,7 @@ export class AudioPlayer {
 
       // Play
       await this.audio.play();
-      // Re-apply after play() — some browsers reset during load
+      // Re-apply after play() - some browsers reset during load
       this.audio.playbackRate = this.playbackRate;
       return true;
     } catch (error) {
@@ -106,7 +106,7 @@ export class AudioPlayer {
       this.audio = null;
     }
     // Note: onEndedCallback intentionally NOT cleared here because play()
-    // calls stop() internally — clearing would break the callback chain.
+    // calls stop() internally - clearing would break the callback chain.
     // Stale callbacks are harmless: engine mode check prevents processNext().
   }
 

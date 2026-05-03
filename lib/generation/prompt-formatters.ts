@@ -21,7 +21,7 @@ export function buildCourseContext(ctx?: SceneGenerationContext): string {
   // Position information
   lines.push('');
   lines.push(
-    'IMPORTANT: All pages belong to the SAME class session. Do NOT greet again after the first page. When referencing content from earlier pages, say "we just covered" or "as mentioned on page N" — NEVER say "last class" or "previous session" because there is no previous session.',
+    'IMPORTANT: All pages belong to the SAME class session. Do NOT greet again after the first page. When referencing content from earlier pages, say "we just covered" or "as mentioned on page N" - NEVER say "last class" or "previous session" because there is no previous session.',
   );
   lines.push('');
   if (ctx.pageIndex === 1) {
@@ -55,7 +55,7 @@ export function formatAgentsForPrompt(agents?: AgentInfo[]): string {
 
   const lines = ['Classroom Agents:'];
   for (const a of agents) {
-    const personaPart = a.persona ? ` — ${a.persona}` : '';
+    const personaPart = a.persona ? ` - ${a.persona}` : '';
     lines.push(`- id: "${a.id}", name: "${a.name}", role: ${a.role}${personaPart}`);
   }
   return lines.join('\n');
@@ -68,7 +68,7 @@ export function formatTeacherPersonaForPrompt(agents?: AgentInfo[]): string {
   const teacher = agents.find((a) => a.role === 'teacher');
   if (!teacher?.persona) return '';
 
-  return `Teacher Persona:\nName: ${teacher.name}\n${teacher.persona}\n\nAdapt the content style and tone to match this teacher's personality. IMPORTANT: The teacher's name and identity must NOT appear on the slides — no "Teacher ${teacher.name}'s tips", no "Teacher's message", etc. Slides should read as neutral, professional visual aids.`;
+  return `Teacher Persona:\nName: ${teacher.name}\n${teacher.persona}\n\nAdapt the content style and tone to match this teacher's personality. IMPORTANT: The teacher's name and identity must NOT appear on the slides - no "Teacher ${teacher.name}'s tips", no "Teacher's message", etc. Slides should read as neutral, professional visual aids.`;
 }
 
 /**
@@ -124,7 +124,7 @@ export function buildVisionUserContent(
         dimInfo = ` (${img.width}×${img.height}, ${ratio})`;
       }
       parts.push({ type: 'text', text: `\n**${img.id}**${dimInfo}:` });
-      // Strip data URI prefix — AI SDK only accepts http(s) URLs or raw base64
+      // Strip data URI prefix - AI SDK only accepts http(s) URLs or raw base64
       const dataUriMatch = img.src.match(/^data:([^;]+);base64,(.+)$/);
       if (dataUriMatch) {
         parts.push({

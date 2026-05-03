@@ -11,7 +11,7 @@
  *
  * 2. Stray `\n\n` and `\n` inside paragraph text. The AI sometimes emits literal
  *    newlines in the middle of a sentence, and the prompt also encourages it to
- *    split lines into separate <p> tags — together this produces large mid-
+ *    split lines into separate <p> tags - together this produces large mid-
  *    sentence paragraph gaps. We collapse these to a single space inside text
  *    nodes (we do not touch newlines that sit between tags).
  */
@@ -99,7 +99,7 @@ const LATEX_COMMAND_REPLACEMENTS: Record<string, string> = {
 
 // Sorted longest-first so `\longrightarrow` is matched before `\to` (alternation
 // is greedy with the longer alternatives listed first). The lookahead is
-// `(?![a-z])` rather than `(?![A-Za-z])` — we still want to skip continuations
+// `(?![a-z])` rather than `(?![A-Za-z])` - we still want to skip continuations
 // like `\alphabetical` (lowercase letter follows) but DO want to match cases
 // where a chemical element symbol immediately follows the command, e.g.
 // `\longrightarrowMg` in `Mg + O₂\longrightarrowMgO`. Without this, the
@@ -117,7 +117,7 @@ const LATEX_COMMAND_RE = new RegExp(
 // backslash. JSON parsing of poorly-escaped AI output sometimes strips the
 // backslash entirely, leaving e.g. `Mg + O₂longrightarrowMgO` on screen with
 // no `\` to anchor the regex. The arrow-command names below are
-// unambiguous — they only ever come from LaTeX — so we strip them anywhere
+// unambiguous - they only ever come from LaTeX - so we strip them anywhere
 // they appear. We deliberately exclude short/ambiguous names like `to`, `in`,
 // `pi`, `mu`, `div`, `times`, `cup`, `cap` which collide with English.
 const BARE_COMMAND_NAMES = [

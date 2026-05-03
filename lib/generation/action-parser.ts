@@ -56,9 +56,9 @@ export function parseActionsFromStructuredOutput(
     return [];
   }
 
-  const jsonStr = endIdx > startIdx ? cleaned.slice(startIdx, endIdx + 1) : cleaned.slice(startIdx); // unclosed array — let partial-json handle it
+  const jsonStr = endIdx > startIdx ? cleaned.slice(startIdx, endIdx + 1) : cleaned.slice(startIdx); // unclosed array - let partial-json handle it
 
-  // Step 3: Parse — try JSON.parse first, then jsonrepair, fallback to partial-json
+  // Step 3: Parse - try JSON.parse first, then jsonrepair, fallback to partial-json
   let items: unknown[];
   try {
     items = JSON.parse(jsonStr);
@@ -120,7 +120,7 @@ export function parseActionsFromStructuredOutput(
     }
   }
 
-  // Step 5: Post-processing — discussion must be the last action, and at most one
+  // Step 5: Post-processing - discussion must be the last action, and at most one
   const discussionIdx = actions.findIndex((a) => a.type === 'discussion');
   if (discussionIdx !== -1 && discussionIdx < actions.length - 1) {
     actions.splice(discussionIdx + 1);

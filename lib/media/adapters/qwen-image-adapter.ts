@@ -31,7 +31,7 @@ function resolveDashScopeSize(options: ImageGenerationOptions): string {
 }
 
 /**
- * Lightweight connectivity test — validates API key by making a minimal
+ * Lightweight connectivity test - validates API key by making a minimal
  * request. 401/403 means key invalid; other errors mean key is valid.
  */
 export async function testQwenImageConnectivity(

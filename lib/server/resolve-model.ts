@@ -6,7 +6,14 @@
  */
 
 import type { NextRequest } from 'next/server';
-import { getModel, parseModelString, type ModelWithInfo } from '@/lib/ai/providers';
+import {
+  getModel,
+  getDefaultModelId,
+  LLM_FALLBACK_ORDER,
+  parseModelString,
+  type ModelWithInfo,
+} from '@/lib/ai/providers';
+import type { ProviderId } from '@/lib/types/provider';
 import { resolveApiKey, resolveBaseUrl, resolveProxy } from '@/lib/server/provider-config';
 import { validateUrlForSSRF } from '@/lib/server/ssrf-guard';
 
@@ -72,4 +79,39 @@ export function resolveModelFromHeaders(req: NextRequest): ResolvedModel {
     providerType: req.headers.get('x-provider-type') || undefined,
     requiresApiKey: req.headers.get('x-requires-api-key') === 'true' ? true : undefined,
   });
+}
+
+/**
+ * Build an ordered list of resolved fallback models for LLM calls.
+ *
+ * The primary model (the one the caller asked for) is first; subsequent entries
+ * come from `LLM_FALLBACK_ORDER`, each using its provider's first declared model.
+ * Providers that have no server-resolvable API key are skipped - there's no point
+ * including a model we can't authenticate against.
+ */
+export function resolveLLMFallbackChain(primary: ResolvedModel): ResolvedModel[] {
+  const { providerId: primaryProviderId } = parseModelString(primary.modelString);
+  const chain: ResolvedModel[] = [primary];
+  const seen = new Set<string>([primary.modelString]);
+
+  for (const providerId of LLM_FALLBACK_ORDER) {
+    if (providerId === primaryProviderId) continue;
+    const modelId = getDefaultModelId(providerId as ProviderId);
+    if (!modelId) continue;
+    const modelString = `${providerId}:${modelId}`;
+    if (seen.has(modelString)) continue;
+
+    const apiKey = resolveApiKey(providerId);
+    if (!apiKey) continue; // No creds - skip silently.
+
+    try {
+      const resolved = resolveModel({ modelString });
+      chain.push(resolved);
+      seen.add(modelString);
+    } catch {
+      // resolveModel can throw on SSRF/missing config - just drop this fallback.
+    }
+  }
+
+  return chain;
 }

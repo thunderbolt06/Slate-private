@@ -157,7 +157,7 @@
     @apply bg-background text-foreground;
   }
 }
-/* Override pointer cursors globally — use default arrow everywhere */
+/* Override pointer cursors globally - use default arrow everywhere */
 *, *:hover {
   cursor: default !important;
 }

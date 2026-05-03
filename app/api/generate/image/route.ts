@@ -16,13 +16,18 @@
  */
 
 import { NextRequest } from 'next/server';
-import { generateImage, aspectRatioToDimensions } from '@/lib/media/image-providers';
+import {
+  generateImage,
+  aspectRatioToDimensions,
+  IMAGE_FALLBACK_ORDER,
+} from '@/lib/media/image-providers';
 import { sanitizeImagePrompt } from '@/lib/media/image-prompt-sanitizer';
 import { resolveImageApiKey, resolveImageBaseUrl } from '@/lib/server/provider-config';
 import type { ImageProviderId, ImageGenerationOptions } from '@/lib/media/types';
 import { createLogger } from '@/lib/logger';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { validateUrlForSSRF } from '@/lib/server/ssrf-guard';
+import { tryWithFallback, buildFallbackOrder } from '@/lib/utils/provider-fallback';
 
 const log = createLogger('ImageGeneration API');
 
@@ -54,19 +59,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const apiKey = clientBaseUrl
-      ? clientApiKey || ''
-      : resolveImageApiKey(providerId, clientApiKey);
-    if (!apiKey) {
-      return apiError(
-        'MISSING_API_KEY',
-        401,
-        `No API key configured for image provider: ${providerId}`,
-      );
-    }
-
-    const baseUrl = clientBaseUrl ? clientBaseUrl : resolveImageBaseUrl(providerId, clientBaseUrl);
-
     // Resolve dimensions from aspect ratio if not explicitly set
     if (!body.width && !body.height && body.aspectRatio) {
       const dims = aspectRatioToDimensions(body.aspectRatio);
@@ -79,7 +71,47 @@ export async function POST(request: NextRequest) {
         `prompt="${body.prompt.slice(0, 80)}...", size=${body.width ?? 'auto'}x${body.height ?? 'auto'}`,
     );
 
-    const result = await generateImage({ providerId, apiKey, baseUrl, model: clientModel }, body);
+    const fallbackOrder = buildFallbackOrder<ImageProviderId>(providerId, IMAGE_FALLBACK_ORDER);
+
+    const { result, usedProviderId } = await tryWithFallback(
+      fallbackOrder,
+      async (id) => {
+        const isPrimary = id === providerId;
+        const resolvedKey =
+          isPrimary && clientBaseUrl
+            ? clientApiKey || ''
+            : resolveImageApiKey(id, isPrimary ? clientApiKey : undefined);
+
+        if (!resolvedKey) {
+          throw new Error(`No API key configured for image provider: ${id}`);
+        }
+
+        const resolvedBaseUrl =
+          isPrimary && clientBaseUrl ? clientBaseUrl : resolveImageBaseUrl(id, undefined);
+
+        return generateImage(
+          {
+            providerId: id as ImageProviderId,
+            apiKey: resolvedKey,
+            baseUrl: resolvedBaseUrl,
+            model: isPrimary ? clientModel : undefined,
+          },
+          body,
+        );
+      },
+      {
+        category: 'image',
+        // Don't fall back on content-policy refusals - every provider will reject the same prompt.
+        shouldFallback: (err) => {
+          const msg = err instanceof Error ? err.message : String(err);
+          return !(msg.includes('SensitiveContent') || msg.includes('sensitive information'));
+        },
+      },
+    );
+
+    if (usedProviderId !== providerId) {
+      log.warn(`Image generation fell back from ${providerId} to ${usedProviderId}`);
+    }
 
     return apiSuccess({ result });
   } catch (error) {

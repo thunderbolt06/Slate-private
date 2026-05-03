@@ -80,7 +80,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, type: 'topup' });
     }
 
-    // Subscription plans — all non-topup periods map to PLUS
+    // Subscription plans - all non-topup periods map to PLUS
     const accountType = 'PLUS' as const;
     await admin.from('user_plans').upsert(
       {

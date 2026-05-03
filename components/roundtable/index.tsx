@@ -43,7 +43,7 @@ interface RoundtableProps {
   readonly mode?: 'playback' | 'autonomous';
   readonly initialParticipants?: Participant[];
   readonly playbackView?: PlaybackView; // Centralised derived state from Stage
-  readonly currentSpeech?: string | null; // Live SSE speech (from StreamBuffer — discussion/QA)
+  readonly currentSpeech?: string | null; // Live SSE speech (from StreamBuffer - discussion/QA)
   readonly lectureSpeech?: string | null; // Active lecture speech (from PlaybackEngine, full text)
   readonly idleText?: string | null; // Static idle text (first speech action)
   readonly playbackCompleted?: boolean; // True when engine finished all actions (show restart icon)
@@ -88,7 +88,7 @@ interface RoundtableProps {
   readonly controlsVisible?: boolean;
   readonly onTogglePresentation?: () => void;
   readonly onPresentationInteractionChange?: (active: boolean) => void;
-  /** Ref to the fullscreen container — passed to ProactiveCard so its portal
+  /** Ref to the fullscreen container - passed to ProactiveCard so its portal
    *  renders inside the top-layer during presentation mode. */
   readonly fullscreenContainerRef?: React.RefObject<HTMLDivElement | null>;
   readonly roundtableCollapsed?: boolean;
@@ -331,7 +331,7 @@ export function Roundtable({
   }, [isSendCooldown, speakingAgentId]);
 
   // Safety net: clear cooldown when streaming transitions from active → ended
-  // (not when isStreaming was already false — that would clear cooldown immediately)
+  // (not when isStreaming was already false - that would clear cooldown immediately)
   const prevStreamingRef = useRef(false);
   useEffect(() => {
     if (prevStreamingRef.current && !isStreaming && isSendCooldown) {
@@ -690,7 +690,7 @@ export function Roundtable({
   if (isPresenting) {
     return (
       <div className="h-0 w-full relative z-10 overflow-visible">
-        {/* Speech overlay — fills the full stage area via absolute positioning */}
+        {/* Speech overlay - fills the full stage area via absolute positioning */}
         <PresentationSpeechOverlay
           playbackView={enrichedPlaybackView}
           participants={initialParticipants}
@@ -716,7 +716,7 @@ export function Roundtable({
           />
         )}
 
-        {/* ── Toolbar — pinned to bottom of screen ── */}
+        {/* ── Toolbar - pinned to bottom of screen ── */}
         <div
           className={cn(
             'fixed bottom-0 left-0 z-[40] pointer-events-none flex items-center justify-center transition-all duration-300',
@@ -757,7 +757,7 @@ export function Roundtable({
           )}
         </AnimatePresence>
 
-        {/* ── Center stack: input / voice / thinking — anchored above toolbar ── */}
+        {/* ── Center stack: input / voice / thinking - anchored above toolbar ── */}
         <div
           className="fixed bottom-14 left-0 z-[50] flex flex-col items-center justify-center gap-3 pointer-events-none transition-[right] duration-300"
           style={{ right: chatCollapsed === false ? (chatAreaWidth ?? 320) : 0 }}
@@ -848,7 +848,7 @@ export function Roundtable({
             )}
           </AnimatePresence>
 
-          {/* "Your turn" cue prompt — clickable, opens input panel */}
+          {/* "Your turn" cue prompt - clickable, opens input panel */}
           <AnimatePresence>
             {isCueUser && !bubbleRole && !thinkingState && !isInputOpen && !isVoiceOpen && (
               <motion.div
@@ -897,7 +897,7 @@ export function Roundtable({
           </AnimatePresence>
         </div>
 
-        {/* ── Right-side stack: bubble + dock — flex column, no hardcoded px ── */}
+        {/* ── Right-side stack: bubble + dock - flex column, no hardcoded px ── */}
         <div
           className="fixed bottom-16 z-[48] flex flex-col items-end gap-3 pointer-events-none transition-[right] duration-300"
           style={{ right: chatCollapsed ? 20 : 20 + (chatAreaWidth ?? 320) }}
@@ -931,7 +931,7 @@ export function Roundtable({
                   ref={presentationActionAnchorRef}
                   className="flex items-center gap-2.5 rounded-full bg-white/70 dark:bg-black/60 backdrop-blur-xl border border-gray-200/60 dark:border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)] px-3 py-2"
                 >
-                  {/* Speaking / discussion-requesting agent avatar — shows when
+                  {/* Speaking / discussion-requesting agent avatar - shows when
                       a student agent is actively speaking OR a discussion request
                       is pending (so the user can see who's asking before joining) */}
                   <AnimatePresence>
@@ -982,36 +982,48 @@ export function Roundtable({
                       </div>
                     </div>
                   ) : (
-                    <button
-                      aria-label={
-                        asrEnabled
-                          ? t('roundtable.voiceInput')
-                          : t('roundtable.voiceInputDisabled')
-                      }
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        // Primary action is now voice
-                        if (asrEnabled) {
-                          handleToggleVoice();
-                        } else {
-                          handleToggleInput();
+                    <>
+                      <button
+                        aria-label={
+                          asrEnabled
+                            ? t('roundtable.voiceInput')
+                            : t('roundtable.voiceInputDisabled')
                         }
-                      }}
-                      className={cn(
-                        'w-6 h-6 rounded-full flex items-center justify-center transition-all active:scale-95',
-                        isVoiceOpen || isInputOpen
-                          ? 'bg-purple-600 text-white'
-                          : 'text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white hover:bg-gray-200/50 dark:hover:bg-white/10',
-                      )}
-                    >
-                      {isInputOpen ? (
+                        disabled={!asrEnabled}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (asrEnabled) handleToggleVoice();
+                        }}
+                        className={cn(
+                          'w-6 h-6 rounded-full flex items-center justify-center transition-all active:scale-95',
+                          isVoiceOpen
+                            ? 'bg-purple-600 text-white'
+                            : 'text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white hover:bg-gray-200/50 dark:hover:bg-white/10',
+                          !asrEnabled && 'opacity-50 cursor-not-allowed',
+                        )}
+                      >
+                        {asrEnabled ? (
+                          <Mic className="w-3.5 h-3.5" />
+                        ) : (
+                          <MicOff className="w-3.5 h-3.5" />
+                        )}
+                      </button>
+                      <button
+                        aria-label={t('roundtable.textInput')}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleToggleInput();
+                        }}
+                        className={cn(
+                          'w-6 h-6 rounded-full flex items-center justify-center transition-all active:scale-95',
+                          isInputOpen
+                            ? 'bg-purple-600 text-white'
+                            : 'text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white hover:bg-gray-200/50 dark:hover:bg-white/10',
+                        )}
+                      >
                         <MessageSquare className="w-3.5 h-3.5" />
-                      ) : asrEnabled ? (
-                        <Mic className="w-3.5 h-3.5" />
-                      ) : (
-                        <MicOff className="w-3.5 h-3.5" />
-                      )}
-                    </button>
+                      </button>
+                    </>
                   )}
 
                   <button
@@ -1100,7 +1112,7 @@ export function Roundtable({
           : 'border-t border-gray-100 dark:border-gray-800 bg-white/60 dark:bg-gray-800/60 backdrop-blur-md',
       )}
     >
-      {/* ── Toolbar strip — merged from CanvasArea ── */}
+      {/* ── Toolbar strip - merged from CanvasArea ── */}
       <div
         className={cn(
           'transition-opacity duration-300',
@@ -1109,7 +1121,7 @@ export function Roundtable({
       >
         {toolbar}
       </div>
-      {/* ── Interaction area — three-column layout ── */}
+      {/* ── Interaction area - three-column layout ── */}
       <div className="flex-1 flex items-stretch min-h-0">
         {/* Left: Teacher identity */}
         <div
@@ -1504,7 +1516,7 @@ export function Roundtable({
                       )}
                     />
 
-                    {/* Action circle — voice (ASR on) or text input (ASR off) */}
+                    {/* Action circle - voice (ASR on) or text input (ASR off) */}
                     <motion.button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -1762,7 +1774,7 @@ export function Roundtable({
                         )}
                       </div>
 
-                      {/* Playback state icon (hidden during loading — dots already indicate activity) */}
+                      {/* Playback state icon (hidden during loading - dots already indicate activity) */}
                       {bubbleRole !== 'user' &&
                         !isBubbleLoading &&
                         (() => {
@@ -1796,7 +1808,7 @@ export function Roundtable({
                                 <Play className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400 group-hover/bubble:text-purple-600 dark:group-hover/bubble:text-purple-400 ml-0.5" />
                               ) : (
                                 <>
-                                  {/* Breathing bars — visible by default, hidden on hover */}
+                                  {/* Breathing bars - visible by default, hidden on hover */}
                                   <div className="flex gap-0.5 items-end justify-center h-3.5 w-3.5 group-hover/bubble:hidden">
                                     <motion.div
                                       animate={{ height: ['20%', '100%', '20%'] }}
@@ -1845,7 +1857,7 @@ export function Roundtable({
             isPresenting && !controlsVisible && 'opacity-0 pointer-events-none',
           )}
         >
-          {/* Companion agent avatars — horizontal row, scrollable on overflow, arrows on hover */}
+          {/* Companion agent avatars - horizontal row, scrollable on overflow, arrows on hover */}
           <div className="flex-none relative group/scroll">
             {/* Left arrow */}
             <button
@@ -2009,7 +2021,7 @@ export function Roundtable({
               <ChevronRight className="w-3.5 h-3.5 text-gray-400" />
             </button>
 
-            {/* ProactiveCard for student/non-teacher agents — rendered via portal */}
+            {/* ProactiveCard for student/non-teacher agents - rendered via portal */}
             <AnimatePresence>
               {discussionRequest &&
                 discussionRequest.agentId !== teacherParticipant?.id &&
@@ -2043,7 +2055,7 @@ export function Roundtable({
           <div className="flex-1 flex items-center justify-center gap-3 px-2 min-h-0">
             <div className="flex flex-col gap-1 shrink-0 sm:flex-col flex-row">
               {isSendCooldown ? (
-                /* Unified cooldown indicator — replaces both buttons with a single dot wave */
+                /* Unified cooldown indicator - replaces both buttons with a single dot wave */
                 <div className="flex items-center justify-center w-8 h-8">
                   <div className="flex items-center gap-[3px]">
                     {[0, 1, 2].map((i) => (

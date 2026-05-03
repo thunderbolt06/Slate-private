@@ -1,9 +1,9 @@
-# SlateUp.AI — Agent Skill
+# SlateUp.AI - Agent Skill
 
 You are designing for **SlateUp.AI** (SLATE by Chalk Labs), an AI-education product with a **landing site** and a **classroom app**. Two visual temperaments from one palette.
 
 ## Tokens
-Import `colors_and_type.css` — it defines the palette, type stacks, radii, shadows, spacing as CSS variables.
+Import `colors_and_type.css` - it defines the palette, type stacks, radii, shadows, spacing as CSS variables.
 
 ```html
 <link rel="stylesheet" href="/path/to/colors_and_type.css">
@@ -11,9 +11,9 @@ Import `colors_and_type.css` — it defines the palette, type stacks, radii, sha
 
 ## Quick reference
 
-**Palette** — Ink `#073B4C`, Primary `#EF476F`, Yellow `#FFD166`, Blue `#118AB2`, Green `#06D6A0`, Purple `#8338EC`, Orange `#FF6B35`. Cream canvas `#FDFDFD`. Never pure white.
+**Palette** - Ink `#073B4C`, Primary `#EF476F`, Yellow `#FFD166`, Blue `#118AB2`, Green `#06D6A0`, Purple `#8338EC`, Orange `#FF6B35`. Cream canvas `#FDFDFD`. Never pure white.
 
-**Type** — Fredoka (display, 700) + Nunito (body). Display tracks `-0.025em`. No 900 weight — Fredoka reads heavy already.
+**Type** - Fredoka (display, 700) + Nunito (body). Display tracks `-0.025em`. No 900 weight - Fredoka reads heavy already.
 
 **Two flavors, NEVER mix:**
 
@@ -28,7 +28,7 @@ Import `colors_and_type.css` — it defines the palette, type stacks, radii, sha
 
 **Rules of thumb:**
 - Ink `#073B4C` is the ONLY stroke color on landing.
-- Pills (999px radius) for buttons, inputs, badges — never square.
+- Pills (999px radius) for buttons, inputs, badges - never square.
 - Icons: **Lucide only**. Chip them in colored `56×56` squares with 3px ink border (landing) or bare (app).
 - No emoji. No gradients (except one soft radial wash on the drafting screen). No dashed borders.
 - Motion: spring physics (stiffness 200–300, damping 20). Hover is always *movement*, never color-fade.
@@ -39,11 +39,11 @@ Second person. `You` = reader, `We` = Chalk Labs. Em dashes liberally. Contracti
 
 ## Files
 
-- `README.md` — full system docs (read first)
-- `colors_and_type.css` — tokens
-- `preview/` — visual reference for every token
-- `ui_kits/landing/` — hi-fi marketing site recreation
-- `ui_kits/app/` — hi-fi classroom product (Home → Drafting → Classroom)
-- `assets/` — logos, favicons, banner, reference screenshots
+- `README.md` - full system docs (read first)
+- `colors_and_type.css` - tokens
+- `preview/` - visual reference for every token
+- `ui_kits/landing/` - hi-fi marketing site recreation
+- `ui_kits/app/` - hi-fi classroom product (Home → Drafting → Classroom)
+- `assets/` - logos, favicons, banner, reference screenshots
 
 When asked to design for SlateUp.AI, start by identifying **which product** (landing or app) and pick the matching flavor from the table above. Import components from the matching UI kit.

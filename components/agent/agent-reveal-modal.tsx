@@ -17,7 +17,7 @@ interface AgentRevealModalProps {
   }>;
   open: boolean;
   onClose: () => void;
-  /** Called once after all cards are revealed — signals generation can continue */
+  /** Called once after all cards are revealed - signals generation can continue */
   onAllRevealed?: () => void;
 }
 
@@ -221,7 +221,7 @@ export function AgentRevealModal({ agents, open, onClose, onAllRevealed }: Agent
                             </svg>
                           </div>
 
-                          {/* Avatar — overlapping the band */}
+                          {/* Avatar - overlapping the band */}
                           <div className="relative z-10 -mt-7 flex justify-center">
                             <div
                               className="flex size-[50px] items-center justify-center rounded-full border-[2.5px] shadow-lg shadow-black/40"
@@ -284,7 +284,7 @@ export function AgentRevealModal({ agents, open, onClose, onAllRevealed }: Agent
                             />
                           </div>
 
-                          {/* Persona text — fills remaining space */}
+                          {/* Persona text - fills remaining space */}
                           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3.5 pt-1.5 pb-3">
                             <p className="text-left text-[10.5px] leading-[1.65] text-zinc-600 dark:text-zinc-400">
                               {agent.persona}

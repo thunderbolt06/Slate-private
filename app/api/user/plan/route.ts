@@ -29,7 +29,7 @@ export async function GET(_req: NextRequest) {
       .single();
 
     if (error) {
-      // Row already exists — fetch it
+      // Row already exists - fetch it
       const { data: existing, error: fetchErr } = await admin
         .from('user_plans')
         .select('*')

@@ -534,7 +534,7 @@ export async function generateTTSWithProviderActivity(
   const scenesCopy: Scene[] = JSON.parse(JSON.stringify(scenes));
 
   if (!isSupabaseConfigured()) {
-    log.warn('Supabase not configured — skipping TTS generation');
+    log.warn('Supabase not configured - skipping TTS generation');
     return scenesCopy;
   }
 
@@ -542,7 +542,7 @@ export async function generateTTSWithProviderActivity(
   const apiKey = resolveTTSApiKey(providerId);
 
   if (!apiKey) {
-    log.warn(`No API key for TTS provider "${providerId}" — falling back to default per-scene TTS`);
+    log.warn(`No API key for TTS provider "${providerId}" - falling back to default per-scene TTS`);
     return Promise.all(
       scenesCopy.map((scene) => generateSceneTTSToSupabaseActivity({ scene, stageId })),
     );
@@ -654,7 +654,7 @@ export async function sendCompletionNotificationActivity(
       });
     }
   } catch (err) {
-    // Non-fatal — classroom is still generated even if notification fails
+    // Non-fatal - classroom is still generated even if notification fails
     log.warn('Failed to send completion notification:', err);
   }
 }
@@ -699,7 +699,7 @@ function buildClassroomReadyEmail(params: {
         Enter Classroom
       </a>
       <p style="margin-top:24px;color:#666;font-size:13px;">
-        Powered by <strong>Slate Up</strong> — AI-powered interactive classrooms.
+        Powered by <strong>Slate Up</strong> - AI-powered interactive classrooms.
       </p>
     </div>
   `;

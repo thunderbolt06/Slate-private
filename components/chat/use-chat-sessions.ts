@@ -102,7 +102,7 @@ export function useChatSessions(options: UseChatSessionsOptions = {}) {
     sessionsRef.current = sessions;
   }, [sessions]);
 
-  // Per-loop-iteration state — tracks done event data and cue_user for the agent loop
+  // Per-loop-iteration state - tracks done event data and cue_user for the agent loop
   const loopDoneDataRef = useRef<{
     directorState?: DirectorState;
     totalAgents: number;
@@ -116,7 +116,7 @@ export function useChatSessions(options: UseChatSessionsOptions = {}) {
   useEffect(() => {
     if (stageId === stageIdRef.current) return;
     stageIdRef.current = stageId;
-    // Stage changed — reload sessions from store (already populated by loadFromStorage)
+    // Stage changed - reload sessions from store (already populated by loadFromStorage)
     const stored = useStageStore.getState().chats;
     setSessions(
       stored.map((s) =>
@@ -151,7 +151,7 @@ export function useChatSessions(options: UseChatSessionsOptions = {}) {
     };
   }, []);
 
-  // Session-scoped "paused intent" — survives buffer recreation across turns.
+  // Session-scoped "paused intent" - survives buffer recreation across turns.
   // When true, newly created discussion/QA buffers are immediately paused.
   const livePausedRef = useRef(false);
 
@@ -224,7 +224,7 @@ export function useChatSessions(options: UseChatSessionsOptions = {}) {
   const createBufferForSession = useCallback(
     (sessionId: string, type?: SessionType): StreamBuffer => {
       // Dispose previous buffer if any
-      // Shutdown (not dispose) — avoids stale onLiveSpeech(null,null) callback
+      // Shutdown (not dispose) - avoids stale onLiveSpeech(null,null) callback
       const prev = buffersRef.current.get(sessionId);
       if (prev) prev.shutdown();
 
@@ -305,7 +305,7 @@ export function useChatSessions(options: UseChatSessionsOptions = {}) {
                     }
                     return { ...m, parts };
                   }),
-                  // Don't update updatedAt on every tick — avoids thrashing persistence sync
+                  // Don't update updatedAt on every tick - avoids thrashing persistence sync
                 };
               }),
             );
@@ -488,7 +488,7 @@ export function useChatSessions(options: UseChatSessionsOptions = {}) {
         // Reset loop state for this iteration
         loopDoneDataRef.current = null;
 
-        // Refresh store state each iteration — agent actions may have changed
+        // Refresh store state each iteration - agent actions may have changed
         // whiteboard, scene, or mode between turns
         const freshState = useStageStore.getState();
         const freshStoreState = {
@@ -523,7 +523,7 @@ export function useChatSessions(options: UseChatSessionsOptions = {}) {
         try {
           await buffer.waitUntilDrained();
         } catch {
-          // Buffer was disposed/shutdown (abort or session end) — exit loop
+          // Buffer was disposed/shutdown (abort or session end) - exit loop
           break;
         }
 
@@ -538,7 +538,7 @@ export function useChatSessions(options: UseChatSessionsOptions = {}) {
           agentHadContent?: boolean;
           cueUserReceived: boolean;
         } | null;
-        if (!doneData) break; // No done event — something went wrong
+        if (!doneData) break; // No done event - something went wrong
 
         // Update accumulated director state
         directorState = doneData.directorState;
@@ -546,11 +546,11 @@ export function useChatSessions(options: UseChatSessionsOptions = {}) {
 
         // Check outcome
         if (doneData.cueUserReceived) {
-          // Director said USER — stop loop, wait for user input
+          // Director said USER - stop loop, wait for user input
           break;
         }
         if (doneData.totalAgents === 0) {
-          // Director said END — no agent spoke, conversation complete
+          // Director said END - no agent spoke, conversation complete
           break;
         }
 
@@ -567,7 +567,7 @@ export function useChatSessions(options: UseChatSessionsOptions = {}) {
           consecutiveEmptyTurns = 0;
         }
 
-        // Agent spoke — continue loop if under maxTurns
+        // Agent spoke - continue loop if under maxTurns
         // Refresh messages from latest session state for next iteration
         const currentSession = sessionsRef.current.find((s) => s.id === sessionId);
         if (currentSession) {
@@ -618,7 +618,7 @@ export function useChatSessions(options: UseChatSessionsOptions = {}) {
       messages: [],
       config: {
         agentIds: ['default-1'],
-        maxTurns: 0, // Not used for runtime — frontend loop manages maxTurns
+        maxTurns: 0, // Not used for runtime - frontend loop manages maxTurns
         currentTurn: 0,
         defaultAgentId: 'default-1',
       },
@@ -659,7 +659,7 @@ export function useChatSessions(options: UseChatSessionsOptions = {}) {
         setIsStreaming(false);
       }
 
-      // Destroy buffer — shutdown avoids firing stale onLiveSpeech(null,null)
+      // Destroy buffer - shutdown avoids firing stale onLiveSpeech(null,null)
       const buf = buffersRef.current.get(sessionId);
       if (buf) {
         buf.shutdown();
@@ -752,7 +752,7 @@ export function useChatSessions(options: UseChatSessionsOptions = {}) {
       abortControllerRef.current && streamingSessionIdRef.current === sessionId
     );
 
-    // Destroy buffer — no more ticks, no stale onDone/onLiveSpeech callbacks.
+    // Destroy buffer - no more ticks, no stale onDone/onLiveSpeech callbacks.
     // Resume will create a fresh buffer.
     const buf = buffersRef.current.get(sessionId);
     if (buf) {
@@ -803,7 +803,7 @@ export function useChatSessions(options: UseChatSessionsOptions = {}) {
               break;
             }
           }
-          // Keep status 'active' — session continues when user speaks
+          // Keep status 'active' - session continues when user speaks
           return { ...s, messages, updatedAt: Date.now() };
         }),
       );
@@ -971,7 +971,7 @@ export function useChatSessions(options: UseChatSessionsOptions = {}) {
       }
 
       // Create a new session when there's no active QA session to append to.
-      // A completed session should NOT be reused — start a fresh one instead.
+      // A completed session should NOT be reused - start a fresh one instead.
       const activeSession = sessionsRef.current.find((s) => s.id === sessionId);
       const needNewSession =
         !sessionId || activeSession?.type === 'lecture' || activeSession?.status === 'completed';
@@ -1019,7 +1019,7 @@ export function useChatSessions(options: UseChatSessionsOptions = {}) {
         : [userMessage];
       const sessionType: SessionType = existingSession?.type || 'qa';
 
-      // Pure updater — no side effects
+      // Pure updater - no side effects
       setSessions((prev) => {
         const exists = prev.some((s) => s.id === sessionId);
         if (exists) {
@@ -1042,7 +1042,7 @@ export function useChatSessions(options: UseChatSessionsOptions = {}) {
             messages: [userMessage],
             config: {
               agentIds,
-              maxTurns: 0, // Not used for runtime — frontend loop manages maxTurns
+              maxTurns: 0, // Not used for runtime - frontend loop manages maxTurns
               currentTurn: 0,
               defaultAgentId: agentIds[0],
             },
@@ -1099,7 +1099,7 @@ export function useChatSessions(options: UseChatSessionsOptions = {}) {
           sessionType,
         );
       } catch (error) {
-        // Ignore AbortError — it's intentional (user interrupted)
+        // Ignore AbortError - it's intentional (user interrupted)
         if (error instanceof DOMException && error.name === 'AbortError') {
           log.info('[ChatArea] Request aborted by user');
           return;
@@ -1176,7 +1176,7 @@ export function useChatSessions(options: UseChatSessionsOptions = {}) {
         agentIds.unshift(agentId);
       }
 
-      // No pre-created assistant message — agent_start events create them dynamically
+      // No pre-created assistant message - agent_start events create them dynamically
       const newSession: ChatSession = {
         id: sessionId,
         type: 'discussion',
@@ -1185,7 +1185,7 @@ export function useChatSessions(options: UseChatSessionsOptions = {}) {
         messages: [],
         config: {
           agentIds,
-          maxTurns: 0, // Not used for runtime — frontend loop manages maxTurns
+          maxTurns: 0, // Not used for runtime - frontend loop manages maxTurns
           currentTurn: 0,
           triggerAgentId: agentId,
         },
@@ -1242,7 +1242,7 @@ export function useChatSessions(options: UseChatSessionsOptions = {}) {
           'discussion',
         );
       } catch (error) {
-        // Ignore AbortError — it's intentional (user interrupted)
+        // Ignore AbortError - it's intentional (user interrupted)
         if (error instanceof DOMException && error.name === 'AbortError') {
           log.info('[ChatArea] Discussion aborted by user');
           return;

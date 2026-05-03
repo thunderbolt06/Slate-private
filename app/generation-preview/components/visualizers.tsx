@@ -18,7 +18,7 @@ import {
 import { cn } from '@/lib/utils';
 import type { SceneOutline } from '@/lib/types/generation';
 
-/** Course welcome intro — script streams from intro-sse while audio plays */
+/** Course welcome intro - script streams from intro-sse while audio plays */
 function CourseIntroVisualizer({ script }: { script: string }) {
   return (
     <div className="size-56 relative flex flex-col items-center justify-center gap-3 px-2">
@@ -299,7 +299,7 @@ function StreamingOutlineVisualizer({ outlines }: { outlines: SceneOutline[] }) 
       <div className="w-1/3 h-2 bg-slate-100 dark:bg-slate-700 rounded mb-3" />
       <div className="space-y-1.5 font-mono text-[8px] text-muted-foreground leading-tight">
         {allLines.length === 0 ? (
-          // Waiting for first outline — show placeholder skeleton
+          // Waiting for first outline - show placeholder skeleton
           <div className="space-y-2">
             {[60, 80, 50, 70].map((w, i) => (
               <motion.div
@@ -744,7 +744,7 @@ function ActionsVisualizer() {
 
         {/* Action items */}
         <div className="p-2 space-y-1.5 relative">
-          {/* Sliding highlight — absolute, animates via y transform, no layout impact */}
+          {/* Sliding highlight - absolute, animates via y transform, no layout impact */}
           <motion.div
             className="absolute left-2 right-2 rounded-lg bg-violet-500/[0.06] dark:bg-violet-400/[0.08]"
             style={{ height: ROW_H - 6 }}
@@ -788,7 +788,7 @@ function ActionsVisualizer() {
                     )}
                   />
                 </div>
-                {/* Pulsing dot — always rendered, opacity-controlled, no layout shift */}
+                {/* Pulsing dot - always rendered, opacity-controlled, no layout shift */}
                 <motion.div
                   className="size-1.5 rounded-full bg-violet-500"
                   animate={{ opacity: isActive ? [1, 0.3, 1] : 0 }}

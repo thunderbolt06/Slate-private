@@ -66,7 +66,7 @@ export async function pushLatestGeneratedSceneToSupabase(params: {
       }
     }
 
-    // Always attempt storage upload — content.json is the browser's primary data source
+    // Always attempt storage upload - content.json is the browser's primary data source
     const storageContent = JSON.stringify({ stage, scenes });
     const { error: storageError } = await supabase.storage
       .from('courses')
@@ -128,7 +128,7 @@ export async function replaceAllCourseScenesInSupabase(params: {
       }
     }
 
-    // Always attempt storage upload — this is the canonical data source for cross-device sync
+    // Always attempt storage upload - this is the canonical data source for cross-device sync
     const storageContent = JSON.stringify({ stage, scenes });
     const { error: storageError } = await supabase.storage
       .from('courses')

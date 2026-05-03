@@ -77,7 +77,7 @@ export function splitLongSpeechText(text: string, maxLength: number): string[] {
 /**
  * Like splitLongSpeechText but compares UTF-8 byte lengths instead of
  * character lengths. Required for providers (e.g. Gemini TTS) whose API
- * enforces a byte limit — important for CJK text where one char = 3 bytes.
+ * enforces a byte limit - important for CJK text where one char = 3 bytes.
  */
 export function splitLongSpeechTextByBytes(text: string, maxBytes: number): string[] {
   const byteLen = (s: string) => Buffer.byteLength(s, 'utf8');
@@ -158,7 +158,7 @@ export function concatWavBuffers(wavBuffers: Uint8Array[]): Uint8Array {
 /**
  * Split long speech actions into multiple shorter actions so each stays
  * within the TTS provider's text length limit. Each sub-action gets its
- * own independent audio file — no byte concatenation needed.
+ * own independent audio file - no byte concatenation needed.
  */
 export function splitLongSpeechActions(actions: Action[], providerId: TTSProviderId): Action[] {
   const maxLength = TTS_MAX_TEXT_LENGTH[providerId];

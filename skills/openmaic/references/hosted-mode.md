@@ -26,7 +26,7 @@ Follow the same generation flow as [generate-flow.md](generate-flow.md) with the
 
 ### Feature Detection in Hosted Mode
 
-Before generating, query `GET https://open.maic.chat/api/health` (with auth header) to check `capabilities`. Automatically include optional feature flags (`enableWebSearch`, `enableImageGeneration`, etc.) based on what the server supports. Do not send new fields if the server does not return `capabilities` (older version). This ensures forward compatibility — the hosted instance may update on a different schedule than the local codebase.
+Before generating, query `GET https://open.maic.chat/api/health` (with auth header) to check `capabilities`. Automatically include optional feature flags (`enableWebSearch`, `enableImageGeneration`, etc.) based on what the server supports. Do not send new fields if the server does not return `capabilities` (older version). This ensures forward compatibility - the hosted instance may update on a different schedule than the local codebase.
 
 ## Quota
 

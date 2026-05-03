@@ -329,13 +329,13 @@ function resolveImageIds(
           return { ...el, src: imageMapping[src] };
         }
 
-        // Generated image reference — keep as placeholder for async backfill
+        // Generated image reference - keep as placeholder for async backfill
         if (isGeneratedImageId(src)) {
           if (generatedMediaMapping && generatedMediaMapping[src]) {
             log.debug(`Resolved generated image ID "${src}" to URL`);
             return { ...el, src: generatedMediaMapping[src] };
           }
-          // Keep element with placeholder ID — frontend renders skeleton
+          // Keep element with placeholder ID - frontend renders skeleton
           log.debug(`Keeping generated image placeholder: ${src}`);
           return el;
         }
@@ -352,7 +352,7 @@ function resolveImageIds(
             log.debug(`Resolved generated video ID "${src}" to URL`);
             return { ...el, src: generatedMediaMapping[src] };
           }
-          // Keep element with placeholder ID — frontend renders skeleton
+          // Keep element with placeholder ID - frontend renders skeleton
           log.debug(`Keeping generated video placeholder: ${src}`);
           return el;
         }
@@ -1187,9 +1187,9 @@ function processActions(actions: Action[], elements: PPTElement[], agents?: Agen
     // Validate/fill discussion agentId
     if (processedAction.type === 'discussion' && agents && agents.length > 0) {
       if (processedAction.agentId && agentIds.has(processedAction.agentId)) {
-        // agentId valid — keep it
+        // agentId valid - keep it
       } else {
-        // agentId missing or invalid — pick a random student, or non-teacher, or skip
+        // agentId missing or invalid - pick a random student, or non-teacher, or skip
         const pool = studentAgents.length > 0 ? studentAgents : nonTeacherAgents;
         if (pool.length > 0) {
           const picked = pool[Math.floor(Math.random() * pool.length)];

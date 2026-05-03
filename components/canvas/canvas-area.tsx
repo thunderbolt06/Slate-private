@@ -21,7 +21,7 @@ interface CanvasAreaProps extends CanvasToolbarProps {
   readonly isPendingScene?: boolean;
   readonly isGenerationFailed?: boolean;
   readonly onRetryGeneration?: () => void;
-  /** Ref attached to the slide container div — used by the video export hook */
+  /** Ref attached to the slide container div - used by the video export hook */
   readonly slideRef?: RefObject<HTMLDivElement | null>;
   /** Export props forwarded to toolbar */
   readonly isAdmin?: boolean;
@@ -104,7 +104,7 @@ export function CanvasArea({
 
   return (
     <div className="w-full h-full flex flex-col bg-gray-50 dark:bg-gray-900 group/canvas">
-      {/* Slide area — takes remaining space */}
+      {/* Slide area - takes remaining space */}
       <div
         className={cn(
           'flex-1 min-h-0 relative overflow-hidden flex items-center justify-center p-2 transition-colors duration-500',
@@ -209,7 +209,7 @@ export function CanvasArea({
             </div>
           )}
 
-          {/* Play hint — breathing button when idle or paused (slides only) */}
+          {/* Play hint - breathing button when idle or paused (slides only) */}
           <AnimatePresence>
             {showPlayHint && (
                 <motion.div
@@ -255,7 +255,7 @@ export function CanvasArea({
         </div>
       </div>
 
-      {/* ── Canvas Toolbar — in document flow, only when not merged into roundtable ── */}
+      {/* ── Canvas Toolbar - in document flow, only when not merged into roundtable ── */}
       {!hideToolbar && (
         <CanvasToolbar
           className={cn(

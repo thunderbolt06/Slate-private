@@ -18,12 +18,12 @@ export function getRazorpayClient() {
  * INR pricing in paise (1 INR = 100 paise). Approximate rate: $1 ≈ ₹85.
  *
  * monthly  $20  → ₹1,699  (169900 paise)
- * yearly   $192 → ₹16,299 (1629900 paise) — billed annually
+ * yearly   $192 → ₹16,299 (1629900 paise) - billed annually
  * topup    $5   → ₹499    (49900 paise)
  */
 export const RAZORPAY_PLANS = {
-  monthly: { amount: 169900,  currency: 'INR', description: 'Slate Plus — Monthly' },
-  yearly:  { amount: 1629900, currency: 'INR', description: 'Slate Plus — Yearly' },
+  monthly: { amount: 169900,  currency: 'INR', description: 'Slate Plus - Monthly' },
+  yearly:  { amount: 1629900, currency: 'INR', description: 'Slate Plus - Yearly' },
   topup:   { amount: 49900,   currency: 'INR', description: 'Slate Course Top-Up (+10)' },
 } as const;
 

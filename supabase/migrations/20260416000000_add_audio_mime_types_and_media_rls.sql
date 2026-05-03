@@ -39,7 +39,7 @@ ON CONFLICT (id) DO UPDATE
     file_size_limit     = EXCLUDED.file_size_limit,
     allowed_mime_types  = EXCLUDED.allowed_mime_types;
 
--- ─── 3. Media bucket — public read ───────────────────────────────────────────
+-- ─── 3. Media bucket - public read ───────────────────────────────────────────
 
 DO $$
 BEGIN
@@ -55,7 +55,7 @@ BEGIN
   END IF;
 END $$;
 
--- ─── 4. Media bucket — authenticated upload ───────────────────────────────────
+-- ─── 4. Media bucket - authenticated upload ───────────────────────────────────
 
 DO $$
 BEGIN

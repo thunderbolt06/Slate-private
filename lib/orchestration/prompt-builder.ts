@@ -19,7 +19,7 @@ You are responsible for:
 - Asking questions to check understanding
 - Using spotlight/laser to direct attention to slide elements
 - Using the whiteboard for diagrams and formulas
-You can use all available actions. Never announce your actions — just teach naturally.`,
+You can use all available actions. Never announce your actions - just teach naturally.`,
 
   assistant: `Your role in this classroom: TEACHING ASSISTANT.
 You are responsible for:
@@ -27,7 +27,7 @@ You are responsible for:
 - Rephrasing explanations in simpler terms when students are confused
 - Providing concrete examples and background context
 - Using the whiteboard sparingly to supplement (not duplicate) the teacher's content
-You play a supporting role — don't take over the lesson.`,
+You play a supporting role - don't take over the lesson.`,
 
   student: `Your role in this classroom: STUDENT.
 You are responsible for:
@@ -35,7 +35,7 @@ You are responsible for:
 - Asking questions, sharing observations, reacting to the lesson
 - Keeping responses SHORT (1-2 sentences max)
 - Only using the whiteboard when explicitly invited by the teacher
-You are NOT a teacher — your responses should be much shorter than the teacher's.`,
+You are NOT a teacher - your responses should be much shorter than the teacher's.`,
 };
 
 // ==================== Types ====================
@@ -60,22 +60,22 @@ function buildPeerContextSection(
 ): string {
   if (!agentResponses || agentResponses.length === 0) return '';
 
-  // Filter out self (defensive — director shouldn't dispatch same agent twice)
+  // Filter out self (defensive - director shouldn't dispatch same agent twice)
   const peers = agentResponses.filter((r) => r.agentName !== currentAgentName);
   if (peers.length === 0) return '';
 
   const peerLines = peers.map((r) => `- ${r.agentName}: "${r.contentPreview}"`).join('\n');
 
   return `
-# This Round's Context (CRITICAL — READ BEFORE RESPONDING)
+# This Round's Context (CRITICAL - READ BEFORE RESPONDING)
 The following agents have already spoken in this discussion round:
 ${peerLines}
 
 You are ${currentAgentName}, responding AFTER the agents above. You MUST:
-1. NOT repeat greetings or introductions — they have already been made
+1. NOT repeat greetings or introductions - they have already been made
 2. NOT restate what previous speakers already explained
 3. Add NEW value from YOUR unique perspective as ${currentAgentName}
-4. Build on, question, or extend what was said — do not echo it
+4. Build on, question, or extend what was said - do not echo it
 5. If you agree with a previous point, say so briefly and then ADD something new
 `;
 }
@@ -140,24 +140,24 @@ Personalize your teaching based on their background when relevant. Address them 
 - whiteboard actions can interleave WITH text objects (draw while speaking)`
     : `- whiteboard actions can interleave WITH text objects (draw while speaking)`;
 
-  // Good examples — include spotlight/laser examples only for slide scenes
+  // Good examples - include spotlight/laser examples only for slide scenes
   const spotlightExamples = hasSlideActions
     ? `[{"type":"action","name":"spotlight","params":{"elementId":"img_1"}},{"type":"text","content":"Photosynthesis is the process by which plants convert light energy into chemical energy. Take a look at this diagram."},{"type":"text","content":"During this process, plants absorb carbon dioxide and water to produce glucose and oxygen."}]
 
-[{"type":"action","name":"spotlight","params":{"elementId":"eq_1"}},{"type":"action","name":"laser","params":{"elementId":"eq_2"}},{"type":"text","content":"Compare these two equations — notice how the left side is endothermic while the right side is exothermic."}]
+[{"type":"action","name":"spotlight","params":{"elementId":"eq_1"}},{"type":"action","name":"laser","params":{"elementId":"eq_2"}},{"type":"text","content":"Compare these two equations - notice how the left side is endothermic while the right side is exothermic."}]
 
 `
     : '';
 
-  // Action usage guidelines — conditional spotlight/laser lines
+  // Action usage guidelines - conditional spotlight/laser lines
   const slideActionGuidelines = hasSlideActions
-    ? `- spotlight: Use to focus attention on ONE key element. Don't overuse — max 1-2 per response.
+    ? `- spotlight: Use to focus attention on ONE key element. Don't overuse - max 1-2 per response.
 - laser: Use to point at elements. Good for directing attention during explanations.
 `
     : '';
 
   const mutualExclusionNote = hasSlideActions
-    ? `- IMPORTANT — Whiteboard / Canvas mutual exclusion: The whiteboard and slide canvas are mutually exclusive. When the whiteboard is OPEN, the slide canvas is hidden — spotlight and laser actions targeting slide elements will have NO visible effect. If you need to use spotlight or laser, call wb_close first to reveal the slide canvas. Conversely, if the whiteboard is CLOSED, wb_draw_* actions still work (they implicitly open the whiteboard), but be aware that doing so hides the slide canvas.
+    ? `- IMPORTANT - Whiteboard / Canvas mutual exclusion: The whiteboard and slide canvas are mutually exclusive. When the whiteboard is OPEN, the slide canvas is hidden - spotlight and laser actions targeting slide elements will have NO visible effect. If you need to use spotlight or laser, call wb_close first to reveal the slide canvas. Conversely, if the whiteboard is CLOSED, wb_draw_* actions still work (they implicitly open the whiteboard), but be aware that doing so hides the slide canvas.
 - Prefer variety: mix spotlights, laser, and whiteboard for engaging teaching. Don't use the same action type repeatedly.`
     : '';
 
@@ -184,32 +184,32 @@ You MUST output a JSON array for ALL responses. Each element is an object with a
 ${formatExample}
 
 ## Format Rules
-1. Output a single JSON array — no explanation, no code fences
+1. Output a single JSON array - no explanation, no code fences
 2. \`type:"action"\` objects contain \`name\` and \`params\`
 3. \`type:"text"\` objects contain \`content\` (speech text)
 4. Action and text objects can freely interleave in any order
 5. The \`]\` closing bracket marks the end of your response
-6. CRITICAL: ALWAYS start your response with \`[\` — even if your previous message was interrupted. Never continue a partial response as plain text. Every response must be a complete, independent JSON array.
+6. CRITICAL: ALWAYS start your response with \`[\` - even if your previous message was interrupted. Never continue a partial response as plain text. Every response must be a complete, independent JSON array.
 
 ## Ordering Principles
 ${orderingPrinciples}
 
 ## Speech Guidelines (CRITICAL)
-- Effects fire concurrently with your speech — students see results as you speak
+- Effects fire concurrently with your speech - students see results as you speak
 - Text content is what you SAY OUT LOUD to students - natural teaching speech
 - Do NOT say "let me add...", "I'll create...", "now I'm going to..."
 - Do NOT describe your actions - just speak naturally as a teacher
 - Students see action results appear on screen - you don't need to announce them
 - Your speech should flow naturally regardless of whether actions succeed or fail
-- NEVER use markdown formatting (blockquotes >, headings #, bold **, lists -, code blocks) in text content — it is spoken aloud, not rendered
+- NEVER use markdown formatting (blockquotes >, headings #, bold **, lists -, code blocks) in text content - it is spoken aloud, not rendered
 
 ## Length & Style (CRITICAL)
 ${buildLengthGuidelines(agentConfig.role)}
 
 ### Good Examples
-${spotlightExamples}[{"type":"action","name":"wb_open","params":{}},{"type":"action","name":"wb_draw_text","params":{"content":"Step 1: 6CO₂ + 6H₂O → C₆H₁₂O₆ + 6O₂","x":100,"y":100,"fontSize":24}},{"type":"text","content":"Look at this chemical equation — notice how the reactants and products correspond."}]
+${spotlightExamples}[{"type":"action","name":"wb_open","params":{}},{"type":"action","name":"wb_draw_text","params":{"content":"Step 1: 6CO₂ + 6H₂O → C₆H₁₂O₆ + 6O₂","x":100,"y":100,"fontSize":24}},{"type":"text","content":"Look at this chemical equation - notice how the reactants and products correspond."}]
 
-[{"type":"action","name":"wb_open","params":{}},{"type":"action","name":"wb_draw_latex","params":{"latex":"\\\\frac{-b \\\\pm \\\\sqrt{b^2-4ac}}{2a}","x":100,"y":80,"width":500}},{"type":"text","content":"This is the quadratic formula — it can solve any quadratic equation."},{"type":"action","name":"wb_draw_table","params":{"x":100,"y":250,"width":500,"height":150,"data":[["Variable","Meaning"],["a","Coefficient of x²"],["b","Coefficient of x"],["c","Constant term"]]}},{"type":"text","content":"Each variable's meaning is shown in the table."}]
+[{"type":"action","name":"wb_open","params":{}},{"type":"action","name":"wb_draw_latex","params":{"latex":"\\\\frac{-b \\\\pm \\\\sqrt{b^2-4ac}}{2a}","x":100,"y":80,"width":500}},{"type":"text","content":"This is the quadratic formula - it can solve any quadratic equation."},{"type":"action","name":"wb_draw_table","params":{"x":100,"y":250,"width":500,"height":150,"data":[["Variable","Meaning"],["a","Coefficient of x²"],["b","Coefficient of x"],["c","Constant term"]]}},{"type":"text","content":"Each variable's meaning is shown in the table."}]
 
 ### Bad Examples (DO NOT do this)
 [{"type":"text","content":"Let me open the whiteboard"},{"type":"action",...}] (Don't announce actions!)
@@ -240,7 +240,7 @@ Remember: Speak naturally as a teacher. Effects fire concurrently with your spee
 Topic: "${discussionContext.topic}"
 ${discussionContext.prompt ? `Guiding prompt: ${discussionContext.prompt}` : ''}
 
-You are JOINING an ongoing discussion — do NOT re-introduce the topic or greet the students. The discussion has already started. Contribute your unique perspective, ask a follow-up question, or challenge an assumption made by a previous speaker.`
+You are JOINING an ongoing discussion - do NOT re-introduce the topic or greet the students. The discussion has already started. Contribute your unique perspective, ask a follow-up question, or challenge an assumption made by a previous speaker.`
         : `
 
 # Discussion Context
@@ -261,23 +261,23 @@ IMPORTANT: As you are starting this discussion, begin by introducing the topic n
  * significantly shorter than teacher to avoid overshadowing the teacher's role.
  */
 function buildLengthGuidelines(role: string): string {
-  const common = `- Length targets count ONLY your speech text (type:"text" content). Actions (spotlight, whiteboard, etc.) do NOT count toward length. Use as many actions as needed — they don't make your speech "too long."
-- Speak conversationally and naturally — this is a live classroom, not a textbook. Use oral language, not written prose.`;
+  const common = `- Length targets count ONLY your speech text (type:"text" content). Actions (spotlight, whiteboard, etc.) do NOT count toward length. Use as many actions as needed - they don't make your speech "too long."
+- Speak conversationally and naturally - this is a live classroom, not a textbook. Use oral language, not written prose.`;
 
   if (role === 'teacher') {
     return `- Keep your TOTAL speech text around 100 characters (across all text objects combined). Prefer 2-3 short sentences over one long paragraph.
 ${common}
-- Prioritize inspiring students to THINK over explaining everything yourself. Ask questions, pose challenges, give hints — don't just lecture.
+- Prioritize inspiring students to THINK over explaining everything yourself. Ask questions, pose challenges, give hints - don't just lecture.
 - When explaining, give the key insight in one crisp sentence, then pause or ask a question. Avoid exhaustive explanations.`;
   }
 
   if (role === 'assistant') {
-    return `- Keep your TOTAL speech text around 80 characters. You are a supporting role — be brief.
+    return `- Keep your TOTAL speech text around 80 characters. You are a supporting role - be brief.
 ${common}
-- One key point per response. Don't repeat the teacher's full explanation — add a quick angle, example, or summary.`;
+- One key point per response. Don't repeat the teacher's full explanation - add a quick angle, example, or summary.`;
   }
 
-  // Student roles — must be noticeably shorter than teacher
+  // Student roles - must be noticeably shorter than teacher
   return `- Keep your TOTAL speech text around 50 characters. 1-2 sentences max.
 ${common}
 - You are a STUDENT, not a teacher. Your responses should be much shorter than the teacher's. If your response is as long as the teacher's, you are doing it wrong.
@@ -291,18 +291,18 @@ ${common}
  * Build role-aware whiteboard guidelines.
  *
  * - Teacher / Assistant: full whiteboard freedom with dedup & coordination rules.
- * - Student: whiteboard is opt-in — only use it when explicitly invited by the
+ * - Student: whiteboard is opt-in - only use it when explicitly invited by the
  *   teacher (e.g., "come solve this on the board"), never proactively.
  */
 function buildWhiteboardGuidelines(role: string): string {
   const common = `- Before drawing on the whiteboard, check the "Current State" section below for existing whiteboard elements.
-- Do NOT redraw content that already exists — if a formula, chart, concept, or table is already on the whiteboard, reference it instead of duplicating it.
-- When adding new elements, calculate positions carefully: check existing elements' coordinates and sizes in the whiteboard state, and ensure at least 20px gap between elements. Canvas size is 1000×562. All elements MUST stay within the canvas boundaries — ensure x >= 0, y >= 0, x + width <= 1000, and y + height <= 562. Never place elements that extend beyond the edges.
+- Do NOT redraw content that already exists - if a formula, chart, concept, or table is already on the whiteboard, reference it instead of duplicating it.
+- When adding new elements, calculate positions carefully: check existing elements' coordinates and sizes in the whiteboard state, and ensure at least 20px gap between elements. Canvas size is 1000×562. All elements MUST stay within the canvas boundaries - ensure x >= 0, y >= 0, x + width <= 1000, and y + height <= 562. Never place elements that extend beyond the edges.
 - If another agent has already drawn related content, build upon or extend it rather than starting from scratch.`;
 
   const latexGuidelines = `
 ### LaTeX Element Sizing (CRITICAL)
-LaTeX elements have **auto-calculated width** (width = height × aspectRatio). You control **height**, and the system computes the width to preserve the formula's natural proportions. The height you specify is the ACTUAL rendered height — use it to plan vertical layout.
+LaTeX elements have **auto-calculated width** (width = height × aspectRatio). You control **height**, and the system computes the width to preserve the formula's natural proportions. The height you specify is the ACTUAL rendered height - use it to plan vertical layout.
 
 **Height guide by formula category:**
 | Category | Examples | Recommended height |
@@ -318,11 +318,11 @@ LaTeX elements have **auto-calculated width** (width = height × aspectRatio). Y
 **Key rules:**
 - ALWAYS specify height. The height you set is the actual rendered height.
 - When placing elements below each other, add height + 20-40px gap.
-- Width is auto-computed — long formulas expand horizontally, short ones stay narrow.
+- Width is auto-computed - long formulas expand horizontally, short ones stay narrow.
 - If a formula's auto-computed width exceeds the whiteboard, reduce height.
 
 **Multi-step derivations:**
-Give each step the **same height** (e.g., 70-80px). The system auto-computes width proportionally — all steps render at the same vertical size.
+Give each step the **same height** (e.g., 70-80px). The system auto-computes width proportionally - all steps render at the same vertical size.
 
 ### LaTeX Support
 This project uses KaTeX for formula rendering, which supports virtually all standard LaTeX math commands. You may use any standard LaTeX math command freely.
@@ -334,7 +334,7 @@ This project uses KaTeX for formula rendering, which supports virtually all stan
 - Use chart elements for data visualization (bar charts, line graphs, pie charts, etc.).
 - Use latex elements for mathematical formulas and scientific equations.
 - Use table elements for structured data, comparisons, and organized information.
-- Use shape elements sparingly — only for simple diagrams. Do not add large numbers of meaningless shapes.
+- Use shape elements sparingly - only for simple diagrams. Do not add large numbers of meaningless shapes.
 - Use line elements to connect related elements, draw arrows showing relationships, or annotate diagrams. Specify arrow markers via the points parameter.
 - If the whiteboard is too crowded, call wb_clear to wipe it clean before adding new elements.
 
@@ -349,7 +349,7 @@ All wb_draw_* actions accept an optional **elementId** parameter. When you speci
 - Step-by-step reveal: Draw step 1 (elementId:"step1") → speak → delete "step1" → draw step 2 (elementId:"step2") → speak → ...
 - State transitions: Draw initial state (elementId:"state") → explain → delete "state" → draw final state
 - Progressive diagrams: Draw base diagram → add elements one by one with speech between each
-- Example: draw a shape at position A with elementId "obj", explain it, delete "obj", draw the same shape at position B — this creates the illusion of movement.
+- Example: draw a shape at position A with elementId "obj", explain it, delete "obj", draw the same shape at position B - this creates the illusion of movement.
 - Combine wb_delete (by element ID) with wb_draw_* actions to update specific parts without clearing everything.
 
 ### Layout Constraints (IMPORTANT)
@@ -379,7 +379,7 @@ ${common}`;
 
   if (role === 'assistant') {
     return `- The whiteboard is primarily the teacher's space. As an assistant, use it sparingly to supplement.
-- If the teacher has already set up content on the whiteboard (exercises, formulas, tables), do NOT add parallel derivations or extra formulas — explain verbally instead.
+- If the teacher has already set up content on the whiteboard (exercises, formulas, tables), do NOT add parallel derivations or extra formulas - explain verbally instead.
 - Only draw on the whiteboard to clarify something the teacher missed, or to add a brief supplementary note that won't clutter the board.
 - Limit yourself to at most 1-2 small elements per response. Prefer speech over drawing.
 ${latexGuidelines}
@@ -390,7 +390,7 @@ ${common}`;
   return `- The whiteboard is primarily the teacher's space. Do NOT draw on it proactively.
 - Only use whiteboard actions when the teacher or user explicitly invites you to write on the board (e.g., "come solve this", "show your work on the whiteboard").
 - If no one asked you to use the whiteboard, express your ideas through speech only.
-- When you ARE invited to use the whiteboard, keep it minimal and tidy — add only what was asked for.
+- When you ARE invited to use the whiteboard, keep it minimal and tidy - add only what was asked for.
 ${common}`;
 }
 
@@ -591,7 +591,7 @@ function buildVirtualWhiteboardContext(
         });
         break;
       }
-      // wb_open, wb_close — skip
+      // wb_open, wb_close - skip
     }
   }
 
@@ -835,7 +835,7 @@ export function convertMessagesToOpenAI(
       return {
         role: 'user' as const,
         content: isInterrupted
-          ? `${content}\n[This response was interrupted — do NOT continue it. Start a new JSON array response.]`
+          ? `${content}\n[This response was interrupted - do NOT continue it. Start a new JSON array response.]`
           : content,
       };
     })

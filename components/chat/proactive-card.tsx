@@ -14,7 +14,7 @@ interface ProactiveCardProps {
   anchorRef: React.RefObject<HTMLElement | null>;
   /** Where the card prefers to align relative to the anchor */
   align?: 'left' | 'right';
-  /** Portal target — defaults to document.body. Pass the fullscreen container
+  /** Portal target - defaults to document.body. Pass the fullscreen container
    *  when in presentation mode so the card stays visible inside the top-layer. */
   portalContainer?: HTMLElement | null;
   agentName?: string;

@@ -94,19 +94,19 @@ When a slide scene needs an image or video but no suitable PDF image exists, mar
 
 - Add a `mediaGenerations` array to the scene outline
 - Each entry specifies: `type` ("image" or "video"), `prompt` (description for the generation model), `elementId` (unique placeholder), and optionally `aspectRatio` (default "16:9") and `style`
-- **Image IDs**: use `"gen_img_1"`, `"gen_img_2"`, etc. — IDs are **globally unique across the entire course**, NOT reset per scene
-- **Video IDs**: use `"gen_vid_1"`, `"gen_vid_2"`, etc. — same global numbering rule
+- **Image IDs**: use `"gen_img_1"`, `"gen_img_2"`, etc. - IDs are **globally unique across the entire course**, NOT reset per scene
+- **Video IDs**: use `"gen_vid_1"`, `"gen_vid_2"`, etc. - same global numbering rule
 - The prompt should describe the desired media clearly and specifically
 - **Language in images**: If the image contains text, labels, or annotations, the prompt MUST explicitly specify that all text in the image should be in the course language (e.g., "all labels in Chinese" for zh-CN courses, "all labels in English" for en-US courses). For purely visual images without text, language does not matter.
-- Only request media generation when it genuinely enhances the content — not every slide needs an image or video
+- Only request media generation when it genuinely enhances the content - not every slide needs an image or video
 - Video generation is slow (1-2 minutes each), so only request videos when motion genuinely enhances understanding
 - If a suitable PDF image exists, prefer using `suggestedImageIds` instead
 - **Avoid duplicate media across slides**: Each generated image/video must be visually distinct. Do NOT request near-identical media for different slides (e.g., two "diagram of cell structure" images). If multiple slides cover the same topic, vary the visual angle, scope, or style
-- **Cross-scene reuse**: To reuse a generated image/video in a different scene, reference the same `elementId` in the later scene's content WITHOUT adding a new `mediaGenerations` entry. Only the scene that first defines the `elementId` in its `mediaGenerations` should include the generation request — later scenes just reference the ID. For example, if scene 1 defines `gen_img_1`, scene 3 can also use `gen_img_1` as an image src without declaring it again in mediaGenerations
+- **Cross-scene reuse**: To reuse a generated image/video in a different scene, reference the same `elementId` in the later scene's content WITHOUT adding a new `mediaGenerations` entry. Only the scene that first defines the `elementId` in its `mediaGenerations` should include the generation request - later scenes just reference the ID. For example, if scene 1 defines `gen_img_1`, scene 3 can also use `gen_img_1` as an image src without declaring it again in mediaGenerations
 
 **Content safety guidelines for media prompts** (to avoid being blocked by the generation model's safety filter):
 
-- Do NOT describe specific human facial features, body details, or physical appearance — use abstract or iconographic representations (e.g., "a silhouette of a person" instead of detailed descriptions)
+- Do NOT describe specific human facial features, body details, or physical appearance - use abstract or iconographic representations (e.g., "a silhouette of a person" instead of detailed descriptions)
 - Do NOT include violence, weapons, blood, or gore
 - Do NOT reference politically sensitive content: national flags, military imagery, or real political figures
 - Do NOT depict real public figures or celebrities by name or likeness
@@ -116,7 +116,7 @@ When a slide scene needs an image or video but no suitable PDF image exists, mar
 **Avoid stock-template / placeholder-text imagery** (NEW-002):
 
 - Do NOT describe the image as a "presentation slide", "title slide", "PowerPoint slide", "stock photo", "template", "cover slide", "business slide", or anything that nudges the generation model toward boilerplate corporate-template visuals
-- Do NOT request images with placeholder copy like "[YOUR NAME]", "[YOUR COMPANY]", "Lorem ipsum", "Title here", "Subtitle here", "Click to add", or any text that looks like an unfilled template — even as an example
+- Do NOT request images with placeholder copy like "[YOUR NAME]", "[YOUR COMPANY]", "Lorem ipsum", "Title here", "Subtitle here", "Click to add", or any text that looks like an unfilled template - even as an example
 - Educational images should depict the *subject matter itself* (a diagram, a labelled illustration, a scene). They should NOT look like a slide deck wrapper.
 - If the image needs labels or callouts, describe each label's actual text explicitly (e.g. "label the parts: nucleus, cytoplasm, cell membrane"), never as "[Label 1]" or generic placeholder text
 - Prefer "clean illustration on a plain background, no surrounding slide chrome, no header/footer text" framing for static educational images

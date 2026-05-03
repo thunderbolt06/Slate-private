@@ -176,7 +176,7 @@ function GenerationPreviewContent() {
 
     // ── Credit pre-check (authenticated users only) ──────────────────────────
     // Consume one course credit at generation START so the profile shows the
-    // updated remaining count immediately — before the generation finishes.
+    // updated remaining count immediately - before the generation finishes.
     if (user) {
       try {
         const creditRes = await fetch('/api/user/credits/check', { method: 'POST' });
@@ -188,7 +188,7 @@ function GenerationPreviewContent() {
           return;
         }
 
-        // Credit consumed — mark so the courses API skips double-check
+        // Credit consumed - mark so the courses API skips double-check
         creditConsumedRef.current = true;
         // Small delay to ensure DB consistency before refetching
         setTimeout(() => {
@@ -218,7 +218,7 @@ function GenerationPreviewContent() {
 
       const hasPdfToAnalyze = !!currentSession.pdfStorageKey && !currentSession.pdfText;
 
-      // Stage id early — shared by intro TTS, agent APIs, outlines, and classroom handoff
+      // Stage id early - shared by intro TTS, agent APIs, outlines, and classroom handoff
       const stage: Stage = {
         id: nanoid(10),
         name: extractTopicFromRequirement(currentSession.requirements.requirement),
@@ -542,7 +542,7 @@ function GenerationPreviewContent() {
             );
           };
 
-          // No outlines yet — agent generation uses only stage name + description
+          // No outlines yet - agent generation uses only stage name + description
           const agentResp = await fetch('/api/generate/agent-profiles', {
             method: 'POST',
             headers: getApiHeaders(),
@@ -601,7 +601,7 @@ function GenerationPreviewContent() {
           stage.agentIds = fallbackIds;
         }
       } else {
-        // Preset mode — use selected agents (include persona)
+        // Preset mode - use selected agents (include persona)
         // Filter out stale generated agent IDs that may linger in settings
         const registry = useAgentRegistry.getState();
         const presetAgentIds = settings.selectedAgentIds.filter((id) => {
@@ -711,7 +711,7 @@ function GenerationPreviewContent() {
         setSession(updatedSession);
         sessionStorage.setItem('generationSession', JSON.stringify(updatedSession));
 
-        // Outline generation succeeded — clear homepage draft cache
+        // Outline generation succeeded - clear homepage draft cache
         try {
           localStorage.removeItem('requirementDraft');
         } catch {
@@ -747,7 +747,7 @@ function GenerationPreviewContent() {
 
       const userProfile =
         currentSession.requirements.userNickname || currentSession.requirements.userBio
-          ? `Student: ${currentSession.requirements.userNickname || 'Unknown'}${currentSession.requirements.userBio ? ` — ${currentSession.requirements.userBio}` : ''}`
+          ? `Student: ${currentSession.requirements.userNickname || 'Unknown'}${currentSession.requirements.userBio ? ` - ${currentSession.requirements.userBio}` : ''}`
           : undefined;
 
       // Generate ONLY the first scene
@@ -810,7 +810,7 @@ function GenerationPreviewContent() {
         throw new Error(data.error || t('generation.sceneGenerateFailed'));
       }
 
-      // Generate TTS for first scene — all speech clips in parallel (same as useSceneGenerator)
+      // Generate TTS for first scene - all speech clips in parallel (same as useSceneGenerator)
       if (settings.ttsEnabled && settings.ttsProviderId !== 'browser-native-tts') {
         const actionsForTts = (data.scene.actions ?? []) as Action[];
         data.scene.actions = splitLongSpeechActions(actionsForTts, settings.ttsProviderId);
@@ -909,7 +909,7 @@ function GenerationPreviewContent() {
         router.push(`/classroom/${stage.id}`);
       }
     } catch (err) {
-      // AbortError is expected when navigating away — don't show as error
+      // AbortError is expected when navigating away - don't show as error
       if (err instanceof DOMException && err.name === 'AbortError') {
         log.info('[GenerationPreview] Generation aborted');
         return;

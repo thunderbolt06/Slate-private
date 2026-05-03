@@ -67,7 +67,7 @@ const QUESTION_AGENT_TEMPLATE_PROMPT_ZH = `（Question Agent）。。
 2. ****： @mention ：
    - 
    - 
-   - ——
+   - --
    - 
 
 ## ：

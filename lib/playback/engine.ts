@@ -2,7 +2,7 @@
  * Playback Engine - Unified state machine for lecture playback and live discussion
  *
  * Consumes Scene.actions[] directly via ActionEngine.
- * No intermediate compile step — actions are executed as-is.
+ * No intermediate compile step - actions are executed as-is.
  *
  * State machine:
  *
@@ -161,7 +161,7 @@ export class PlaybackEngine {
         this.speechTimer = null;
       }
       this.setMode('paused');
-      // Freeze TTS — but skip if waiting on ProactiveCard (no active speech)
+      // Freeze TTS - but skip if waiting on ProactiveCard (no active speech)
       if (!this.currentTrigger) {
         if (this.browserTTSActive) {
           // Cancel+re-speak pattern: save remaining chunks for resume.
@@ -195,23 +195,23 @@ export class PlaybackEngine {
       this.currentTopicState = 'active';
       this.setMode('live');
     } else if (this.currentTrigger) {
-      // Waiting on ProactiveCard — just resume mode, don't touch audio
+      // Waiting on ProactiveCard - just resume mode, don't touch audio
       this.setMode('playing');
     } else {
       // Resume lecture
       this.setMode('playing');
       if (this.browserTTSPausedChunks.length > 0) {
-        // Browser TTS was paused via cancel — re-speak remaining chunks
+        // Browser TTS was paused via cancel - re-speak remaining chunks
         this.browserTTSActive = true;
         this.browserTTSChunks = this.browserTTSPausedChunks;
         this.browserTTSChunkIndex = 0;
         this.browserTTSPausedChunks = [];
         this.playBrowserTTSChunk();
       } else if (this.audioPlayer.hasActiveAudio()) {
-        // Audio is paused — resume it; TTS onend will call processNext
+        // Audio is paused - resume it; TTS onend will call processNext
         this.audioPlayer.resume();
       } else if (this.speechTimerRemaining > 0) {
-        // Reading timer was paused — reschedule with remaining time
+        // Reading timer was paused - reschedule with remaining time
         this.speechTimerStart = Date.now();
         this.speechTimer = setTimeout(() => {
           this.speechTimer = null;
@@ -261,7 +261,7 @@ export class PlaybackEngine {
     // Mark consumed so it won't re-trigger on replay
     this.consumedDiscussions.add(this.currentTrigger.id);
 
-    // Save lecture state — keep actionIndex as-is (past the discussion).
+    // Save lecture state - keep actionIndex as-is (past the discussion).
     // Discussions are placed after all speech actions, so the preceding
     // speech was already fully played; no need to replay it.
     this.savedSceneIndex = this.sceneIndex;
@@ -335,7 +335,7 @@ export class PlaybackEngine {
   /** User sends a message during playback → interrupt → live mode */
   handleUserInterrupt(text: string): void {
     if (this.mode === 'playing' || this.mode === 'paused') {
-      // Save lecture state BEFORE stopping audio — actionIndex was already
+      // Save lecture state BEFORE stopping audio - actionIndex was already
       // incremented by processNext, so subtract 1 to replay the interrupted
       // sentence when resuming.  Guard against overwriting a previously saved
       // position (e.g. live → paused → new message).
@@ -351,7 +351,7 @@ export class PlaybackEngine {
       }
     }
 
-    // Set mode BEFORE stopping audio — speechSynthesis.cancel() may fire the
+    // Set mode BEFORE stopping audio - speechSynthesis.cancel() may fire the
     // onend callback synchronously, and the processNext guard checks
     // `this.mode === 'playing'`.  Setting mode first prevents a spurious
     // processNext that would advance actionIndex past the interrupted speech.
@@ -446,7 +446,7 @@ export class PlaybackEngine {
     const { action } = current;
 
     // Notify progress BEFORE advancing the cursor so the snapshot points at
-    // the current action.  On restore the same action will be replayed — this
+    // the current action.  On restore the same action will be replayed - this
     // is the desired behaviour for speech (user may have only heard half).
     this.callbacks.onProgress?.(this.getSnapshot());
 
@@ -494,7 +494,7 @@ export class PlaybackEngine {
           .play(speechAction.audioId || '', speechAction.audioUrl)
           .then((audioStarted) => {
             if (!audioStarted) {
-              // No pre-generated audio — try browser-native TTS if selected
+              // No pre-generated audio - try browser-native TTS if selected
               const settings = useSettingsStore.getState();
               if (
                 settings.ttsEnabled &&
@@ -526,7 +526,7 @@ export class PlaybackEngine {
             ? { dimOpacity: action.dimOpacity }
             : { color: action.color }),
         } as Effect);
-        // Don't block — continue immediately (use queueMicrotask to avoid
+        // Don't block - continue immediately (use queueMicrotask to avoid
         // stack overflow from deep synchronous recursion when many consecutive
         // spotlight/laser actions appear in sequence)
         queueMicrotask(() => this.processNext());
@@ -564,7 +564,7 @@ export class PlaybackEngine {
           if (this.mode !== 'playing') return; // Cancelled if user paused/stopped
           this.currentTrigger = trigger;
           this.callbacks.onProactiveShow?.(trigger);
-          // Engine pauses here — user calls confirmDiscussion() or skipDiscussion()
+          // Engine pauses here - user calls confirmDiscussion() or skipDiscussion()
         }, 3000);
         break;
       }
@@ -579,7 +579,7 @@ export class PlaybackEngine {
       case 'wb_clear':
       case 'wb_delete':
       case 'wb_close': {
-        // Synchronous whiteboard actions — await completion, then continue
+        // Synchronous whiteboard actions - await completion, then continue
         await this.actionEngine.execute(action);
         if (this.mode === 'playing') {
           this.processNext();
@@ -658,7 +658,7 @@ export class PlaybackEngine {
       }
     }
     if (!voiceFound) {
-      // No usable voice configured — detect text language so the browser
+      // No usable voice configured - detect text language so the browser
       // auto-selects an appropriate voice.
       const cjkRatio =
         chunkText.length > 0
@@ -675,7 +675,7 @@ export class PlaybackEngine {
     };
 
     utterance.onerror = (event) => {
-      // 'canceled' is expected when stop/pause is called — not a real error
+      // 'canceled' is expected when stop/pause is called - not a real error
       if (event.error !== 'canceled') {
         log.warn('Browser TTS chunk error:', event.error);
         // Skip failed chunk, try next
@@ -684,7 +684,7 @@ export class PlaybackEngine {
           this.playBrowserTTSChunk();
         }
       }
-      // On 'canceled': do nothing — pause handler already saved state
+      // On 'canceled': do nothing - pause handler already saved state
     };
 
     // Chrome bug workaround: cancel() before speak() to clear stale synthesis
@@ -709,7 +709,7 @@ export class PlaybackEngine {
       return voices;
     }
 
-    // Chrome: voices load asynchronously — wait for the voiceschanged event
+    // Chrome: voices load asynchronously - wait for the voiceschanged event
     await new Promise<void>((resolve) => {
       const onVoicesChanged = () => {
         window.speechSynthesis.removeEventListener('voiceschanged', onVoicesChanged);

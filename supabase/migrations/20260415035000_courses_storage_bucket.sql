@@ -19,7 +19,7 @@ ON CONFLICT (id) DO UPDATE
     file_size_limit     = EXCLUDED.file_size_limit,
     allowed_mime_types  = EXCLUDED.allowed_mime_types;
 
--- Allow public (anon) reads — the bucket is public so objects are readable without auth
+-- Allow public (anon) reads - the bucket is public so objects are readable without auth
 DO $$
 BEGIN
   IF NOT EXISTS (

@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
         const baseUrl = resolveTTSBaseUrl(DEFAULT_TTS_PROVIDER);
         const ttsConfig = { providerId: DEFAULT_TTS_PROVIDER, voice: voiceId, apiKey, baseUrl };
 
-        // Gemini TTS has a 512-byte input limit per call — split at sentence
+        // Gemini TTS has a 512-byte input limit per call - split at sentence
         // boundaries then concatenate the WAV chunks into a single buffer.
         const chunks = splitLongSpeechTextByBytes(script, GEMINI_TTS_MAX_BYTES);
         log.info(`Intro TTS: ${chunks.length} chunk(s) for ${script.length} chars`);

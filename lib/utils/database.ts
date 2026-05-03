@@ -256,7 +256,7 @@ class MAICDatabase extends Dexie {
       mediaFiles: 'id, stageId, [stageId+type]',
     });
 
-    // Version 6: Fix mediaFiles primary key — use compound key stageId:elementId
+    // Version 6: Fix mediaFiles primary key - use compound key stageId:elementId
     // to prevent cross-course collisions (gen_img_1 is NOT globally unique)
     this.version(6)
       .stores({
@@ -283,7 +283,7 @@ class MAICDatabase extends Dexie {
       });
 
     // Version 7: Add ossKey fields to mediaFiles and audioFiles for OSS storage plugin
-    // Non-indexed optional fields — Dexie handles these transparently.
+    // Non-indexed optional fields - Dexie handles these transparently.
     this.version(7).stores({
       stages: 'id, updatedAt',
       scenes: 'id, stageId, order, [stageId+order]',

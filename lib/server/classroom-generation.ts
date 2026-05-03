@@ -373,7 +373,7 @@ export async function generateClassroom(
       agents,
     );
     if (!content) {
-      log.warn(`Skipping scene "${safeOutline.title}" — content generation failed`);
+      log.warn(`Skipping scene "${safeOutline.title}" - content generation failed`);
       continue;
     }
 
@@ -382,7 +382,7 @@ export async function generateClassroom(
 
     const sceneId = createSceneWithActions(safeOutline, content, actions, api);
     if (!sceneId) {
-      log.warn(`Skipping scene "${safeOutline.title}" — scene creation failed`);
+      log.warn(`Skipping scene "${safeOutline.title}" - scene creation failed`);
       continue;
     }
 

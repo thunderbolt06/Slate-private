@@ -96,7 +96,7 @@ export function Header({ currentSceneTitle }: HeaderProps) {
           </div>
         </div>
 
-        {/* Production: Language, Theme, and Settings controls are admin-only — hidden from users */}
+        {/* Production: Language, Theme, and Settings controls are admin-only - hidden from users */}
 
         {/* Export Dropdown */}
         <div className="relative" ref={exportRef}>

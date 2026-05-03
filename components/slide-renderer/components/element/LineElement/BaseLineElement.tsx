@@ -54,7 +54,7 @@ export function BaseLineElement({ elementInfo, animate }: BaseLineElementProps) 
 
     const length = pathEl.getTotalLength();
     if (length === 0) {
-      // Zero-length path — skip animation, reveal markers on next tick
+      // Zero-length path - skip animation, reveal markers on next tick
       const t = setTimeout(() => setDrawComplete(true), 0);
       return () => clearTimeout(t);
     }

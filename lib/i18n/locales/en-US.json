@@ -49,7 +49,7 @@
     "stopDiscussion": "Stop Discussion",
     "endQA": "End Q&A",
     "tabs": {
-      "lecture": "Notes",
+      "lecture": "Narration",
       "chat": "Chat"
     },
     "lectureNotes": {
@@ -145,7 +145,7 @@
     "totalPrefix": "",
     "pointsSuffix": "pts",
     "startQuiz": "Start Quiz",
-    "multipleChoiceHint": "(Multiple choice — select all correct answers)",
+    "multipleChoiceHint": "(Multiple choice - select all correct answers)",
     "inputPlaceholder": "Type your answer here...",
     "charCount": "chars",
     "yourAnswer": "Your answer:",
@@ -834,7 +834,7 @@
     "noVisionWarning": "Current model does not support vision. Images can still be placed in slides, but the model cannot understand image content to optimize selection and layout",
     "serverConfigured": "Server",
     "serverConfiguredNotice": "Admin has configured an API key for this provider on the server. You can use it directly or enter your own key to override.",
-    "optionalOverride": "Optional — leave empty to use server config",
+    "optionalOverride": "Optional - leave empty to use server config",
     "setupNeeded": "Setup required",
     "modelNotConfigured": "Please select a model to get started",
     "dangerZone": "Danger Zone",
@@ -862,9 +862,9 @@
     "defaultNickname": "Learner",
     "chooseAvatar": "Choose Avatar",
     "uploadAvatar": "Upload",
-    "bioPlaceholder": "Tell us about yourself — the AI teacher will personalize lessons for you...",
+    "bioPlaceholder": "Tell us about yourself - the AI teacher will personalize lessons for you...",
     "avatarHint": "Your avatar will appear in classroom discussions and chats",
-    "fileTooLarge": "Image too large — please choose one under 5 MB",
+    "fileTooLarge": "Image too large - please choose one under 5 MB",
     "invalidFileType": "Please select an image file",
     "editTooltip": "Click to edit profile"
   },

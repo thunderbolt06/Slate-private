@@ -28,6 +28,7 @@ import { createAnthropic } from '@ai-sdk/anthropic';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import type { LanguageModel } from 'ai';
 import type {
+  BuiltInProviderId,
   ProviderId,
   ProviderConfig,
   ModelInfo,
@@ -35,7 +36,7 @@ import type {
   ThinkingConfig,
 } from '@/lib/types/provider';
 import { createLogger } from '@/lib/logger';
-// NOTE: Do NOT import thinking-context.ts here — it uses node:async_hooks
+// NOTE: Do NOT import thinking-context.ts here - it uses node:async_hooks
 // which is server-only, and this file is also used on the client via
 // settings.ts. The thinking context is read from globalThis instead
 // (set by thinking-context.ts at module load time on the server).
@@ -1168,6 +1169,34 @@ export function getModel(config: ModelConfig): ModelWithInfo {
   const modelInfo = provider?.models.find((m) => m.id === config.modelId) || null;
 
   return { model, modelInfo };
+}
+
+/**
+ * Default fallback order for LLM providers. The active provider is tried first;
+ * if it fails the chain walks through these in order, picking the first model
+ * declared on each provider as the fallback model.
+ */
+export const LLM_FALLBACK_ORDER: readonly BuiltInProviderId[] = [
+  'openai',
+  'anthropic',
+  'google',
+  'deepseek',
+  'qwen',
+  'kimi',
+  'minimax',
+  'glm',
+  'doubao',
+  'siliconflow',
+  'grok',
+];
+
+/**
+ * Pick the default model ID to use when falling back to a given provider.
+ * Returns the first model in the provider's models[] list, or undefined if the
+ * provider isn't registered or has no declared models.
+ */
+export function getDefaultModelId(providerId: ProviderId): string | undefined {
+  return PROVIDERS[providerId]?.models[0]?.id;
 }
 
 /**

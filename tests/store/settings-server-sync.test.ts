@@ -1,5 +1,5 @@
 /**
- * Tests for fetchServerProviders() — verifying that the settings store
+ * Tests for fetchServerProviders() - verifying that the settings store
  * correctly reflects server-side provider availability changes.
  *
  * Core invariant: after server sync, the set of models/providers a user
@@ -9,7 +9,7 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 
 // ---------------------------------------------------------------------------
-// Mocks — must be defined before importing the store
+// Mocks - must be defined before importing the store
 // ---------------------------------------------------------------------------
 
 // Minimal built-in provider registry used by the store
@@ -209,7 +209,7 @@ function mockServerResponse(overrides: MockServerResponse = {}) {
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('fetchServerProviders — provider availability sync', () => {
+describe('fetchServerProviders - provider availability sync', () => {
   beforeEach(() => {
     vi.resetModules();
     storage.clear();
@@ -375,7 +375,7 @@ describe('fetchServerProviders — provider availability sync', () => {
 
   // BUG: fetchServerProviders() updates providersConfig.models but never
   // validates the current modelId/providerId selection against the new list.
-  // These tests document the desired fix — remove .fails() once implemented.
+  // These tests document the desired fix - remove .fails() once implemented.
 
   it('clears modelId when server removes the selected model', async () => {
     const store = await getStore();
@@ -401,7 +401,7 @@ describe('fetchServerProviders — provider availability sync', () => {
     await store.getState().fetchServerProviders();
     expect(store.getState().providersConfig.openai.isServerConfigured).toBe(true);
 
-    // Server removes openai entirely — no client key either
+    // Server removes openai entirely - no client key either
     mockServerResponse({});
     await store.getState().fetchServerProviders();
 
@@ -435,7 +435,7 @@ describe('fetchServerProviders — provider availability sync', () => {
     mockServerResponse({ providers: { openai: { models: ['gpt-4o', 'gpt-4o-mini'] } } });
     await store.getState().fetchServerProviders();
 
-    // gpt-4o is still available — selection should be preserved
+    // gpt-4o is still available - selection should be preserved
     expect(store.getState().providerId).toBe('openai');
     expect(store.getState().modelId).toBe('gpt-4o');
   });
@@ -454,7 +454,7 @@ describe('fetchServerProviders — provider availability sync', () => {
     mockFetch.mockResolvedValueOnce({ ok: false, status: 500 });
     await store.getState().fetchServerProviders();
 
-    // State should be unchanged — the failed fetch should not wipe existing config
+    // State should be unchanged - the failed fetch should not wipe existing config
     expect(store.getState().providersConfig.openai.isServerConfigured).toBe(true);
   });
 
@@ -463,12 +463,12 @@ describe('fetchServerProviders — provider availability sync', () => {
 
     mockFetch.mockRejectedValueOnce(new Error('Network error'));
 
-    // Should not throw — server providers are optional
+    // Should not throw - server providers are optional
     await expect(store.getState().fetchServerProviders()).resolves.not.toThrow();
   });
 });
 
-describe('fetchServerProviders — TTS stale selection', () => {
+describe('fetchServerProviders - TTS stale selection', () => {
   beforeEach(() => {
     vi.resetModules();
     storage.clear();
@@ -521,7 +521,7 @@ describe('fetchServerProviders — TTS stale selection', () => {
   });
 });
 
-describe('fetchServerProviders — ASR stale selection', () => {
+describe('fetchServerProviders - ASR stale selection', () => {
   beforeEach(() => {
     vi.resetModules();
     storage.clear();
@@ -561,7 +561,7 @@ describe('fetchServerProviders — ASR stale selection', () => {
   });
 });
 
-describe('fetchServerProviders — PDF stale selection', () => {
+describe('fetchServerProviders - PDF stale selection', () => {
   beforeEach(() => {
     vi.resetModules();
     storage.clear();
@@ -587,7 +587,7 @@ describe('fetchServerProviders — PDF stale selection', () => {
   });
 });
 
-describe('fetchServerProviders — Image stale selection', () => {
+describe('fetchServerProviders - Image stale selection', () => {
   beforeEach(() => {
     vi.resetModules();
     storage.clear();
@@ -655,7 +655,7 @@ describe('fetchServerProviders — Image stale selection', () => {
     store.getState().setImageGenerationEnabled(false);
     expect(store.getState().imageGenerationEnabled).toBe(false);
 
-    // Next server sync — same config, should NOT re-enable
+    // Next server sync - same config, should NOT re-enable
     mockServerResponse({ image: { seedream: {} } });
     await store.getState().fetchServerProviders();
     expect(store.getState().imageGenerationEnabled).toBe(false);
@@ -679,7 +679,7 @@ describe('fetchServerProviders — Image stale selection', () => {
   it('auto-selects provider and model when server adds image provider after empty state', async () => {
     const store = await getStore();
 
-    // Start with no image providers — selection is empty, generation disabled
+    // Start with no image providers - selection is empty, generation disabled
     mockServerResponse({});
     await store.getState().fetchServerProviders();
     expect(store.getState().imageProviderId).toBe('');
@@ -692,14 +692,14 @@ describe('fetchServerProviders — Image stale selection', () => {
 
     expect(store.getState().imageProviderId).toBe('seedream');
     expect(store.getState().imageModelId).toBe('doubao-seedream-5-0-260128');
-    // Provider recovered but generation stays off — user enables manually
+    // Provider recovered but generation stays off - user enables manually
     expect(store.getState().imageGenerationEnabled).toBe(false);
   });
 
   it('auto-enables image generation on first load when server has image provider', async () => {
     const store = await getStore();
 
-    // First ever fetchServerProviders — server has seedream
+    // First ever fetchServerProviders - server has seedream
     // Default state: imageProviderId='seedream', imageGenerationEnabled=false, autoConfigApplied=false
     mockServerResponse({ image: { seedream: {} } });
     await store.getState().fetchServerProviders();
@@ -722,7 +722,7 @@ describe('fetchServerProviders — Image stale selection', () => {
       imageGenerationEnabled: false,
     });
 
-    // Server has seedream — should NOT force-enable (provider was already set)
+    // Server has seedream - should NOT force-enable (provider was already set)
     mockServerResponse({ image: { seedream: {} } });
     await store.getState().fetchServerProviders();
 
@@ -732,7 +732,7 @@ describe('fetchServerProviders — Image stale selection', () => {
   });
 });
 
-describe('fetchServerProviders — Video stale selection', () => {
+describe('fetchServerProviders - Video stale selection', () => {
   beforeEach(() => {
     vi.resetModules();
     storage.clear();
@@ -802,7 +802,7 @@ describe('fetchServerProviders — Video stale selection', () => {
   it('auto-selects provider and model when server adds video provider after empty state', async () => {
     const store = await getStore();
 
-    // Start with no video providers — generation disabled
+    // Start with no video providers - generation disabled
     mockServerResponse({});
     await store.getState().fetchServerProviders();
     expect(store.getState().videoProviderId).toBe('');
@@ -815,12 +815,12 @@ describe('fetchServerProviders — Video stale selection', () => {
 
     expect(store.getState().videoProviderId).toBe('seedance');
     expect(store.getState().videoModelId).toBe('doubao-seedance-1-5-pro-251215');
-    // Provider recovered but generation stays off — user enables manually
+    // Provider recovered but generation stays off - user enables manually
     expect(store.getState().videoGenerationEnabled).toBe(false);
   });
 });
 
-describe('fetchServerProviders — LLM cross-provider fallback', () => {
+describe('fetchServerProviders - LLM cross-provider fallback', () => {
   beforeEach(() => {
     vi.resetModules();
     storage.clear();

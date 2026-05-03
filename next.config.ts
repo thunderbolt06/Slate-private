@@ -34,7 +34,7 @@ const nextConfig: NextConfig = {
       { source: '/browse', destination: '/?tab=browse', permanent: false },
       { source: '/browse-courses', destination: '/?tab=browse', permanent: false },
       { source: '/achievements', destination: '/?tab=achievements', permanent: false },
-      // Convenience aliases for auth routes — the canonical path is /auth/login.
+      // Convenience aliases for auth routes - the canonical path is /auth/login.
       { source: '/login', destination: '/auth/login', permanent: false },
       { source: '/signup', destination: '/auth/login', permanent: false },
       { source: '/sign-in', destination: '/auth/login', permanent: false },

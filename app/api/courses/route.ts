@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
 
     if (!existingCourse) {
       if (credits_pre_consumed) {
-        // Credit was already consumed at generation start — skip the RPC check
+        // Credit was already consumed at generation start - skip the RPC check
         // to avoid double-counting. The generation-preview page called
         // POST /api/user/credits/check before starting the generation.
       } else {
@@ -216,7 +216,7 @@ export async function POST(req: NextRequest) {
       try {
         const temporalClient = await getTemporalClient();
         // Pass workflow type as a string to avoid name mangling during Next.js production builds.
-        // Default reuse policy ALLOW_DUPLICATE allows a new run after the prior run closed — duplicate POSTs
+        // Default reuse policy ALLOW_DUPLICATE allows a new run after the prior run closed - duplicate POSTs
         // with is_final each started another execution. REJECT_DUPLICATE keeps one run per workflow id.
         await temporalClient.workflow.start('generateCatalogMetadataWorkflow', {
           taskQueue: TASK_QUEUE,

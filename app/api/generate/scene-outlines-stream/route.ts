@@ -89,7 +89,7 @@ function extractNewOutlines(buffer: string, alreadyParsed: number): SceneOutline
             const obj = JSON.parse(stripped.substring(objectStart, i + 1));
             results.push(obj);
           } catch {
-            // Incomplete or invalid JSON — skip
+            // Incomplete or invalid JSON - skip
           }
         }
         objectStart = -1;
@@ -290,7 +290,7 @@ export async function POST(req: NextRequest) {
               // Validate: got outlines?
               if (parsedOutlines.length > 0) break;
 
-              // Empty result — retry if we have attempts left
+              // Empty result - retry if we have attempts left
               lastError = fullText.trim()
                 ? 'LLM response could not be parsed into outlines'
                 : 'LLM returned empty response';

@@ -48,7 +48,7 @@ interface ActionCfg {
   label: string;
   Icon: LucideIcon;
   style: string;
-  /** Whiteboard family — gets the pen-line accent indicator */
+  /** Whiteboard family - gets the pen-line accent indicator */
   wb?: boolean;
 }
 

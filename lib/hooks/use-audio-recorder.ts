@@ -93,7 +93,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
 
   // Start recording
   const startRecording = useCallback(async () => {
-    // Synchronous lock — React state is async so isRecording may be stale
+    // Synchronous lock - React state is async so isRecording may be stale
     if (busyRef.current) return;
     busyRef.current = true;
     try {

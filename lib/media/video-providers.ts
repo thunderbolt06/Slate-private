@@ -111,6 +111,19 @@ export const VIDEO_PROVIDERS: Record<VideoProviderId, VideoProviderConfig> = {
   },
 };
 
+/**
+ * Default order for video-provider fallback.
+ *
+ * `sora` has no implementation in this repo and is excluded from the chain.
+ */
+export const VIDEO_FALLBACK_ORDER: readonly VideoProviderId[] = [
+  'seedance',
+  'veo',
+  'kling',
+  'minimax-video',
+  'grok-video',
+];
+
 export async function testVideoConnectivity(
   config: VideoGenerationConfig,
 ): Promise<{ success: boolean; message: string }> {

@@ -164,7 +164,7 @@ interface LeaderboardEntry {
 }
 
 // ── Sidebar ────────────────────────────────────────────────────────────────
-// Inline sidebar notification row — matches sidebar item style, opens the same panel
+// Inline sidebar notification row - matches sidebar item style, opens the same panel
 function SidebarNotificationRow() {
   const { user } = useAuth();
   const router = useRouter();
@@ -429,7 +429,7 @@ function Sidebar({
         <div className="border-t-[3px] border-[#073b4c] dark:border-[#2a2a2a]">
           {/* Utility actions */}
           <div className="px-3 pt-2 pb-2 flex flex-col gap-0.5">
-            {/* Settings — admin only */}
+            {/* Settings - admin only */}
             {isAdmin && (
               <button
                 onClick={() => setSettingsOpen(true)}
@@ -458,11 +458,11 @@ function Sidebar({
               Get Help
             </button>
 
-            {/* Notifications — custom sidebar row */}
+            {/* Notifications - custom sidebar row */}
             <SidebarNotificationRow />
           </div>
 
-          {/* Profile card — always visible at bottom */}
+          {/* Profile card - always visible at bottom */}
           <div className="px-3 pb-4 pt-1">
             {authLoading ? (
               <div className="flex items-center gap-3 px-4 py-3 rounded-xl border-2 border-[#073b4c]/10 dark:border-[#2a2a2a]">
@@ -563,7 +563,7 @@ function ClassroomSplitButton({
               isLoading && 'opacity-80',
             )}
           >
-            {/* Primary action — Instant Classroom */}
+            {/* Primary action - Instant Classroom */}
             <button
               type="button"
               onClick={onInstantClassroom}
@@ -594,14 +594,14 @@ function ClassroomSplitButton({
         </TooltipTrigger>
         <TooltipContent side="top" sideOffset={8}>
           {canGenerate ? (
-            <p className="text-xs">Stream live — enter the classroom instantly</p>
+            <p className="text-xs">Stream live - enter the classroom instantly</p>
           ) : (
             <p className="text-xs">Write a prompt above to get started</p>
           )}
         </TooltipContent>
       </Tooltip>
 
-      {/* Dropdown — Standard Classroom */}
+      {/* Dropdown - Standard Classroom */}
       {dropdownOpen && (
         <div className="absolute right-0 top-12 z-50 min-w-[210px] rounded-2xl border-2 border-[#073b4c]/10 dark:border-[#2a2a2a] bg-white dark:bg-[#1a1a1a] shadow-[4px_4px_0_rgba(7,59,76,0.08)] dark:shadow-[4px_4px_0_rgba(0,0,0,0.5)] overflow-hidden">
           <button
@@ -1027,12 +1027,12 @@ function MyCoursesTab({
       // Move from its group to a new group with target (or add target to source group)
       addToGroup(sourceGroupEntry.id, targetCourseId);
     } else {
-      // Check if target is in a group — add source to that group
+      // Check if target is in a group - add source to that group
       const targetGroupEntry = Object.values(groups).find((g) => g.courseIds.includes(targetCourseId));
       if (targetGroupEntry) {
         addToGroup(targetGroupEntry.id, sourceId);
       } else {
-        // Neither is grouped — create a new group
+        // Neither is grouped - create a new group
         createGroup(sourceId, targetCourseId);
       }
     }
@@ -1483,7 +1483,7 @@ function CourseOutlinePage({
             )}
           </div>
 
-          {/* Scene list — My Courses */}
+          {/* Scene list - My Courses */}
           {scenes && scenes.length > 0 && (
             <div>
               <h2 className="text-xs font-black text-[#073b4c]/40 dark:text-[#737373] uppercase tracking-widest mb-3">
@@ -2510,7 +2510,7 @@ function DashboardPage() {
 
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
-        {/* Mobile menu — no top bar; floating control only */}
+        {/* Mobile menu - no top bar; floating control only */}
         <button
           type="button"
           onClick={() => setMobileSidebarOpen(true)}
@@ -2530,7 +2530,7 @@ function DashboardPage() {
               with `key={activeTab}`. AnimatePresence kept the previous tab's
               motion.div (and its captured children) mounted during the exit
               animation, so clicking a new tab visibly displayed the previous
-              tab's content for ~200ms — repeatedly reported as "one step
+              tab's content for ~200ms - repeatedly reported as "one step
               behind". The outline open/close still animates; tab swaps now
               happen instantly with the correct content.
             */}

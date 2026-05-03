@@ -19,7 +19,7 @@ interface PresentationSpeechOverlayProps {
   readonly speakingAgentId: string | null;
   readonly isTopicPending: boolean;
   readonly userAvatar?: string;
-  /** Which side this overlay instance renders — 'left' or 'right' */
+  /** Which side this overlay instance renders - 'left' or 'right' */
   readonly side?: 'left' | 'right';
   readonly onBubbleClick?: () => void;
   readonly audioIndicatorState?: AudioIndicatorState;
@@ -119,7 +119,7 @@ export function buildPresentationBubbleModel({
   };
 }
 
-/** Collapsed pill — shows avatar + name, click to expand */
+/** Collapsed pill - shows avatar + name, click to expand */
 function CollapsedBubblePill({
   bubble,
   onExpand,
@@ -188,7 +188,7 @@ function CollapsedBubblePill({
   );
 }
 
-/** Reusable bubble card — renders the speech bubble content (avatar, name, text) */
+/** Reusable bubble card - renders the speech bubble content (avatar, name, text) */
 export function PresentationBubbleCard({
   bubble,
   onClick,
@@ -351,7 +351,7 @@ export function PresentationBubbleCard({
                 <Play className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400 group-hover/bubble:text-purple-600 dark:group-hover/bubble:text-purple-400 ml-0.5" />
               ) : (
                 <>
-                  {/* Breathing bars — visible by default, hidden on hover */}
+                  {/* Breathing bars - visible by default, hidden on hover */}
                   <div className="flex gap-0.5 items-end justify-center h-3.5 w-3.5 group-hover/bubble:hidden">
                     <div
                       className="w-1 rounded-full"

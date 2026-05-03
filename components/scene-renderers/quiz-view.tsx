@@ -732,7 +732,7 @@ export function QuizView({ questions, sceneId }: QuizViewProps) {
           }
         }
       } catch {
-        // not authenticated or network error — fall through to localStorage
+        // not authenticated or network error - fall through to localStorage
       }
       if (cancelled) return;
       // Fall back to local cache

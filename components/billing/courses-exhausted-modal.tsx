@@ -118,7 +118,7 @@ export function CoursesExhaustedModal({ open, onClose, reason }: CoursesExhauste
                 <span className="ml-auto text-xs font-black text-[#ef476f]">0 remaining</span>
               </div>
 
-              {/* Primary CTA — Top Up */}
+              {/* Primary CTA - Top Up */}
               <button
                 onClick={handleTopup}
                 disabled={!!loading}
@@ -134,12 +134,12 @@ export function CoursesExhaustedModal({ open, onClose, reason }: CoursesExhauste
                 ) : (
                   <>
                     <Plus className="size-4" />
-                    Top Up 10 Courses — $5
+                    Top Up 10 Courses - $5
                   </>
                 )}
               </button>
 
-              {/* Secondary CTA — Upgrade to Plus (for free users) */}
+              {/* Secondary CTA - Upgrade to Plus (for free users) */}
               {isFreeLimit && (
                 <button
                   onClick={handleUpgrade}
@@ -149,7 +149,7 @@ export function CoursesExhaustedModal({ open, onClose, reason }: CoursesExhauste
                     hover:bg-[#118AB2]/5 transition-colors cursor-pointer disabled:opacity-50 mb-3"
                 >
                   <Zap className="size-4" />
-                  Upgrade to Plus — 30/month
+                  Upgrade to Plus - 30/month
                 </button>
               )}
 

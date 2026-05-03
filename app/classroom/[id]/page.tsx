@@ -356,11 +356,11 @@ export default function ClassroomDetailPage() {
       const generatedAgentIds = await loadGeneratedAgentsForStage(classroomId);
       const { useSettingsStore } = await import('@/lib/store/settings');
       if (generatedAgentIds.length > 0) {
-        // Auto mode — use generated agents from IndexedDB
+        // Auto mode - use generated agents from IndexedDB
         useSettingsStore.getState().setAgentMode('auto');
         useSettingsStore.getState().setSelectedAgentIds(generatedAgentIds);
       } else {
-        // Preset mode — restore agent IDs saved in the stage at creation time.
+        // Preset mode - restore agent IDs saved in the stage at creation time.
         // Filter out any stale generated IDs that may have been persisted before
         // the bleed-fix, so they don't resolve against a leftover registry entry.
         const stage = useStageStore.getState().stage;
@@ -467,7 +467,7 @@ export default function ClassroomDetailPage() {
           enableVideoGeneration: true,
         }).then((jobId) => {
           if (!jobId) {
-            // Temporal unavailable — fall back to client-side generation
+            // Temporal unavailable - fall back to client-side generation
             log.info('[Classroom] Temporal unavailable, falling back to useSceneGenerator');
             const storageIds = (genParams.pdfImages || [])
               .map((img: { storageId?: string }) => img.storageId)
@@ -493,7 +493,7 @@ export default function ClassroomDetailPage() {
           temporalJobIdRef.current = jobId;
           temporalLastScenesGeneratedRef.current = 0;
 
-          // Polling loop — fetch status every 4 s; when scenesGenerated grows,
+          // Polling loop - fetch status every 4 s; when scenesGenerated grows,
           // refresh scenes from Supabase Storage.
           const poll = async () => {
             if (!temporalJobIdRef.current) return;
@@ -564,7 +564,7 @@ export default function ClassroomDetailPage() {
           temporalPollTimerRef.current = setTimeout(poll, 3000);
         });
       } else {
-        // No Supabase or not from preview flow — use client-side generator directly
+        // No Supabase or not from preview flow - use client-side generator directly
         const storageIds = (genParams.pdfImages || [])
           .map((img: { storageId?: string }) => img.storageId)
           .filter(Boolean);
@@ -608,7 +608,7 @@ export default function ClassroomDetailPage() {
       };
       reconcileTimerRef.current = setTimeout(tick, 2000);
 
-      // All scenes are already complete — fire a full re-sync to capture any scenes that
+      // All scenes are already complete - fire a full re-sync to capture any scenes that
       // were generated after the initial preview-page sync (which only had the first scene).
       syncFullCourse();
     }
