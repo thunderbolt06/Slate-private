@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { createClient } from '@/utils/supabase/server';
+import { createAdminClient } from '@/utils/supabase/admin';
+import { getRequestUser } from '@/utils/supabase/auth-bridge';
 
 /**
  * POST /api/user/onboarding
@@ -13,11 +13,7 @@ import { createClient } from '@/utils/supabase/server';
  */
 export async function POST(req: NextRequest) {
   try {
-    const cookieStore = await cookies();
-    const supabase = createClient(cookieStore);
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const user = await getRequestUser(req);
 
     if (!user) {
       return NextResponse.json({ ok: true, persisted: false });
@@ -25,8 +21,11 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
 
-    const { error } = await supabase.auth.updateUser({
-      data: {
+    // Use admin client so this works for both cookie- and bearer-auth callers.
+    const admin = createAdminClient();
+    const { error } = await admin.auth.admin.updateUserById(user.id, {
+      user_metadata: {
+        ...(user.user_metadata ?? {}),
         onboarding: {
           ...body,
           completed_at: new Date().toISOString(),

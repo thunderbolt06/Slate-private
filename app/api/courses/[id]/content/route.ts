@@ -51,6 +51,9 @@ export async function GET(
         title: s.title,
         order: s.order,
         content: s.content,
+        // `payload` is an alias of `content` so the mobile scene-renderer
+        // (which uses the same name as the chat/PBL/quiz contracts) Just Works.
+        payload: s.content,
         actions: s.actions,
         whiteboards: s.whiteboards,
         createdAt: s.created_at,

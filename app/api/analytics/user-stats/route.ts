@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
+import { getRequestUser } from '@/utils/supabase/auth-bridge';
 
 export const dynamic = 'force-dynamic';
 
@@ -60,13 +61,13 @@ function effectiveCurrentStreak(
  */
 export async function GET(req: NextRequest) {
   try {
-    const cookieStore = await cookies();
-    const supabase = createClient(cookieStore);
-
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getRequestUser(req);
     if (!user) {
       return apiError('UNAUTHORIZED', 401, 'Not authenticated');
     }
+
+    const cookieStore = await cookies();
+    const supabase = createClient(cookieStore);
 
     const userId = user.id;
 

@@ -44,13 +44,25 @@ export async function GET(req: NextRequest) {
     if (error) throw error;
 
     // Add rank index manually
-    const rankedData = (data || []).map((user, index) => ({
-      ...user,
+    const rankedData = (data || []).map((u, index) => ({
+      ...u,
       rank: index + 1,
     }));
 
-    return apiSuccess({ 
+    // Mobile-friendly view: camelCase, only the fields a list row needs.
+    // `users` is the canonical name in the new contract; `leaderboard` stays
+    // for the existing webapp consumers.
+    const users = rankedData.map((u) => ({
+      userId: u.user_id ?? u.id ?? '',
+      displayName: u.display_name ?? u.name ?? 'Anonymous',
+      avatarUrl: u.avatar_url ?? undefined,
+      points: u.total_score ?? u.points ?? 0,
+      rank: u.rank,
+    }));
+
+    return apiSuccess({
       leaderboard: rankedData,
+      users,
       meta: {
         type,
         countryCode: countryCode || 'XX',
