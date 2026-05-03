@@ -1,11 +1,13 @@
 'use client';
 
 import { useCallback, useEffect, useRef } from 'react';
-import { Mic, Loader2 } from 'lucide-react';
+import { Mic, Loader2, AudioLines } from 'lucide-react';
+import { AnimatePresence } from 'motion/react';
 import { useAudioRecorder } from '@/lib/hooks/use-audio-recorder';
 import { useI18n } from '@/lib/hooks/use-i18n';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { LoadingPill } from '@/components/ui/loading-pill';
 import { toast } from 'sonner';
 
 interface SpeechButtonProps {
@@ -13,6 +15,8 @@ interface SpeechButtonProps {
   className?: string;
   disabled?: boolean;
   size?: 'sm' | 'md';
+  /** When true, renders a floating status pill above the button while recording/transcribing. */
+  showStatusPill?: boolean;
 }
 
 export function SpeechButton({
@@ -20,6 +24,7 @@ export function SpeechButton({
   className,
   disabled,
   size = 'sm',
+  showStatusPill = true,
 }: SpeechButtonProps) {
   const { t } = useI18n();
 
@@ -57,8 +62,33 @@ export function SpeechButton({
   const iconSize = isMd ? 'w-4 h-4' : 'w-3.5 h-3.5';
   const barH = isMd ? 14 : 10;
 
+  const pillLabel = isProcessing
+    ? t('roundtable.processing')
+    : isRecording
+      ? t('roundtable.listening')
+      : '';
+  const pillTone = isProcessing ? 'tts' : 'asr';
+  const pillIcon = isProcessing ? (
+    <Loader2 className="w-3 h-3 animate-spin" />
+  ) : (
+    <AudioLines className="w-3 h-3" />
+  );
+
   return (
-    <Tooltip>
+    <div className="relative inline-flex shrink-0">
+      {showStatusPill && (
+        <AnimatePresence>
+          {active && (
+            <div
+              key="speech-pill"
+              className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 pointer-events-none"
+            >
+              <LoadingPill label={pillLabel} tone={pillTone} icon={pillIcon} />
+            </div>
+          )}
+        </AnimatePresence>
+      )}
+      <Tooltip>
       <TooltipTrigger asChild>
         <button
           type="button"
@@ -137,5 +167,6 @@ export function SpeechButton({
             : t('voice.startListening')}
       </TooltipContent>
     </Tooltip>
+    </div>
   );
 }

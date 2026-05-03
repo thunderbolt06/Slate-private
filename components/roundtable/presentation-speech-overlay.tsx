@@ -254,7 +254,12 @@ export function PresentationBubbleCard({
               {bubble.name}
             </div>
             {audioIndicatorState === 'generating' && (
-              <Loader2 className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400 animate-spin" />
+              <span className="inline-flex items-center gap-1">
+                <Loader2 className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400 animate-spin" />
+                <span className="text-[10px] font-medium uppercase tracking-wide text-amber-600 dark:text-amber-300">
+                  {t('roundtable.preparingVoice')}
+                </span>
+              </span>
             )}
             {audioIndicatorState === 'playing' && (
               <Volume2 className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400" />
@@ -276,22 +281,27 @@ export function PresentationBubbleCard({
 
       <div className="ml-4 mr-10 mb-4 max-h-[140px] overflow-y-auto scrollbar-hide">
         {bubble.isLoading ? (
-          <div className="flex gap-1 items-center py-1">
-            {[0, 0.2, 0.4].map((delay) => (
-              <motion.div
-                key={delay}
-                animate={{ opacity: [0.3, 1, 0.3] }}
-                transition={{ repeat: Infinity, duration: 1, delay }}
-                className={cn(
-                  'w-1.5 h-1.5 rounded-full',
-                  bubble.role === 'user'
-                    ? 'bg-violet-400 dark:bg-violet-500'
-                    : bubble.role === 'agent'
-                      ? 'bg-blue-400 dark:bg-blue-500'
-                      : 'bg-purple-400 dark:bg-purple-500',
-                )}
-              />
-            ))}
+          <div className="flex gap-2 items-center py-1">
+            <div className="flex gap-1 items-center">
+              {[0, 0.2, 0.4].map((delay) => (
+                <motion.div
+                  key={delay}
+                  animate={{ opacity: [0.3, 1, 0.3] }}
+                  transition={{ repeat: Infinity, duration: 1, delay }}
+                  className={cn(
+                    'w-1.5 h-1.5 rounded-full',
+                    bubble.role === 'user'
+                      ? 'bg-violet-400 dark:bg-violet-500'
+                      : bubble.role === 'agent'
+                        ? 'bg-blue-400 dark:bg-blue-500'
+                        : 'bg-purple-400 dark:bg-purple-500',
+                  )}
+                />
+              ))}
+            </div>
+            <span className="text-xs italic text-gray-500 dark:text-gray-400">
+              {t('roundtable.thinking')}
+            </span>
           </div>
         ) : (
           <p className="text-[15px] leading-relaxed whitespace-pre-wrap break-words text-gray-800 dark:text-gray-100">
