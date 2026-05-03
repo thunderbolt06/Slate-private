@@ -6,8 +6,7 @@ import { getTemporalClient, TASK_QUEUE } from '@/temporal/client';
 import { buildRequestOrigin } from '@/lib/server/classroom-storage';
 import { createLogger } from '@/lib/logger';
 import { getPostHogClient } from '@/lib/posthog-server';
-import { cookies } from 'next/headers';
-import { createClient } from '@/utils/supabase/server';
+import { getRequestUser } from '@/utils/supabase/auth-bridge';
 
 const log = createLogger('GenerateClassroom API');
 
@@ -15,11 +14,7 @@ export const maxDuration = 30;
 
 export async function POST(req: NextRequest) {
   let requirementSnippet: string | undefined;
-  const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getRequestUser(req);
   try {
     const rawBody = (await req.json()) as Partial<GenerateClassroomInput>;
     requirementSnippet = rawBody.requirement?.substring(0, 60);

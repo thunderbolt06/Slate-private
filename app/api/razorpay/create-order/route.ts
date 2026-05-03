@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { createClient } from '@/utils/supabase/server';
+import { getRequestUser } from '@/utils/supabase/auth-bridge';
 import { getRazorpayClient, RAZORPAY_PLANS, type RazorpayPlanId } from '@/lib/razorpay/client';
 
 /**
@@ -12,11 +11,7 @@ import { getRazorpayClient, RAZORPAY_PLANS, type RazorpayPlanId } from '@/lib/ra
  */
 export async function POST(req: NextRequest) {
   try {
-    const cookieStore = await cookies();
-    const supabase = createClient(cookieStore);
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const user = await getRequestUser(req);
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

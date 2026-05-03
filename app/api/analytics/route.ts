@@ -3,6 +3,7 @@ import { createClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { getRequestUser } from '@/utils/supabase/auth-bridge';
 
 async function recordLearningStreak(supabase: SupabaseClient, userId: string) {
   const { error } = await supabase.rpc('record_learning_day', { u_id: userId });
@@ -22,15 +23,15 @@ export async function POST(req: NextRequest) {
       return apiError('MISSING_REQUIRED_FIELD', 400, 'courseId is required');
     }
 
-    const cookieStore = await cookies();
-    const supabase = createClient(cookieStore);
-
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getRequestUser(req);
     if (!user) {
-      // Silently ignore analytics for unauthenticated users 
+      // Silently ignore analytics for unauthenticated users
       // as policies would block them anyway.
       return apiSuccess({ ignored: true });
     }
+
+    const cookieStore = await cookies();
+    const supabase = createClient(cookieStore);
 
     const userId = user.id;
 

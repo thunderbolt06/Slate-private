@@ -5,18 +5,15 @@ import { cookies } from 'next/headers';
 import { apiSuccess, apiError, API_ERROR_CODES } from '@/lib/server/api-response';
 import { createLogger } from '@/lib/logger';
 import { getPostHogClient } from '@/lib/posthog-server';
+import { getRequestUser } from '@/utils/supabase/auth-bridge';
 
 const log = createLogger('Feedback API');
 const ADMIN_EMAIL = 'chalk.core@gmail.com';
 
 export async function POST(request: NextRequest) {
   try {
-    const cookieStore = await cookies();
-    const supabase = createClient(cookieStore);
     const adminClient = createAdminClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const user = await getRequestUser(request);
 
     const body = await request.json();
     const { type, content, screenshot, url, metadata } = body;
@@ -80,15 +77,14 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    const cookieStore = await cookies();
-    const supabase = createClient(cookieStore);
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const user = await getRequestUser(request);
 
     if (!user || user.email !== ADMIN_EMAIL) {
       return apiError(API_ERROR_CODES.INVALID_REQUEST, 403, 'Unauthorized');
     }
+
+    const cookieStore = await cookies();
+    const supabase = createClient(cookieStore);
 
     const { data, error } = await supabase
       .from('feedbacks')

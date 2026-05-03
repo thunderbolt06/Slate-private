@@ -3,6 +3,7 @@ import { createClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { getGeoInfo } from '@/lib/analytics/geo';
+import { getRequestUser } from '@/utils/supabase/auth-bridge';
 
 /**
  * Check if the authenticated user has already completed a quiz scene.
@@ -12,10 +13,11 @@ export async function GET(req: NextRequest) {
   const sceneId = req.nextUrl.searchParams.get('sceneId');
   if (!sceneId) return apiError('MISSING_REQUIRED_FIELD', 400, 'sceneId is required');
 
+  const user = await getRequestUser(req);
+  if (!user) return apiSuccess({ completed: false });
+
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return apiSuccess({ completed: false });
 
   const { data } = await supabase
     .from('quiz_scores')
@@ -49,13 +51,13 @@ export async function POST(req: NextRequest) {
       return apiError('MISSING_REQUIRED_FIELD', 400, 'Required fields missing');
     }
 
-    const cookieStore = await cookies();
-    const supabase = createClient(cookieStore);
-
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getRequestUser(req);
     if (!user) {
       return apiError('UNAUTHORIZED', 401, 'Please sign in to save your score');
     }
+
+    const cookieStore = await cookies();
+    const supabase = createClient(cookieStore);
 
     const userId = user.id;
     const percentage = Math.round((score / totalPoints) * 100);

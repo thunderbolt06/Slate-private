@@ -1,7 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { createClient } from '@/utils/supabase/server';
 import { createAdminClient } from '@/utils/supabase/admin';
+import { getRequestUser } from '@/utils/supabase/auth-bridge';
 
 /**
  * POST /api/user/credits/check
@@ -10,11 +9,9 @@ import { createAdminClient } from '@/utils/supabase/admin';
  *
  * Returns { allowed: true } or { allowed: false, reason: string }.
  */
-export async function POST(_req: NextRequest) {
+export async function POST(req: NextRequest) {
   try {
-    const cookieStore = await cookies();
-    const supabase = createClient(cookieStore);
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getRequestUser(req);
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -31,7 +28,7 @@ export async function POST(_req: NextRequest) {
     }
 
     return NextResponse.json(data);
-  } catch (err: any) {
+  } catch (err) {
     console.error('[credits/check] error:', err);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }

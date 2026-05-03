@@ -4,25 +4,36 @@ import {
   WorkflowIdReusePolicy,
 } from '@temporalio/client';
 import { createAdminClient } from '@/utils/supabase/admin';
+import { getRequestUser } from '@/utils/supabase/auth-bridge';
 import { getTemporalClient, TASK_QUEUE } from '@/temporal/client';
 
 /**
  * GET /api/courses?userId=xxx
+ * GET /api/courses?stageId=xxx
+ * GET /api/courses                ← lists the authenticated caller's courses
  * List metadata for all courses of a user.
  */
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
-  const userId = searchParams.get('userId');
+  let userId = searchParams.get('userId');
   const stageId = searchParams.get('stageId');
 
   if (!userId && !stageId) {
-    return NextResponse.json({ error: 'User ID or Stage ID is required' }, { status: 400 });
+    // Fall back to the authenticated caller — supports both web (cookie) and
+    // mobile (Authorization: Bearer) without requiring an explicit ?userId=.
+    const user = await getRequestUser(req);
+    if (!user) {
+      return NextResponse.json({ error: 'User ID or Stage ID is required' }, { status: 400 });
+    }
+    userId = user.id;
   }
 
   try {
     const supabase = createAdminClient();
-    let query = supabase.from('courses').select('id, stage_id, name, thumbnail, slide_count, created_at, updated_at');
-    
+    let query = supabase
+      .from('courses')
+      .select('id, stage_id, name, description, language, style, thumbnail, slide_count, created_at, updated_at');
+
     if (userId) {
       query = query.eq('user_id', userId).order('updated_at', { ascending: false });
     } else if (stageId) {
@@ -38,7 +49,17 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true, courses: data });
+    // Return rows with both snake_case (existing webapp callers) and camelCase
+    // (mobile client) keys. Spreading first preserves backward compatibility.
+    const courses = (data ?? []).map((c) => ({
+      ...c,
+      stageId: c.stage_id,
+      slideCount: c.slide_count ?? undefined,
+      createdAt: c.created_at,
+      updatedAt: c.updated_at,
+    }));
+
+    return NextResponse.json({ success: true, courses });
   } catch (err) {
     console.error('Unexpected error:', err);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

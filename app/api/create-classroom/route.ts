@@ -1,8 +1,7 @@
 import { type NextRequest } from 'next/server';
 import { nanoid } from 'nanoid';
-import { cookies } from 'next/headers';
-import { createClient } from '@/utils/supabase/server';
 import { createAdminClient } from '@/utils/supabase/admin';
+import { getRequestUser } from '@/utils/supabase/auth-bridge';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { type GenerateClassroomInput } from '@/lib/server/classroom-generation';
 import { getTemporalClient, TASK_QUEUE } from '@/temporal/client';
@@ -24,9 +23,7 @@ export const maxDuration = 30;
 export async function POST(req: NextRequest) {
   let requirementSnippet: string | undefined;
   try {
-    const cookieStore = await cookies();
-    const supabase = createClient(cookieStore);
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getRequestUser(req);
 
     if (!user) {
       return apiError('UNAUTHORIZED', 401, 'Authentication required');

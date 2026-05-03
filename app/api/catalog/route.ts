@@ -1,8 +1,7 @@
 import { type NextRequest } from 'next/server';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
-import { cookies } from 'next/headers';
-import { createClient } from '@/utils/supabase/server';
 import { createAdminClient } from '@/utils/supabase/admin';
+import { getRequestUser } from '@/utils/supabase/auth-bridge';
 import { apiSuccess, apiError } from '@/lib/server/api-response';
 import { createLogger } from '@/lib/logger';
 
@@ -47,9 +46,7 @@ export async function GET(req: NextRequest) {
     let currentUserId: string | null = null;
     if (filter === 'my') {
       try {
-        const cookieStore = await cookies();
-        const supabase = createClient(cookieStore);
-        const { data: { user } } = await supabase.auth.getUser();
+        const user = await getRequestUser(req);
         currentUserId = user?.id ?? null;
       } catch { /* ignore */ }
 

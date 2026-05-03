@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { createClient } from '@/utils/supabase/server';
 import { createAdminClient } from '@/utils/supabase/admin';
+import { getRequestUser } from '@/utils/supabase/auth-bridge';
 
 /**
  * GET /api/notifications
@@ -13,9 +12,7 @@ import { createAdminClient } from '@/utils/supabase/admin';
  */
 export async function GET(req: NextRequest) {
   try {
-    const cookieStore = await cookies();
-    const supabase = createClient(cookieStore);
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getRequestUser(req);
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -48,9 +45,17 @@ export async function GET(req: NextRequest) {
       ? (data ?? []).length
       : (data ?? []).filter((n) => !n.is_read).length;
 
+    // camelCase mapping for the mobile contract; raw rows are also kept so
+    // existing webapp callers still work.
+    const notifications = (data ?? []).map((n) => ({
+      ...n,
+      readAt: n.is_read ? (n.updated_at ?? n.created_at) : null,
+      createdAt: n.created_at,
+    }));
+
     return NextResponse.json({
       success: true,
-      notifications: data ?? [],
+      notifications,
       unreadCount,
     });
   } catch (err) {
@@ -65,9 +70,7 @@ export async function GET(req: NextRequest) {
  */
 export async function PATCH(req: NextRequest) {
   try {
-    const cookieStore = await cookies();
-    const supabase = createClient(cookieStore);
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getRequestUser(req);
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
