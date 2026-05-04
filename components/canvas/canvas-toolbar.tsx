@@ -194,21 +194,14 @@ export function CanvasToolbar({
             <AlertDialog open={homeConfirmOpen} onOpenChange={setHomeConfirmOpen}>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>
-                    {t('classroom.leaveTitle') || 'Leave classroom?'}
-                  </AlertDialogTitle>
+                  <AlertDialogTitle>Leave classroom?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    {t('classroom.leaveDescription') ||
-                      'You can return to the home page or continue your current classroom session.'}
+                    You can return to the home page or continue your current classroom session.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel>
-                    {t('classroom.continueClassroom') || 'Continue classroom'}
-                  </AlertDialogCancel>
-                  <AlertDialogAction onClick={onHome}>
-                    {t('common.goHome') || 'Go home'}
-                  </AlertDialogAction>
+                  <AlertDialogCancel>Continue classroom</AlertDialogCancel>
+                  <AlertDialogAction onClick={onHome}>Go home</AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
