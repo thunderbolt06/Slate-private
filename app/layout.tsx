@@ -34,6 +34,10 @@ export const metadata: Metadata = {
   title: 'Slate',
   description:
     'AI-powered interactive classroom. Learn anything, with anyone, anytime.',
+  // app.slateup.ai is the authenticated product surface, not a public marketing
+  // surface, so it should not be indexed. Public-facing content lives on
+  // www.slateup.ai which is the SEO target.
+  robots: { index: false, follow: false },
 };
 
 export default function RootLayout({

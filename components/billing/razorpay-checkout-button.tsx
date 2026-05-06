@@ -14,9 +14,12 @@ declare global {
 
 interface RazorpayOptions {
   key: string;
-  amount: number;
-  currency: string;
-  order_id: string;
+  // For one-time orders
+  amount?: number;
+  currency?: string;
+  order_id?: string;
+  // For subscriptions
+  subscription_id?: string;
   name: string;
   description: string;
   prefill?: { email?: string; name?: string };
@@ -29,7 +32,8 @@ interface RazorpayOptions {
 
 interface RazorpaySuccessResponse {
   razorpay_payment_id: string;
-  razorpay_order_id: string;
+  razorpay_order_id?: string;
+  razorpay_subscription_id?: string;
   razorpay_signature: string;
 }
 
@@ -79,6 +83,8 @@ export function RazorpayCheckoutButton({
     setLoading(true);
     posthog.capture('razorpay_checkout_initiated', { plan_period: period });
 
+    const isSubscription = period === 'monthly' || period === 'yearly';
+
     try {
       const scriptLoaded = await loadRazorpayScript();
       if (!scriptLoaded) {
@@ -86,56 +92,89 @@ export function RazorpayCheckoutButton({
         return;
       }
 
-      const res = await fetch('/api/razorpay/create-order', {
+      // Topup uses one-time order. Monthly/yearly use subscriptions with a 7-day trial.
+      const endpoint = isSubscription
+        ? '/api/razorpay/create-subscription'
+        : '/api/razorpay/create-order';
+
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ period }),
       });
-      const orderData = await res.json();
+      const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(orderData.error || 'Failed to create order');
+        throw new Error(data.error || 'Failed to start checkout');
       }
 
-      const rzp = new window.Razorpay({
-        key: orderData.key_id,
-        amount: orderData.amount,
-        currency: orderData.currency,
-        order_id: orderData.order_id,
-        name: 'Slate',
-        description: `Slate ${period.replace(/_/g, ' ')} plan`,
-        prefill: { email: userEmail, name: userName },
-        theme: { color: '#073b4c' },
-        handler: async (response: RazorpaySuccessResponse) => {
-          try {
-            const verifyRes = await fetch('/api/razorpay/verify-payment', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ ...response, period }),
-            });
-            const verifyData = await verifyRes.json();
-
-            if (!verifyRes.ok) {
-              throw new Error(verifyData.error || 'Payment verification failed');
-            }
-
-            toast.success(
-              verifyData.type === 'topup'
-                ? '10 courses added to your account! Happy learning 🎉'
-                : 'Payment successful! Your plan has been activated.',
-            );
-            onSuccess?.(period);
-          } catch (err: any) {
-            toast.error(err.message || 'Payment verification failed');
+      const checkoutOptions: RazorpayOptions = isSubscription
+        ? {
+            key: data.key_id,
+            subscription_id: data.subscription_id,
+            name: 'Slate',
+            description: `Slate ${period} plan, 7-day free trial`,
+            prefill: { email: userEmail, name: userName },
+            theme: { color: '#073b4c' },
+            handler: async (response: RazorpaySuccessResponse) => {
+              try {
+                const verifyRes = await fetch('/api/razorpay/verify-payment', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ ...response, period }),
+                });
+                const verifyData = await verifyRes.json();
+                if (!verifyRes.ok) {
+                  throw new Error(verifyData.error || 'Payment verification failed');
+                }
+                toast.success('Trial started. You will not be charged for 7 days.');
+                onSuccess?.(period);
+              } catch (err) {
+                toast.error(err instanceof Error ? err.message : 'Payment verification failed');
+              }
+            },
+            modal: {
+              ondismiss: () => {
+                toast.info('Checkout cancelled - no charge was made.');
+                setLoading(false);
+              },
+            },
           }
-        },
-        modal: {
-          ondismiss: () => {
-            toast.info('Payment cancelled - no charge was made.');
-            setLoading(false);
-          },
-        },
-      });
+        : {
+            key: data.key_id,
+            amount: data.amount,
+            currency: data.currency,
+            order_id: data.order_id,
+            name: 'Slate',
+            description: `Slate ${period.replace(/_/g, ' ')} plan`,
+            prefill: { email: userEmail, name: userName },
+            theme: { color: '#073b4c' },
+            handler: async (response: RazorpaySuccessResponse) => {
+              try {
+                const verifyRes = await fetch('/api/razorpay/verify-payment', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ ...response, period }),
+                });
+                const verifyData = await verifyRes.json();
+                if (!verifyRes.ok) {
+                  throw new Error(verifyData.error || 'Payment verification failed');
+                }
+                toast.success('10 courses added to your account! Happy learning 🎉');
+                onSuccess?.(period);
+              } catch (err) {
+                toast.error(err instanceof Error ? err.message : 'Payment verification failed');
+              }
+            },
+            modal: {
+              ondismiss: () => {
+                toast.info('Payment cancelled - no charge was made.');
+                setLoading(false);
+              },
+            },
+          };
+
+      const rzp = new window.Razorpay(checkoutOptions);
 
       rzp.on('payment.failed', (response: { error: { description: string } }) => {
         toast.error(response.error.description || 'Payment failed');
@@ -144,8 +183,8 @@ export function RazorpayCheckoutButton({
 
       rzp.open();
       // loading stays true until modal dismisses or payment completes
-    } catch (err: any) {
-      toast.error(err.message || 'Something went wrong');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Something went wrong');
       setLoading(false);
     }
   }, [period, userEmail, userName, onSuccess]);

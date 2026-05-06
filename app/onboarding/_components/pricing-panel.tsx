@@ -16,7 +16,7 @@ import type { PaymentProviderResponse } from '@/app/api/payment/provider/route';
 import type { RazorpayPlanId } from '@/lib/razorpay/client';
 
 type CheckoutPeriod = 'monthly' | 'yearly';
-type RazorpayCtor = new (opts: object) => {
+type RazorpayCtor = new (opts: Record<string, unknown>) => {
   open(): void;
   on(e: string, h: (r: { error: { description: string } }) => void): void;
 };
@@ -122,26 +122,25 @@ export function PricingPanel({ onFreeContinue }: { onFreeContinue?: () => void }
           setLoading(null);
           return;
         }
-        const orderRes = await fetch('/api/razorpay/create-order', {
+        // Monthly/yearly are subscriptions with a 7-day free trial.
+        const subRes = await fetch('/api/razorpay/create-subscription', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ period: period as RazorpayPlanId }),
         });
-        const orderData = await orderRes.json();
-        if (!orderRes.ok) throw new Error(orderData.error || 'Failed to create order');
+        const subData = await subRes.json();
+        if (!subRes.ok) throw new Error(subData.error || 'Failed to start subscription');
 
         const Razorpay = (window as unknown as { Razorpay: RazorpayCtor }).Razorpay;
         const rzp = new Razorpay({
-          key: orderData.key_id,
-          amount: orderData.amount,
-          currency: orderData.currency,
-          order_id: orderData.order_id,
+          key: subData.key_id,
+          subscription_id: subData.subscription_id,
           name: 'Slate',
-          description: `Slate ${period} plan`,
+          description: `Slate ${period} plan, 7-day free trial`,
           theme: { color: INK },
           handler: async (response: {
             razorpay_payment_id: string;
-            razorpay_order_id: string;
+            razorpay_subscription_id: string;
             razorpay_signature: string;
           }) => {
             try {
@@ -152,7 +151,7 @@ export function PricingPanel({ onFreeContinue }: { onFreeContinue?: () => void }
               });
               const v = await verifyRes.json();
               if (!verifyRes.ok) throw new Error(v.error || 'Payment verification failed');
-              window.location.href = `/pricing?success=true&period=${period}`;
+              window.location.href = `/pricing?success=true&period=${period}&trial=true`;
             } catch (err) {
               toast.error(errMsg(err));
             } finally {
@@ -161,7 +160,7 @@ export function PricingPanel({ onFreeContinue }: { onFreeContinue?: () => void }
           },
           modal: {
             ondismiss: () => {
-              toast.info('Payment cancelled. No charge was made.');
+              toast.info('Checkout cancelled. No charge was made.');
               setLoading(null);
             },
           },

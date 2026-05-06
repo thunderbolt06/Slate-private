@@ -28,3 +28,45 @@ export const RAZORPAY_PLANS = {
 } as const;
 
 export type RazorpayPlanId = keyof typeof RAZORPAY_PLANS;
+
+/**
+ * Subscription plan config. These plans are recurring and need to be created
+ * once on Razorpay (via the dashboard or scripts/setup-razorpay-plans.ts) and
+ * the resulting plan IDs added to env vars below.
+ *
+ * Trial: 7 days. Implemented via `start_at = now + 7 days` on subscription
+ * creation, so the customer's first charge happens 7 days after authorization.
+ */
+export const RAZORPAY_SUBSCRIPTION_PLANS = {
+  monthly: {
+    interval: 1,
+    period: 'monthly' as const,
+    amount: 169900,
+    currency: 'INR',
+    name: 'Slate Plus - Monthly',
+    envKey: 'RAZORPAY_PLAN_MONTHLY_ID',
+  },
+  yearly: {
+    interval: 1,
+    period: 'yearly' as const,
+    amount: 1629900,
+    currency: 'INR',
+    name: 'Slate Plus - Yearly',
+    envKey: 'RAZORPAY_PLAN_YEARLY_ID',
+  },
+} as const;
+
+export type RazorpaySubscriptionPeriod = keyof typeof RAZORPAY_SUBSCRIPTION_PLANS;
+
+export const TRIAL_DAYS = 7;
+
+export function getSubscriptionPlanId(period: RazorpaySubscriptionPeriod): string {
+  const cfg = RAZORPAY_SUBSCRIPTION_PLANS[period];
+  const planId = process.env[cfg.envKey];
+  if (!planId) {
+    throw new Error(
+      `${cfg.envKey} is not set. Run \`pnpm tsx scripts/setup-razorpay-plans.ts\` or create the plan on the Razorpay dashboard and add the plan_id to your env.`,
+    );
+  }
+  return planId;
+}
