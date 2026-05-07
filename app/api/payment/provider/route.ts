@@ -16,8 +16,8 @@ export interface PaymentProviderResponse {
  */
 export async function GET(req: NextRequest): Promise<NextResponse<PaymentProviderResponse>> {
   const geo = getGeoInfo(req.headers);
-  // const provider: PaymentProvider = geo.countryCode === 'IN' ? 'razorpay' : 'stripe';
-  const provider: PaymentProvider = 'stripe';
+  const provider: PaymentProvider = geo.countryCode === 'IN' ? 'razorpay' : 'stripe';
+  // const provider: PaymentProvider = 'stripe';
   
   return NextResponse.json({
     provider,
