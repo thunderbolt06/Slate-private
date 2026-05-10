@@ -837,6 +837,24 @@ function GenerationPreviewContent() {
       store.addScene(data.scene);
       store.setCurrentSceneId(data.scene.id);
 
+      // Kick off media generation for the first scene's outline so that any
+      // image/video placeholders (gen_img_*, gen_vid_*) are resolved before the
+      // user lands in the classroom. The classroom page only resumes media
+      // generation when *all* outlines have been turned into scenes, so without
+      // this the very first slide's images stay as placeholders forever.
+      try {
+        const firstOutlineForMedia = (contentData.effectiveOutline || firstOutline) as SceneOutline;
+        const { generateMediaForOutlines } = await import('@/lib/media/media-orchestrator');
+        // Fire-and-forget: don't block navigation on image generation, but the
+        // tasks are now enqueued and tracked in the media-generation store so
+        // the classroom page picks them up.
+        generateMediaForOutlines([firstOutlineForMedia], stage.id, signal).catch((err) => {
+          log.warn('[GenerationPreview] First-scene media generation failed:', err);
+        });
+      } catch (err) {
+        log.warn('[GenerationPreview] Could not start first-scene media generation:', err);
+      }
+
       // Set remaining outlines as skeleton placeholders
       const remaining = outlines.filter((o) => o.order !== data.scene.order);
       store.setGeneratingOutlines(remaining);

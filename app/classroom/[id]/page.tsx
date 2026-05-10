@@ -206,6 +206,7 @@ export default function ClassroomDetailPage() {
   const searchParams = useSearchParams();
   const classroomId = params?.id as string;
   const isAdmin = searchParams.get('admin') === 'true';
+  const isEmbed = searchParams.get('embed') === '1';
 
   useAnalytics(classroomId);
 
@@ -663,7 +664,7 @@ export default function ClassroomDetailPage() {
             </div>
           ) : (
             <>
-            <Stage onRetryOutline={retrySingleOutline} isAdmin={isAdmin} />
+            <Stage onRetryOutline={retrySingleOutline} isAdmin={isAdmin} isEmbed={isEmbed} />
             </>
           )}
         </div>

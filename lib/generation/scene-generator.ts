@@ -701,9 +701,9 @@ async function generateQuizContent(
   aiCall: AICallFn,
 ): Promise<GeneratedQuizContent | null> {
   const quizConfig = outline.quizConfig || {
-    questionCount: 3,
+    questionCount: 6,
     difficulty: 'medium',
-    questionTypes: ['single'],
+    questionTypes: ['single', 'multiple', 'trueFalse', 'fillInTheBlank'],
   };
 
   const prompts = buildPrompt(PROMPT_IDS.QUIZ_CONTENT, {

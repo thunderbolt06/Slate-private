@@ -1,6 +1,10 @@
 import type { TTSProviderId } from '@/lib/audio/types';
 import type { AgentConfig } from '@/lib/orchestration/registry/types';
-import { TTS_PROVIDERS } from '@/lib/audio/constants';
+import {
+  TTS_PROVIDERS,
+  DEFAULT_TTS_PROVIDER,
+  DEFAULT_TTS_VOICES,
+} from '@/lib/audio/constants';
 
 export interface ResolvedVoice {
   providerId: TTSProviderId;
@@ -38,8 +42,20 @@ export function resolveAgentVoice(
     }
   }
 
-  // Fallback: first available provider, deterministic voice
+  // Fallback: prefer the platform default provider/voice (Smallest AI Ethan).
+  // If unavailable, fall back to the first available provider with a deterministic voice.
   if (availableProviders.length > 0) {
+    const preferred = availableProviders.find((p) => p.providerId === DEFAULT_TTS_PROVIDER);
+    if (preferred) {
+      const defaultVoiceId = DEFAULT_TTS_VOICES[DEFAULT_TTS_PROVIDER];
+      const hasDefaultVoice = preferred.voices.some((v) => v.id === defaultVoiceId);
+      return {
+        providerId: preferred.providerId,
+        voiceId: hasDefaultVoice
+          ? defaultVoiceId
+          : preferred.voices[agentIndex % preferred.voices.length].id,
+      };
+    }
     const first = availableProviders[0];
     return {
       providerId: first.providerId,

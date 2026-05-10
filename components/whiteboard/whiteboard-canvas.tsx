@@ -215,52 +215,8 @@ const InteractiveWhiteboardCanvas = forwardRef<
     setIsPanning(false);
   }, []);
 
-  // Zoom toward cursor
-  useEffect(() => {
-    const el = viewportRef.current;
-    if (!el) {
-      return;
-    }
-
-    const onWheel = (e: WheelEvent) => {
-      e.preventDefault();
-      if (elements.length === 0) {
-        return;
-      }
-
-      const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
-
-      setViewZoom((prevZoom) => {
-        const newZoom = Math.min(5, Math.max(0.2, prevZoom * zoomFactor));
-
-        // Adjust pan to keep the point under the cursor stationary
-        const rect = el.getBoundingClientRect();
-        const cursorX = e.clientX - rect.left;
-        const cursorY = e.clientY - rect.top;
-
-        const oldScale = containerScale * prevZoom;
-        const newScale = containerScale * newZoom;
-        const scaleDiff = 1 / newScale - 1 / oldScale;
-
-        setPanX((prevPanX) => {
-          const newPanX = prevPanX + (cursorX - containerWidth / 2) * scaleDiff;
-          const maxPX = canvasWidth / 2 + containerWidth / (2 * newScale);
-          return Math.max(-maxPX, Math.min(maxPX, newPanX));
-        });
-
-        setPanY((prevPanY) => {
-          const newPanY = prevPanY + (cursorY - containerHeight / 2) * scaleDiff;
-          const maxPY = canvasHeight / 2 + containerHeight / (2 * newScale);
-          return Math.max(-maxPY, Math.min(maxPY, newPanY));
-        });
-
-        return newZoom;
-      });
-    };
-
-    el.addEventListener('wheel', onWheel, { passive: false });
-    return () => el.removeEventListener('wheel', onWheel);
-  }, [elements.length, containerScale, containerWidth, containerHeight, canvasWidth, canvasHeight]);
+  // Whiteboard zoom is intentionally disabled. Wheel events fall through to default
+  // browser scroll behaviour; the canvas remains at viewZoom = 1.
 
   useEffect(() => {
     return () => {

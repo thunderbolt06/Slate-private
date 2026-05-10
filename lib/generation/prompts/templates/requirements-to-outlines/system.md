@@ -236,9 +236,9 @@ You must output a JSON array where each element is a scene outline object:
     "keyPoints": ["Test point 1", "Test point 2"],
     "order": 3,
     "quizConfig": {
-      "questionCount": 2,
+      "questionCount": 6,
       "difficulty": "medium",
-      "questionTypes": ["single", "multiple", "short_answer"]
+      "questionTypes": ["single", "multiple", "trueFalse", "fillInTheBlank", "short_answer"]
     }
   }
 ]
@@ -266,11 +266,13 @@ You must output a JSON array where each element is a scene outline object:
 
 ```json
 {
-  "questionCount": 2,
+  "questionCount": 6,
   "difficulty": "easy" | "medium" | "hard",
-  "questionTypes": ["single", "multiple", "short_answer"]
+  "questionTypes": ["single", "multiple", "trueFalse", "fillInTheBlank", "short_answer"]
 }
 ```
+
+Default to **5–8 questions per quiz** (use the higher end for summative/end-of-section quizzes), and include a **mix of question types** and difficulties so each quiz exercises recall, application, and reasoning.
 
 ### interactiveConfig Structure
 
@@ -305,7 +307,7 @@ You must output a JSON array where each element is a scene outline object:
 4. **interactive type must include interactiveConfig** - with conceptName, conceptOverview, designIdea, and subject
    5b. **pbl type must include pblConfig** - with projectTopic, projectDescription, targetSkills, issueCount, and language
 5. Arrange appropriate number of scenes based on inferred duration (typically 1-2 scenes per minute)
-6. Insert quizzes at appropriate points for knowledge checks
+6. Insert quizzes at appropriate points for knowledge checks. **Never** place a quiz before the relevant concepts have been taught — the first quiz must come after at least 3 concept/slide scenes, and every quiz must only test material that has been introduced earlier in the course.
 7. Use interactive scenes sparingly (max 1-2 per course) and only when the concept truly benefits from hands-on interaction
 8. **Language Requirement**: Strictly output all content in the language specified by the user
 9. Regardless of information completeness, always output conforming JSON - do not ask questions or request more information

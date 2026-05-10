@@ -36,7 +36,7 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
 } from '@/components/ui/alert-dialog';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, BookOpen } from 'lucide-react';
 import { VisuallyHidden } from 'radix-ui';
 import { useCourseVideoExport } from '@/lib/export/use-course-video-export';
 
@@ -50,9 +50,13 @@ import { useCourseVideoExport } from '@/lib/export/use-course-video-export';
 export function Stage({
   onRetryOutline,
   isAdmin,
+  isEmbed = false,
 }: {
   onRetryOutline?: (outlineId: string) => Promise<void>;
   isAdmin?: boolean;
+  /** When rendered inside the onboarding iframe preview, hide nav controls
+   *  (home button, fullscreen toggle, Escape key). */
+  isEmbed?: boolean;
 }) {
   const { t } = useI18n();
   const router = useRouter();
@@ -891,6 +895,9 @@ export function Stage({
           // With keyboard.lock(), Escape no longer auto-exits fullscreen.
           // If panels are open, roundtable handles Escape (close panels).
           // If no panels are open, manually exit fullscreen.
+          // In embed mode (onboarding iframe preview) we never let Escape
+          // toggle the presentation/fullscreen state.
+          if (isEmbed) break;
           if (isPresenting && !isPresentationInteractionActive) {
             event.preventDefault();
             togglePresentation();
@@ -932,6 +939,7 @@ export function Stage({
     handleNextScene,
     handlePlayPause,
     handlePreviousScene,
+    isEmbed,
     isPresenting,
     isPresentationInteractionActive,
     isPresentationShortcutTarget,
@@ -1001,9 +1009,30 @@ export function Stage({
           </div>
         )}
 
-        {/* Floating Countdown Timer */}
-        {mode === 'playback' && outlines.length > 0 && (
+        {/* Floating Slate Up logo (top-left) - clicks back to home. Hidden in embed.
+         *  Mirrors the dashboard sidebar logo (BookOpen mark + "SLATE UP" wordmark)
+         *  from app/page.tsx for visual consistency. */}
+        {mode === 'playback' && !isEmbed && (
           <div className="absolute top-6 left-6 z-50 pointer-events-none">
+            <button
+              type="button"
+              onClick={handleHome}
+              aria-label={t('generation.backToHome')}
+              className="pointer-events-auto inline-flex items-center gap-2.5 rounded-xl bg-white/90 dark:bg-gray-800/90 backdrop-blur shadow-md hover:shadow-lg transition-all hover:scale-[1.02] active:scale-95 px-3 py-2 ring-1 ring-black/5 dark:ring-white/10"
+            >
+              <span className="size-8 rounded-xl bg-[#073b4c] flex items-center justify-center shrink-0">
+                <BookOpen className="size-4 text-[#ffd166]" />
+              </span>
+              <span className="text-lg font-black text-[#073b4c] dark:text-[#f0f0f0] tracking-[-0.02em]">
+                SLATE UP
+              </span>
+            </button>
+          </div>
+        )}
+
+        {/* Floating Countdown Timer (top-right) */}
+        {mode === 'playback' && outlines.length > 0 && (
+          <div className="absolute top-6 right-6 z-50 pointer-events-none">
             <ClassroomTimer
               currentSceneIndex={currentSceneIndex}
               totalScenes={totalScenesCount}
@@ -1039,7 +1068,7 @@ export function Stage({
             onPlayPause={handlePlayPause}
             onWhiteboardClose={handleWhiteboardToggle}
             isPresenting={isPresenting}
-            onTogglePresentation={togglePresentation}
+            onTogglePresentation={isEmbed ? undefined : togglePresentation}
             showStopDiscussion={
               engineMode === 'live' ||
               (chatIsStreaming && (chatSessionType === 'qa' || chatSessionType === 'discussion'))
@@ -1055,7 +1084,7 @@ export function Stage({
                 ? () => onRetryOutline(generatingOutlines[0].id)
                 : undefined
             }
-            onHome={handleHome}
+            onHome={isEmbed ? undefined : handleHome}
             slideRef={slideRef}
             isAdmin={isAdmin}
             onExportVideo={mode === 'playback' ? startExport : undefined}
@@ -1202,14 +1231,14 @@ export function Stage({
               onWhiteboardClose={handleWhiteboardToggle}
               isPresenting={isPresenting}
               controlsVisible={controlsVisible}
-              onTogglePresentation={togglePresentation}
+              onTogglePresentation={isEmbed ? undefined : togglePresentation}
               onPresentationInteractionChange={setIsPresentationInteractionActive}
               fullscreenContainerRef={stageRef}
               roundtableCollapsed={roundtableCollapsed}
               onToggleRoundtable={() => setRoundtableCollapsed(!roundtableCollapsed)}
               captionsCollapsed={captionsCollapsed}
               onToggleCaptions={() => setCaptionsCollapsed(!captionsCollapsed)}
-              onHome={handleHome}
+              onHome={isEmbed ? undefined : handleHome}
               isAdmin={isAdmin}
               onExportVideo={startExport}
               onAbortExport={abortExport}

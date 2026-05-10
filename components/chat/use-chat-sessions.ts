@@ -472,10 +472,19 @@ export function useChatSessions(options: UseChatSessionsOptions = {}) {
         requestTemplate.config.agentConfigs = generatedConfigs;
       }
 
-      const defaultMaxTurns = requestTemplate.config.agentIds.length <= 1 ? 1 : 10;
-      const maxTurns = settingsState.maxTurns
-        ? parseInt(settingsState.maxTurns, 10) || defaultMaxTurns
-        : defaultMaxTurns;
+      // Discussions auto-stop after 2 rounds of Q&A (4 agent turns: Q-A-Q-A).
+      const defaultMaxTurns =
+        sessionType === 'discussion'
+          ? 4
+          : requestTemplate.config.agentIds.length <= 1
+            ? 1
+            : 10;
+      const maxTurns =
+        sessionType === 'discussion'
+          ? 4
+          : settingsState.maxTurns
+            ? parseInt(settingsState.maxTurns, 10) || defaultMaxTurns
+            : defaultMaxTurns;
 
       let directorState: DirectorState | undefined = undefined;
       let turnCount = 0;
