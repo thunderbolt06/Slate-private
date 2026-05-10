@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import type { AuthError } from '@supabase/supabase-js';
+import { trackSignup, setUserData } from '@/lib/gtag';
 
 function sanitizeNext(next: string | null): string {
   if (!next || !next.startsWith('/') || next.startsWith('//')) {
@@ -52,6 +53,10 @@ function AuthCallbackInner() {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       const isNewUser = !user?.user_metadata?.onboarding;
+      if (isNewUser && user?.email) {
+        setUserData({ email: user.email });
+        trackSignup({ method: 'google' });
+      }
       router.replace(isNewUser ? '/onboarding' : next);
     });
   }, [router, searchParams]);

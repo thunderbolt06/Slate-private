@@ -1084,7 +1084,7 @@ export function Stage({
                 ? () => onRetryOutline(generatingOutlines[0].id)
                 : undefined
             }
-            onHome={isEmbed ? undefined : handleHome}
+            onHome={undefined}
             slideRef={slideRef}
             isAdmin={isAdmin}
             onExportVideo={mode === 'playback' ? startExport : undefined}
@@ -1238,7 +1238,7 @@ export function Stage({
               onToggleRoundtable={() => setRoundtableCollapsed(!roundtableCollapsed)}
               captionsCollapsed={captionsCollapsed}
               onToggleCaptions={() => setCaptionsCollapsed(!captionsCollapsed)}
-              onHome={isEmbed ? undefined : handleHome}
+              onHome={undefined}
               isAdmin={isAdmin}
               onExportVideo={startExport}
               onAbortExport={abortExport}

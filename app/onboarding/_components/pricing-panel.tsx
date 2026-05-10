@@ -14,6 +14,7 @@ import {
 } from '../_lib/tokens';
 import type { PaymentProviderResponse } from '@/app/api/payment/provider/route';
 import type { RazorpayPlanId } from '@/lib/razorpay/client';
+import { trackTrialStart } from '@/lib/gtag';
 
 type CheckoutPeriod = 'monthly' | 'yearly';
 type RazorpayCtor = new (opts: Record<string, unknown>) => {
@@ -113,6 +114,14 @@ export function PricingPanel({ onFreeContinue }: { onFreeContinue?: () => void }
     setLoading(period);
     const prov = provider?.provider ?? 'stripe';
     posthog.capture('checkout_initiated', { plan_period: period, provider: prov });
+
+    // Google Ads: Trial_Start fires when the user kicks off the 7-day trial.
+    // Value is approximate (1-month equivalent); Ads uses this as the trial signal.
+    const isINR = prov === 'razorpay';
+    const trialValue = isINR
+      ? (period === 'yearly' ? 1359 : 1699)
+      : (period === 'yearly' ? 15 : 19);
+    trackTrialStart({ value: trialValue, currency: isINR ? 'INR' : 'USD' });
 
     try {
       if (prov === 'razorpay') {
@@ -359,7 +368,7 @@ export function PricingPanel({ onFreeContinue }: { onFreeContinue?: () => void }
           )}
           <PlanTagline>Everything to actually build momentum.</PlanTagline>
 
-          {/* Promo banner */}
+          {/* Promo banner
           <div
             style={{
               background: YELLOW,
@@ -381,7 +390,7 @@ export function PricingPanel({ onFreeContinue }: { onFreeContinue?: () => void }
                 just {isIndia ? '₹849' : '$10'} to start
               </div>
             </div>
-          </div>
+          </div> */}
 
           <FeatureList items={PRO_FEATURES} tick={RED} />
 

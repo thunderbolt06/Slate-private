@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { INK, FREDOKA, NUNITO, RED, YELLOW } from '../_lib/tokens';
 import { OnboardBg } from './primitives';
 import { setPendingIntroPayload } from '@/lib/classroom/pending-intro';
 import type { DemoCourse } from '../_lib/demo-courses';
+import { ClassroomLoader } from '@/components/classroom/classroom-loader';
 
 export function ClassroomPreview({
   course,
@@ -13,6 +14,8 @@ export function ClassroomPreview({
   course: DemoCourse;
   onContinue: () => void;
 }) {
+  const [iframeLoaded, setIframeLoaded] = useState(false);
+
   useEffect(() => {
     setPendingIntroPayload({
       stageId: course.classroomId,
@@ -20,6 +23,7 @@ export function ClassroomPreview({
       description: course.description,
       language: 'en-US',
     });
+    setIframeLoaded(false);
   }, [course]);
 
   return (
@@ -137,18 +141,28 @@ export function ClassroomPreview({
               slate.app/classroom/{course.classroomId}
             </div>
           </div>
-          <iframe
-            src={`/classroom/${course.classroomId}?embed=1`}
-            title={course.title}
-            style={{
-              width: '100%',
-              height: 640,
-              border: 0,
-              display: 'block',
-              background: '#FDFDFD',
-            }}
-            allow="autoplay; microphone; camera"
-          />
+          <div style={{ position: 'relative', width: '100%', height: 640 }}>
+            <iframe
+              src={`/classroom/${course.classroomId}?embed=1`}
+              title={course.title}
+              onLoad={() => setIframeLoaded(true)}
+              style={{
+                width: '100%',
+                height: '100%',
+                border: 0,
+                display: 'block',
+                background: '#FDFDFD',
+              }}
+              allow="autoplay; microphone; camera"
+            />
+            {!iframeLoaded && (
+              <ClassroomLoader
+                variant="embed"
+                label="Opening your classroom"
+                hint="Loading slides, agents, and narration…"
+              />
+            )}
+          </div>
         </div>
 
         <div

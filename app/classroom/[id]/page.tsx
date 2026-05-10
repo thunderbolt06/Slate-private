@@ -17,6 +17,7 @@ import { useAuth } from '@/lib/hooks/use-auth';
 import type { Scene } from '@/lib/types/stage';
 import { isMediaPlaceholder } from '@/lib/store/media-generation';
 import { IntroStreamingPlayer } from '@/components/audio/intro-streaming-player';
+import { ClassroomLoader } from '@/components/classroom/classroom-loader';
 import {
   takeIntroBootstrapForClassroom,
   evictIntroBootstrapCache,
@@ -641,10 +642,8 @@ export default function ClassroomDetailPage() {
             />
           )} */}
           {loading ? (
-            <div className="flex-1 flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-              <div className="text-center text-muted-foreground">
-                <p>Loading classroom...</p>
-              </div>
+            <div className="flex-1 flex items-center justify-center">
+              <ClassroomLoader />
             </div>
           ) : error ? (
             <div className="flex-1 flex items-center justify-center bg-gray-50 dark:bg-gray-900">

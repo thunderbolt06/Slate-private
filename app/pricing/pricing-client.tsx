@@ -9,6 +9,7 @@ import type { UserPlan, SubscriptionPeriod } from '@/lib/stripe/plans';
 import { PricingPanel } from '@/app/onboarding/_components/pricing-panel';
 import { INK, FREDOKA, NUNITO, RED, YELLOW } from '@/app/onboarding/_lib/tokens';
 import { OnboardBg } from '@/app/onboarding/_components/primitives';
+import { trackSubscriptionPro } from '@/lib/gtag';
 
 export function PricingClient() {
   const searchParams = useSearchParams();
@@ -27,6 +28,28 @@ export function PricingClient() {
     if (successParam || topupParam === 'success') {
       if (successParam) setSuccessModal({ open: true, period: periodParam ?? 'monthly' });
       else toast.success('10 courses added to your account! Happy learning 🎉');
+
+      // Google Ads: fire Subscription_Pro on successful checkout return.
+      // Client-side fallback only — server-side webhook (api/stripe/webhook,
+      // api/razorpay/webhook) is the source of truth for revenue.
+      if (successParam && !searchParams.get('topup')) {
+        const period = periodParam ?? 'monthly';
+        const sessionId = searchParams.get('session_id') || searchParams.get('rzp_payment_id');
+        fetch('/api/payment/provider')
+          .then((r) => r.json())
+          .then((prov: { provider?: string }) => {
+            const isINR = prov?.provider === 'razorpay';
+            const value = isINR
+              ? (period === 'yearly' ? 16299 : 1699)
+              : (period === 'yearly' ? 180 : 19);
+            trackSubscriptionPro({
+              value,
+              currency: isINR ? 'INR' : 'USD',
+              transactionId: sessionId || `client-${period}-${Date.now()}`,
+            });
+          })
+          .catch(() => {});
+      }
 
       let count = 0;
       const interval = setInterval(async () => {

@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Mail, Lock, ArrowRight, Eye, EyeOff, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '@/lib/hooks/use-auth';
 import posthog from 'posthog-js';
+import { trackSignup, setUserData } from '@/lib/gtag';
 
 function LoginContent() {
   const router = useRouter();
@@ -51,6 +52,8 @@ function LoginContent() {
         await signUpWithEmail(email, password);
         posthog.identify(email, { email });
         posthog.capture('user_signed_up', { method: 'email' });
+        setUserData({ email });
+        trackSignup({ method: 'email' });
         setSuccess('Check your email for a confirmation link!');
         setEmail('');
         setPassword('');

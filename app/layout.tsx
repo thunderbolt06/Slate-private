@@ -53,15 +53,18 @@ export default function RootLayout({
       >
         <Script
           async
-          src="https://www.googletagmanager.com/gtag/js?id=G-05Q10VRYSH"
+          src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GADS_ID || 'AW-18072518513'}`}
         />
-        <Script id="google-analytics">
+        <Script id="google-tags">
           {`
               window.dataLayer = window.dataLayer || [];
               function gtag(){dataLayer.push(arguments);}
               gtag('js', new Date());
 
               gtag('config', 'G-05Q10VRYSH');
+              gtag('config', '${process.env.NEXT_PUBLIC_GADS_ID || 'AW-18072518513'}', {
+                'linker': { 'domains': ['slateup.ai', 'www.slateup.ai', 'app.slateup.ai'] }
+              });
             `}
         </Script>
         <ThemeProvider>
