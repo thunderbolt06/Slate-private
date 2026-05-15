@@ -16,7 +16,7 @@ export interface DemoCourse {
 export const DEMO_COURSES: DemoCourse[] = [
   {
     key: 'llm',
-    classroomId: 'GRdV6A2Y7F',
+    classroomId: 'hzvZVAqHML',
     title: 'How AI Actually Thinks',
     description: 'From tokens to transformers. Understand what really happens when you chat with an LLM.',
     emoji: '🧠',

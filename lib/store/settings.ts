@@ -300,6 +300,7 @@ const getDefaultAudioConfig = () => ({
   asrProviderId: 'openai-whisper' as ASRProviderId,
   asrLanguage: 'auto',
   ttsProvidersConfig: {
+    'smallest-tts': { apiKey: '', baseUrl: '', enabled: true },
     'gemini-tts': { apiKey: '', baseUrl: '', modelId: DEFAULT_TTS_MODELS['gemini-tts'], enabled: true },
     'openai-tts': { apiKey: '', baseUrl: '', enabled: true },
     'azure-tts': { apiKey: '', baseUrl: '', enabled: false },
@@ -308,7 +309,6 @@ const getDefaultAudioConfig = () => ({
     'doubao-tts': { apiKey: '', baseUrl: '', enabled: false },
     'elevenlabs-tts': { apiKey: '', baseUrl: '', enabled: false },
     'minimax-tts': { apiKey: '', baseUrl: '', modelId: 'speech-2.8-hd', enabled: false },
-    'smallest-tts': { apiKey: '', baseUrl: '', enabled: true },
     'hf-tts': { apiKey: '', baseUrl: '', enabled: true },
     'fish-tts': { apiKey: '', baseUrl: '', enabled: true },
     'browser-native-tts': { apiKey: '', baseUrl: '', enabled: true },
@@ -452,7 +452,7 @@ function ensureValidProviderSelections(state: Partial<SettingsState>): void {
 
   // Specifically ensure Gemini 3 Flash if it's a fresh or broken state
   if (!state.modelId || (state.providerId === 'google' && !state.modelId)) {
-    state.modelId = 'gemini-3.1-flash-lite-preview';
+    state.modelId = 'gemini-3.1-flash-lite';
   }
 }
 
@@ -619,7 +619,7 @@ export const useSettingsStore = create<SettingsState>()(
       return {
         // Initial state (use migrated data if available)
         providerId: migratedData?.providerId || 'google',
-        modelId: migratedData?.modelId || 'gemini-3.1-flash-lite-preview',
+        modelId: migratedData?.modelId || 'gemini-3.1-flash-lite',
         providersConfig: migratedData?.providersConfig || getDefaultProvidersConfig(),
         ttsModel: migratedData?.ttsModel || DEFAULT_TTS_MODELS[DEFAULT_TTS_PROVIDER],
         selectedAgentIds: migratedData?.selectedAgentIds || [

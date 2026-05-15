@@ -37,7 +37,7 @@ export function resolveModel(params: {
   requiresApiKey?: boolean;
 }): ResolvedModel {
   const modelString =
-    params.modelString || process.env.DEFAULT_MODEL || 'google:gemini-3.1-flash-lite-preview';
+    params.modelString || process.env.DEFAULT_MODEL || 'google:gemini-3.1-flash-lite';
   const { providerId, modelId } = parseModelString(modelString);
 
   const clientBaseUrl = params.baseUrl || undefined;
