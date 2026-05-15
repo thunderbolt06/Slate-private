@@ -1491,7 +1491,7 @@ function CourseOutlinePage({
               </h2>
               <div className="space-y-1.5">
                 {scenes.map((scene, i) => (
-                  <div key={scene.id} className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-[#f0f4f8] dark:bg-[#1a1a1a] border-2 border-transparent hover:border-[#073b4c]/10 dark:hover:border-[#3a3a3a] transition-colors">
+                  <div key={scene.id} className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-[#f0f4f8] dark:bg-[#1a1a1a]">
                     <span className="shrink-0 text-[11px] font-black text-[#073b4c]/30 dark:text-[#525252] w-5 text-right tabular-nums">{i + 1}</span>
                     <span className="text-sm shrink-0">{sceneIcon(scene.type)}</span>
                     <span className="font-semibold text-sm text-[#073b4c] dark:text-[#e5e5e5] truncate">{scene.title}</span>
