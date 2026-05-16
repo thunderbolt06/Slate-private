@@ -57,6 +57,15 @@ function AuthCallbackInner() {
         setUserData({ email: user.email });
         trackSignup({ method: 'google' });
       }
+      if (user?.email && !user.user_metadata?.welcomed) {
+        const { data: { session } } = await supabase.auth.getSession();
+        void fetch('/api/user/welcome', {
+          method: 'POST',
+          headers: session?.access_token
+            ? { Authorization: `Bearer ${session.access_token}` }
+            : undefined,
+        }).catch(() => {});
+      }
       router.replace(isNewUser ? '/onboarding' : next);
     });
   }, [router, searchParams]);
