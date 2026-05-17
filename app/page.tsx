@@ -165,7 +165,7 @@ interface LeaderboardEntry {
 
 // ── Sidebar ────────────────────────────────────────────────────────────────
 // Inline sidebar notification row - matches sidebar item style, opens the same panel
-function SidebarNotificationRow() {
+function SidebarNotificationRow({ onOpen, forceClose }: { onOpen?: () => void; forceClose?: boolean }) {
   const { user } = useAuth();
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -199,6 +199,10 @@ function SidebarNotificationRow() {
     return () => document.removeEventListener('mousedown', handler);
   }, [open]);
 
+  useEffect(() => {
+    if (forceClose) setOpen(false);
+  }, [forceClose]);
+
   const timeAgo = (dateStr: string) => {
     const diff = Date.now() - new Date(dateStr).getTime();
     const mins = Math.floor(diff / 60000);
@@ -210,8 +214,10 @@ function SidebarNotificationRow() {
   };
 
   const handleOpen = () => {
-    setOpen((v) => !v);
-    if (!open && unreadCount > 0) {
+    const nextOpen = !open;
+    setOpen(nextOpen);
+    if (nextOpen) onOpen?.();
+    if (nextOpen && unreadCount > 0) {
       setUnreadCount(0);
       fetch('/api/notifications', { method: 'PATCH' }).catch(() => {});
       setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
@@ -329,6 +335,9 @@ function Sidebar({
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+
+  const openHelp = () => { setHelpOpen(true); };
+  const openFeedback = () => { setFeedbackOpen(true); };
   const avatar = useUserProfileStore((s) => s.avatar);
   const nickname = useUserProfileStore((s) => s.nickname);
   const router = useRouter();
@@ -442,7 +451,7 @@ function Sidebar({
 
             {/* Give Feedback */}
             <button
-              onClick={() => setFeedbackOpen(true)}
+              onClick={openFeedback}
               className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl font-bold text-sm text-[#073b4c]/55 hover:bg-[#f0f4f8] hover:text-[#073b4c] dark:text-[#a3a3a3] dark:hover:bg-[#222222] dark:hover:text-[#f0f0f0] transition-all"
             >
               <MessageSquarePlus className="size-4.5 shrink-0" />
@@ -451,7 +460,7 @@ function Sidebar({
 
             {/* Get Help */}
             <button
-              onClick={() => setHelpOpen(true)}
+              onClick={openHelp}
               className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl font-bold text-sm text-[#073b4c]/55 hover:bg-[#f0f4f8] hover:text-[#073b4c] dark:text-[#a3a3a3] dark:hover:bg-[#222222] dark:hover:text-[#f0f0f0] transition-all"
             >
               <HelpCircle className="size-4.5 shrink-0" />
@@ -459,7 +468,10 @@ function Sidebar({
             </button>
 
             {/* Notifications - custom sidebar row */}
-            <SidebarNotificationRow />
+            <SidebarNotificationRow
+              onOpen={() => { setHelpOpen(false); setFeedbackOpen(false); }}
+              forceClose={helpOpen || feedbackOpen}
+            />
           </div>
 
           {/* Profile card - always visible at bottom */}
@@ -1334,7 +1346,7 @@ function MyCourseCard({
         )}
 
         <div className="flex items-center justify-between text-[11px] text-[#073b4c]/40 dark:text-[#737373] font-medium">
-          <span>{classroom.sceneCount} slides</span>
+          <span>{classroom.sceneCount} {classroom.sceneCount === 1 ? 'slide' : 'slides'}</span>
           <span>{formatDate(classroom.updatedAt)}</span>
         </div>
 
@@ -1472,7 +1484,7 @@ function CourseOutlinePage({
               )}
               {slideCount != null && (
                 <span className="px-3 py-1 bg-[#f0f4f8] dark:bg-[#2a2a2a] text-[#073b4c] dark:text-[#e5e5e5] text-xs font-bold rounded-lg border-2 border-[#073b4c]/20 dark:border-[#333333]">
-                  {slideCount} slides
+                  {slideCount} {slideCount === 1 ? 'slide' : 'slides'}
                 </span>
               )}
             </div>
@@ -1505,7 +1517,7 @@ function CourseOutlinePage({
           {(!scenes || scenes.length === 0) && slideCount != null && (
             <div>
               <h2 className="text-xs font-black text-[#073b4c]/40 dark:text-[#737373] uppercase tracking-widest mb-3">
-                Course Contents · {slideCount} slides
+                Course Contents · {slideCount} {slideCount === 1 ? 'slide' : 'slides'}
               </h2>
               <div className="h-24 flex items-center justify-center border-[3px] border-dashed border-[#073b4c]/10 dark:border-[#2a2a2a] rounded-2xl">
                 <Loader2 className="size-5 text-[#073b4c]/30 animate-spin" />
@@ -1854,8 +1866,8 @@ function AchievementsTab() {
               icon: <Flame className="size-6" />,
               label: 'Current Streak',
               value: statsLoading ? null : `${stats?.currentStreak ?? 0}`,
-              unit: 'days',
-              sub: `Best: ${stats?.highestStreak ?? 0} days`,
+              unit: (stats?.currentStreak ?? 0) === 1 ? 'day' : 'days',
+              sub: `Best: ${stats?.highestStreak ?? 0} ${(stats?.highestStreak ?? 0) === 1 ? 'day' : 'days'}`,
               color: '#ff9f1c',
               bgClass: 'from-orange-50 to-amber-50',
             },
@@ -1873,7 +1885,7 @@ function AchievementsTab() {
               label: 'Courses Completed',
               value: statsLoading ? null : `${stats?.coursesCompleted ?? 0}`,
               unit: '',
-              sub: `${totalStudents.toLocaleString()} total learners`,
+              sub: `${totalStudents.toLocaleString()} learners on platform`,
               color: '#06d6a0',
               bgClass: 'from-emerald-50 to-teal-50',
             },
