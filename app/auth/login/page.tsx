@@ -142,6 +142,8 @@ function LoginContent() {
                 setMode('login');
                 setError(null);
                 setSuccess(null);
+                setEmail('');
+                setPassword('');
               }}
               className={`flex-1 py-2.5 text-sm font-bold rounded-xl transition-all duration-200 ${
                 mode === 'login'
@@ -156,6 +158,8 @@ function LoginContent() {
                 setMode('signup');
                 setError(null);
                 setSuccess(null);
+                setEmail('');
+                setPassword('');
               }}
               className={`flex-1 py-2.5 text-sm font-bold rounded-xl transition-all duration-200 ${
                 mode === 'signup'
@@ -237,6 +241,7 @@ function LoginContent() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Email address"
+                autoComplete="email"
                 required
                 className="w-full h-12 pl-11 pr-4 rounded-2xl border-[3px] border-[#073b4c]/20 bg-[#f0f4f8]/50 text-sm font-medium text-[#073b4c] placeholder:text-[#073b4c]/35 focus:border-[#118AB2] focus:outline-none transition-colors"
               />
@@ -248,6 +253,7 @@ function LoginContent() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Password"
+                autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
                 required
                 minLength={6}
                 className="w-full h-12 pl-11 pr-12 rounded-2xl border-[3px] border-[#073b4c]/20 bg-[#f0f4f8]/50 text-sm font-medium text-[#073b4c] placeholder:text-[#073b4c]/35 focus:border-[#118AB2] focus:outline-none transition-colors"
