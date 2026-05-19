@@ -165,7 +165,7 @@ interface LeaderboardEntry {
 
 // ── Sidebar ────────────────────────────────────────────────────────────────
 // Inline sidebar notification row - matches sidebar item style, opens the same panel
-function SidebarNotificationRow() {
+function SidebarNotificationRow({ closeSignal, onOpen }: { closeSignal: number; onOpen: () => void }) {
   const { user } = useAuth();
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -199,6 +199,10 @@ function SidebarNotificationRow() {
     return () => document.removeEventListener('mousedown', handler);
   }, [open]);
 
+  useEffect(() => {
+    if (closeSignal > 0) setOpen(false);
+  }, [closeSignal]);
+
   const timeAgo = (dateStr: string) => {
     const diff = Date.now() - new Date(dateStr).getTime();
     const mins = Math.floor(diff / 60000);
@@ -210,6 +214,7 @@ function SidebarNotificationRow() {
   };
 
   const handleOpen = () => {
+    if (!open) onOpen(); // notify parent before opening
     setOpen((v) => !v);
     if (!open && unreadCount > 0) {
       setUnreadCount(0);
@@ -329,6 +334,8 @@ function Sidebar({
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [notifCloseSignal, setNotifCloseSignal] = useState(0);
+  const closeNotif = () => setNotifCloseSignal((v) => v + 1);
   const avatar = useUserProfileStore((s) => s.avatar);
   const nickname = useUserProfileStore((s) => s.nickname);
   const router = useRouter();
@@ -432,7 +439,7 @@ function Sidebar({
             {/* Settings - admin only */}
             {isAdmin && (
               <button
-                onClick={() => setSettingsOpen(true)}
+                onClick={() => { closeNotif(); setSettingsOpen(true); }}
                 className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl font-bold text-sm text-[#073b4c]/55 hover:bg-[#f0f4f8] hover:text-[#073b4c] dark:text-[#a3a3a3] dark:hover:bg-[#222222] dark:hover:text-[#f0f0f0] transition-all"
               >
                 <Settings className="size-4.5 shrink-0" />
@@ -442,7 +449,7 @@ function Sidebar({
 
             {/* Give Feedback */}
             <button
-              onClick={() => setFeedbackOpen(true)}
+              onClick={() => { closeNotif(); setFeedbackOpen(true); }}
               className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl font-bold text-sm text-[#073b4c]/55 hover:bg-[#f0f4f8] hover:text-[#073b4c] dark:text-[#a3a3a3] dark:hover:bg-[#222222] dark:hover:text-[#f0f0f0] transition-all"
             >
               <MessageSquarePlus className="size-4.5 shrink-0" />
@@ -451,7 +458,7 @@ function Sidebar({
 
             {/* Get Help */}
             <button
-              onClick={() => setHelpOpen(true)}
+              onClick={() => { closeNotif(); setHelpOpen(true); }}
               className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl font-bold text-sm text-[#073b4c]/55 hover:bg-[#f0f4f8] hover:text-[#073b4c] dark:text-[#a3a3a3] dark:hover:bg-[#222222] dark:hover:text-[#f0f0f0] transition-all"
             >
               <HelpCircle className="size-4.5 shrink-0" />
@@ -459,7 +466,10 @@ function Sidebar({
             </button>
 
             {/* Notifications - custom sidebar row */}
-            <SidebarNotificationRow />
+            <SidebarNotificationRow
+              closeSignal={notifCloseSignal}
+              onOpen={() => { setHelpOpen(false); setFeedbackOpen(false); setProfileOpen(false); setSettingsOpen(false); }}
+            />
           </div>
 
           {/* Profile card - always visible at bottom */}
@@ -474,7 +484,7 @@ function Sidebar({
               </div>
             ) : user ? (
               <button
-                onClick={() => setProfileOpen(true)}
+                onClick={() => { closeNotif(); setProfileOpen(true); }}
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border-2 border-[#073b4c]/10 hover:border-[#073b4c]/30 hover:bg-[#f8f9fa] dark:border-[#2a2a2a] dark:hover:border-[#4a4a4a] dark:hover:bg-[#222222] transition-all group"
               >
                 {/* Avatar */}
@@ -1472,7 +1482,7 @@ function CourseOutlinePage({
               )}
               {slideCount != null && (
                 <span className="px-3 py-1 bg-[#f0f4f8] dark:bg-[#2a2a2a] text-[#073b4c] dark:text-[#e5e5e5] text-xs font-bold rounded-lg border-2 border-[#073b4c]/20 dark:border-[#333333]">
-                  {slideCount} slides
+                  {slideCount} {slideCount === 1 ? 'slide' : 'slides'}
                 </span>
               )}
             </div>
@@ -1505,7 +1515,7 @@ function CourseOutlinePage({
           {(!scenes || scenes.length === 0) && slideCount != null && (
             <div>
               <h2 className="text-xs font-black text-[#073b4c]/40 dark:text-[#737373] uppercase tracking-widest mb-3">
-                Course Contents · {slideCount} slides
+                Course Contents · {slideCount} {slideCount === 1 ? 'slide' : 'slides'}
               </h2>
               <div className="h-24 flex items-center justify-center border-[3px] border-dashed border-[#073b4c]/10 dark:border-[#2a2a2a] rounded-2xl">
                 <Loader2 className="size-5 text-[#073b4c]/30 animate-spin" />
@@ -1750,7 +1760,7 @@ function BrowseCourseCard({ course, index, onClick }: { course: Course; index: n
         </p>
         <div className="pt-3 border-t-2 border-[#073b4c]/8 dark:border-[#2a2a2a] flex items-center justify-between">
           <span className="text-[11px] font-black text-[#073b4c]/30 dark:text-[#737373] uppercase tracking-widest">
-            {course.slideCount} Slides
+            {course.slideCount} {course.slideCount === 1 ? 'Slide' : 'Slides'}
           </span>
           <div className="size-7 bg-[#073b4c] dark:bg-slate-600 rounded-full flex items-center justify-center text-white group-hover:bg-[#ef476f] transition-colors">
             <ArrowRight className="size-3.5" />
@@ -1854,8 +1864,8 @@ function AchievementsTab() {
               icon: <Flame className="size-6" />,
               label: 'Current Streak',
               value: statsLoading ? null : `${stats?.currentStreak ?? 0}`,
-              unit: 'days',
-              sub: `Best: ${stats?.highestStreak ?? 0} days`,
+              unit: (stats?.currentStreak ?? 0) === 1 ? 'day' : 'days',
+              sub: `Best: ${stats?.highestStreak ?? 0} ${(stats?.highestStreak ?? 0) === 1 ? 'day' : 'days'}`,
               color: '#ff9f1c',
               bgClass: 'from-orange-50 to-amber-50',
             },
@@ -1873,7 +1883,7 @@ function AchievementsTab() {
               label: 'Courses Completed',
               value: statsLoading ? null : `${stats?.coursesCompleted ?? 0}`,
               unit: '',
-              sub: `${totalStudents.toLocaleString()} total learners`,
+              sub: `${totalStudents.toLocaleString()} total learners on platform`,
               color: '#06d6a0',
               bgClass: 'from-emerald-50 to-teal-50',
             },
