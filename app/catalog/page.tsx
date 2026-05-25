@@ -418,7 +418,7 @@ function CourseCard({ course, index, onClick }: { course: Course; index: number;
               {course.tags.subject}
             </span>
           )}
-          {course.tags.age_range && (
+          {course.tags.age_range && course.tags.age_range !== '0-100' && (
             <span className="px-3 py-1 bg-[#118ab2] text-white text-[10px] font-black uppercase tracking-wider rounded-lg border-2 border-[#073b4c]">
               Ages {course.tags.age_range}
             </span>

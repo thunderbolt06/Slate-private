@@ -180,14 +180,10 @@ export const OptionCard = ({
             fontSize: 16,
             color: INK,
             lineHeight: 1.2,
-            // NEW-007: Without these, single long words like "Instagram" /
-            // "YouTube" / "Podcast" overflow narrow tiles on the
-            // "How did you find us?" step and get clipped with an ellipsis.
-            // Use break-word (not 'anywhere') so mid-word breaks only happen
-            // when the word itself is wider than the container — prevents
-            // "Somewhere" from splitting as "Somewhe / re else".
+            // NEW-007: overflowWrap 'break-word' handles truly long single words
+            // as a last resort. Remove deprecated wordBreak 'break-word' which
+            // was triggering mid-word breaks prematurely for "Somewhere else".
             overflowWrap: 'break-word',
-            wordBreak: 'break-word',
           }}
         >
           {label}
