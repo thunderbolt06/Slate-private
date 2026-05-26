@@ -142,6 +142,8 @@ function LoginContent() {
                 setMode('login');
                 setError(null);
                 setSuccess(null);
+                setEmail('');
+                setPassword('');
               }}
               className={`flex-1 py-2.5 text-sm font-bold rounded-xl transition-all duration-200 ${
                 mode === 'login'
@@ -156,6 +158,8 @@ function LoginContent() {
                 setMode('signup');
                 setError(null);
                 setSuccess(null);
+                setEmail('');
+                setPassword('');
               }}
               className={`flex-1 py-2.5 text-sm font-bold rounded-xl transition-all duration-200 ${
                 mode === 'signup'
@@ -229,7 +233,7 @@ function LoginContent() {
           </div>
 
           {/* Email/Password form */}
-          <form onSubmit={handleEmailAuth} className="space-y-3">
+          <form onSubmit={handleEmailAuth} className="space-y-3" autoComplete={mode === 'signup' ? 'off' : undefined}>
             <div className="relative">
               <Mail className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-[#073b4c]/40" />
               <input
@@ -238,6 +242,7 @@ function LoginContent() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Email address"
                 required
+                autoComplete={mode === 'login' ? 'email' : 'off'}
                 className="w-full h-12 pl-11 pr-4 rounded-2xl border-[3px] border-[#073b4c]/20 bg-[#f0f4f8]/50 text-sm font-medium text-[#073b4c] placeholder:text-[#073b4c]/35 focus:border-[#118AB2] focus:outline-none transition-colors"
               />
             </div>
@@ -250,6 +255,7 @@ function LoginContent() {
                 placeholder="Password"
                 required
                 minLength={6}
+                autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
                 className="w-full h-12 pl-11 pr-12 rounded-2xl border-[3px] border-[#073b4c]/20 bg-[#f0f4f8]/50 text-sm font-medium text-[#073b4c] placeholder:text-[#073b4c]/35 focus:border-[#118AB2] focus:outline-none transition-colors"
               />
               <button

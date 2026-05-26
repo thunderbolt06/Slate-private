@@ -165,10 +165,9 @@ interface LeaderboardEntry {
 
 // ── Sidebar ────────────────────────────────────────────────────────────────
 // Inline sidebar notification row - matches sidebar item style, opens the same panel
-function SidebarNotificationRow() {
+function SidebarNotificationRow({ open, setOpen }: { open: boolean; setOpen: (v: boolean) => void }) {
   const { user } = useAuth();
   const router = useRouter();
-  const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<{ id: string; type: string; title: string; body: string | null; action_url: string | null; is_read: boolean; created_at: string }[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -210,7 +209,7 @@ function SidebarNotificationRow() {
   };
 
   const handleOpen = () => {
-    setOpen((v) => !v);
+    setOpen(!open);
     if (!open && unreadCount > 0) {
       setUnreadCount(0);
       fetch('/api/notifications', { method: 'PATCH' }).catch(() => {});
@@ -329,6 +328,7 @@ function Sidebar({
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
   const avatar = useUserProfileStore((s) => s.avatar);
   const nickname = useUserProfileStore((s) => s.nickname);
   const router = useRouter();
@@ -451,7 +451,7 @@ function Sidebar({
 
             {/* Get Help */}
             <button
-              onClick={() => setHelpOpen(true)}
+              onClick={() => { setNotifOpen(false); setHelpOpen(true); }}
               className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl font-bold text-sm text-[#073b4c]/55 hover:bg-[#f0f4f8] hover:text-[#073b4c] dark:text-[#a3a3a3] dark:hover:bg-[#222222] dark:hover:text-[#f0f0f0] transition-all"
             >
               <HelpCircle className="size-4.5 shrink-0" />
@@ -459,7 +459,10 @@ function Sidebar({
             </button>
 
             {/* Notifications - custom sidebar row */}
-            <SidebarNotificationRow />
+            <SidebarNotificationRow
+              open={notifOpen}
+              setOpen={(v) => { if (v) setHelpOpen(false); setNotifOpen(v); }}
+            />
           </div>
 
           {/* Profile card - always visible at bottom */}
@@ -1460,7 +1463,7 @@ function CourseOutlinePage({
                   {tags.subject}
                 </span>
               )}
-              {tags?.age_range && (
+              {tags?.age_range && tags.age_range !== '0-100' && (
                 <span className="px-3 py-1 bg-[#118ab2] text-white text-xs font-black uppercase tracking-wide rounded-lg border-2 border-[#073b4c]">
                   Ages {tags.age_range}
                 </span>
@@ -1734,7 +1737,7 @@ function BrowseCourseCard({ course, index, onClick }: { course: Course; index: n
               {course.tags.subject}
             </span>
           )}
-          {course.tags.age_range && (
+          {course.tags.age_range && course.tags.age_range !== '0-100' && (
             <span className="px-2 py-0.5 bg-[#118ab2] text-white text-[9px] font-black uppercase tracking-wide rounded-lg border border-[#073b4c]">
               Ages {course.tags.age_range}
             </span>
@@ -1854,8 +1857,8 @@ function AchievementsTab() {
               icon: <Flame className="size-6" />,
               label: 'Current Streak',
               value: statsLoading ? null : `${stats?.currentStreak ?? 0}`,
-              unit: 'days',
-              sub: `Best: ${stats?.highestStreak ?? 0} days`,
+              unit: (stats?.currentStreak ?? 0) === 1 ? 'day' : 'days',
+              sub: `Best: ${stats?.highestStreak ?? 0} ${(stats?.highestStreak ?? 0) === 1 ? 'day' : 'days'}`,
               color: '#ff9f1c',
               bgClass: 'from-orange-50 to-amber-50',
             },
@@ -1873,7 +1876,7 @@ function AchievementsTab() {
               label: 'Courses Completed',
               value: statsLoading ? null : `${stats?.coursesCompleted ?? 0}`,
               unit: '',
-              sub: `${totalStudents.toLocaleString()} total learners`,
+              sub: `${totalStudents.toLocaleString()} learners on Slate`,
               color: '#06d6a0',
               bgClass: 'from-emerald-50 to-teal-50',
             },
